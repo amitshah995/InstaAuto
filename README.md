@@ -1,46 +1,131 @@
-# Edge Cases — Index
+# AI Handoff — Building Phase 1 with ChatGPT, reviewed by Claude
 
 > **Companion to:** [`../implementationPlan.md`](../implementationPlan.md) ·
-> [`../architecture.md`](../architecture.md)
-> **Purpose:** the list you keep open **while coding a milestone**, so the
-> nasty cases get handled during implementation instead of being discovered
-> by a customer.
+> [`../edge-cases/`](../edge-cases/)
+> **Purpose:** the exact operating procedure for having ChatGPT write the
+> Phase 1 code while a reviewer (Claude, or a human) checks every milestone
+> against the specs already written.
 
-## How to use this
+---
 
-Every case has a stable ID: `EC-<milestone>-<n>` (e.g. `EC-1.5-07`).
+## 1. What each side can and cannot do
 
-1. Before starting a milestone, read its edge-case file end to end.
-2. While coding, handle each case **or** consciously defer it — a deferred
-   case gets a `// EC-x.y-nn: deferred because …` comment in the code, never
-   silence.
-3. Before the milestone's exit criteria, walk the table again. Anything
-   marked **P0** must have a test.
+**Read this before setting anything up.** Getting the roles wrong is the
+difference between a useful loop and a pile of plausible code nobody verified.
 
-## Priority key
-
-| | Meaning |
-|---|---|
-| **P0** | Silent data loss, cross-tenant leak, duplicate sends, or policy violation. Ship-blocking. Needs an automated test. |
-| **P1** | User-visible breakage or support ticket generator. Fix in the milestone. |
-| **P2** | Rough edge. Log it, handle it cheaply, revisit later. |
-
-## Files
-
-| Phase | File | Covers |
+| | Can | Cannot |
 |---|---|---|
-| 0 | [`phase-0-foundations.md`](./phase-0-foundations.md) | Meta app, OAuth prerequisites, webhook handshake, deploy |
-| 1 | [`phase-1-comment-dm-automation.md`](./phase-1-comment-dm-automation.md) | M1.1–M1.12 — the whole Phase 1 build |
-| 2 | [`phase-2-story-automation.md`](./phase-2-story-automation.md) | Story replies, mentions, reactions |
-| 3 | [`phase-3-ai-fallback.md`](./phase-3-ai-fallback.md) | LLM fallback replies |
-| 4 | [`phase-4-ice-breakers.md`](./phase-4-ice-breakers.md) | Ice Breaker profile sync |
-| 5 | [`phase-5-reels-publishing.md`](./phase-5-reels-publishing.md) | Reels containers, scheduling |
-| 6 | [`phase-6-flow-builder.md`](./phase-6-flow-builder.md) | Graph execution, waits, versioning |
-| — | [`cross-cutting.md`](./cross-cutting.md) | Security, tenancy, time, i18n — applies to every phase |
+| **ChatGPT (Codex / Projects)** | Write code, run it in its own sandbox, open PRs against a connected GitHub repo | Know what it got wrong; remember your architecture between sessions unless you re-supply it |
+| **Claude (this session)** | Read a diff/branch/pasted code and review it against these docs; run tests in this container; write follow-up specs | **Log into your ChatGPT account, see its conversations, or watch it work.** No such connector exists |
+| **You** | Move artifacts between the two, make product calls | Skip the review step and still get a working system |
 
-## Standing rule
+**The monitoring is of the *work product*, not the *tool*.** ChatGPT produces a
+branch or a diff; that is the artifact I review. There is no live feed.
 
-Anything in these files marked **"verify against current Meta docs"** is a
-behaviour that Meta has changed before and may change again. Do not encode it
-from memory or from this document — check the live API reference at
-implementation time, and pin the version (`P6`).
+---
+
+## 2. The loop
+
+```
+      ┌──────────────────────────────────────────────────────┐
+      │  ONE MILESTONE AT A TIME (M1.1 … M1.12)              │
+      └──────────────────────────────────────────────────────┘
+
+ 1. YOU     paste the milestone prompt from milestone-prompts.md
+            into ChatGPT (docs already uploaded to the Project)
+ 2. CHATGPT writes the code, runs its own tests, opens a PR /
+            gives you a diff
+ 3. YOU     bring it here: PR link (once GitHub access works) or
+            pasted diff
+ 4. CLAUDE  reviews against architecture.md + the milestone's
+            edge-case IDs; returns a pass/fail list
+ 5. YOU     paste the failures back into ChatGPT as a fix prompt
+ 6. repeat 3–5 until the milestone's Exit criteria pass
+ 7. merge, move to the next milestone
+```
+
+**Never run two milestones in parallel with ChatGPT.** It loses architectural
+consistency across sessions faster than you will notice, and M1.5's purity
+rule (P3) is exactly the sort of thing that quietly dies in session three.
+
+---
+
+## 3. One-time setup (~30 minutes)
+
+### 3.1 Create a ChatGPT Project
+
+Put all four doc sets in the Project's files so every chat in it starts with
+the same context:
+
+- `problemStatement.md`
+- `architecture.md`
+- `implementationPlan.md`
+- `edge-cases/` — at minimum the phase file for what you are building, plus
+  `cross-cutting.md`
+
+Set the Project's custom instructions to the contents of
+[`master-context.md`](./master-context.md).
+
+### 3.2 Connect the repo
+
+Use ChatGPT's Codex / GitHub connection against the **fork**, on a branch per
+milestone (`feat/m1-1-schema`). Never let it work on `main`.
+
+### 3.3 Add an `AGENTS.md` to the fork
+
+Codex reads `AGENTS.md` from the repo root automatically — this is the highest-
+leverage 10 minutes in the whole setup, because it survives every new session
+without you pasting anything. Put the non-negotiables there:
+
+```markdown
+# Agent rules for this repository
+
+## Architecture invariants — never violate
+- The webhook handler does no business logic: verify → persist → enqueue → 200.
+- `src/lib/automation/matcher.ts` is pure. It must not import Supabase, the
+  Graph client, or anything with I/O.
+- Only `src/lib/instagram/graph-client.ts` may contain Graph API URLs or the
+  API version.
+- Policy (24h window, opt-out, caps) is checked BEFORE any Graph API call.
+- Every tenant table is RLS-protected; worker queries must filter by org_id
+  explicitly because the service-role key bypasses RLS.
+- The system is at-least-once. Every side effect needs an idempotency guard.
+
+## Before writing any route handler
+Read the relevant guide in `node_modules/next/dist/docs/`. This is Next.js 16;
+App Router conventions differ from older versions.
+
+## Definition of done
+Typecheck + lint + unit tests pass. New migration applies on a clean DB.
+No secret in a `NEXT_PUBLIC_*` var.
+```
+
+### 3.4 Fix GitHub access
+
+Without it, step 3 of the loop is copy-paste of large diffs, which is slow and
+lossy. Install the Claude GitHub App on the repo so reviews can read branches
+directly.
+
+---
+
+## 4. Files here
+
+| File | Use |
+|---|---|
+| [`master-context.md`](./master-context.md) | Paste once as ChatGPT Project instructions |
+| [`milestone-prompts.md`](./milestone-prompts.md) | 12 copy-paste prompts, one per Phase 1 milestone |
+| [`review-protocol.md`](./review-protocol.md) | What to bring back for review, and what gets checked |
+
+---
+
+## 5. The honest caveat
+
+ChatGPT will produce code that looks right and passes its own tests while
+violating an invariant that only shows up under load or across tenants —
+`EC-1.1-02` (service-role bypassing RLS) and `EC-1.5-01` (empty keywords
+matching everything) are both exactly this shape: clean-looking code,
+catastrophic behaviour.
+
+That is what the review step is for. **If you skip step 4 to move faster, you
+are not moving faster** — you are moving the bug to production, where a
+2-person team pays for it in support load.
