@@ -4,6 +4,55 @@ import crypto from "crypto"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || "your_verify_token"
 
+// Escapes regex special characters so a keyword like "10% off" or "a+b"
+// can't crash new RegExp() or match unintended patterns.
+function escapeRegex(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+// Returns true if this exact event_id was already processed (Meta redelivered it).
+// Inserts a row on first sight; a duplicate insert (unique violation) means "already seen".
+async function isDuplicateEvent(supabase: any, eventId: string, eventType: string): Promise<boolean> {
+  const { error } = await supabase.from("processed_events").insert({ event_id: eventId, event_type: eventType })
+  if (error) {
+    // 23505 = Postgres unique_violation. Anything else is a real DB error, not a duplicate —
+    // fail open (treat as not-duplicate) so a transient DB hiccup doesn't silently eat events.
+    if (error.code === "23505") return true
+    console.error("[v0] ⚠️ processed_events insert error (treating as not-duplicate):", error.message)
+    return false
+  }
+  return false
+}
+
+// Logs one automation decision to automation_runs. Never throws — logging must not
+// block the actual automation from running.
+async function logRun(
+  supabase: any,
+  params: {
+    userId: number
+    automationId?: string | null
+    eventType: "comment" | "dm" | "story" | "postback"
+    triggerText?: string | null
+    matched: boolean
+    actionStatus?: "sent" | "failed" | "skipped" | null
+    errorMessage?: string | null
+  },
+) {
+  try {
+    await supabase.from("automation_runs").insert({
+      user_id: params.userId,
+      automation_id: params.automationId || null,
+      event_type: params.eventType,
+      trigger_text: params.triggerText || null,
+      matched: params.matched,
+      action_status: params.actionStatus || null,
+      error_message: params.errorMessage || null,
+    })
+  } catch (e) {
+    console.error("[v0] ⚠️ Failed to write automation_runs log:", e)
+  }
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const mode = searchParams.get("hub.mode")
@@ -22,15 +71,32 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get("x-hub-signature-256")
     const appSecret = process.env.INSTAGRAM_APP_SECRET
     const rawBody = await request.text()
-    if (appSecret && signature) {
+
+    if (appSecret) {
+      // App secret is configured (production-ready) — signature is REQUIRED, not optional.
+      if (!signature) {
+        console.error("[v0] ❌ Missing webhook signature (INSTAGRAM_APP_SECRET is set)")
+        return NextResponse.json({ error: "Missing signature" }, { status: 403 })
+      }
       const expectedSig = "sha256=" + crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex")
       if (signature !== expectedSig) {
         console.error("[v0] ❌ Invalid webhook signature")
         return NextResponse.json({ error: "Invalid signature" }, { status: 403 })
       }
+    } else {
+      // No app secret set yet (e.g. Meta app not configured yet) — allow through for local/dev testing,
+      // but make it loud so this never goes unnoticed in production logs.
+      console.warn("[v0] ⚠️ INSTAGRAM_APP_SECRET not set — webhook signature NOT verified")
     }
 
-    const body = JSON.parse(rawBody)
+    let body: any
+    try {
+      body = JSON.parse(rawBody)
+    } catch (e) {
+      console.error("[v0] ❌ Malformed JSON in webhook body")
+      return NextResponse.json({ error: "Malformed JSON" }, { status: 400 })
+    }
+
     if (!body.entry) return NextResponse.json({ ok: true })
     const supabase = await getSupabaseServerClient()
 
@@ -48,15 +114,11 @@ export async function POST(request: NextRequest) {
       // ============================================================
       // 🔇 ECHO SILENCER (The Fix for "ID Not Found" logs)
       // ============================================================
-      // If the incoming event is just a "Read Receipt", "Delivery Status",
-      // or "Echo" (the bot's own reply), we skip it immediately.
-      // This prevents the code from trying to find a User ID for a system event.
       if (entry.messaging) {
         const isSystemEvent = entry.messaging.every(
           (event: any) => event.read || event.delivery || (event.message && event.message.is_echo),
         )
         if (isSystemEvent) {
-          // console.log("[v0] 🔇 Skipped System Event (Echo/Read/Delivery)")
           continue
         }
       }
@@ -109,7 +171,6 @@ export async function POST(request: NextRequest) {
 
       // ============================================================
       // 🔍 FALLBACK 2: Token verification (tests ALL users)
-      // Only runs once per unknown ID, then saves the mapping forever
       // ============================================================
       if (!user) {
         console.log(`[v0] 🔎 Trying token verification for ${webhookId}...`)
@@ -165,9 +226,15 @@ export async function POST(request: NextRequest) {
         for (const change of entry.changes) {
           if (change.field === "comments" && change.value?.text) {
             const commentId = change.value.id
+
+            // --- Idempotency guard: skip if this exact comment was already processed ---
+            if (await isDuplicateEvent(supabase, `comment_${commentId}`, "comment")) {
+              console.log(`[v0] 🔁 Duplicate comment event skipped: ${commentId}`)
+              continue
+            }
+
             const commentText = change.value.text.toLowerCase().trim()
             const senderId = change.value.from.id
-
             const mediaId = change.value.media.id
 
             // Safety check for self-reply
@@ -176,7 +243,6 @@ export async function POST(request: NextRequest) {
             // ============================================================
             // 🧠 SMART MATCHING LOGIC
             // ============================================================
-            // Filter to comment-only automations first
             const commentAutomations = automations.filter((a: any) => a.trigger_source === 'comment')
 
             // Priority 1: Reply-All (Specific post, ALL comments)
@@ -192,7 +258,7 @@ export async function POST(request: NextRequest) {
                   a.trigger_type === "keyword" &&
                   a.trigger_value
                     .split(",")
-                    .some((k: string) => new RegExp(`\\b${k.trim()}\\b`, "i").test(commentText)),
+                    .some((k: string) => new RegExp(`\\b${escapeRegex(k.trim())}\\b`, "i").test(commentText)),
               )
             }
 
@@ -200,153 +266,194 @@ export async function POST(request: NextRequest) {
             if (!match) {
               match = automations.find(
                 (a: any) =>
-                  !a.specific_media_id && // Must be global
+                  !a.specific_media_id &&
                   a.trigger_type === "keyword" &&
                   a.trigger_value
                     .split(",")
-                    .some((k: string) => new RegExp(`\\b${k.trim()}\\b`, "i").test(commentText)),
+                    .some((k: string) => new RegExp(`\\b${escapeRegex(k.trim())}\\b`, "i").test(commentText)),
               )
             }
 
-            if (match) {
-              console.log(`[v0] ✅ Comment Match: "${match.name}" (ID: ${match.id})`)
-              const content = match.response_content
-              const replies = ["Check your DMs! 📥", "Sent! 🔥", "Check inbox! ✨"]
-              const randomReply = replies[Math.floor(Math.random() * replies.length)]
+            if (!match) {
+              // Only log a "no match" row when there WERE comment automations to consider —
+              // otherwise every comment on every account with zero automations spams the log.
+              if (commentAutomations.length > 0) {
+                await logRun(supabase, {
+                  userId: user.id,
+                  eventType: "comment",
+                  triggerText: commentText,
+                  matched: false,
+                })
+              }
+              continue
+            }
 
-              // Public Reply
-              try {
-                const pubRes = await fetch(
-                  `https://graph.instagram.com/v24.0/${commentId}/replies?access_token=${encodeURIComponent(user.access_token)}`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: randomReply }),
+            console.log(`[v0] ✅ Comment Match: "${match.name}" (ID: ${match.id})`)
+            const content = match.response_content
+            const replies = ["Check your DMs! 📥", "Sent! 🔥", "Check inbox! ✨"]
+            const randomReply = replies[Math.floor(Math.random() * replies.length)]
+
+            let publicReplyOk = true
+
+            // Public Reply
+            try {
+              const pubRes = await fetch(
+                `https://graph.instagram.com/v24.0/${commentId}/replies?access_token=${encodeURIComponent(user.access_token)}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ message: randomReply }),
+                },
+              )
+              const pubJson = await pubRes.json()
+              if (pubJson.error) {
+                console.error("[v0] 🔴 Public Reply Failed:", JSON.stringify(pubJson.error))
+                publicReplyOk = false
+              } else {
+                console.log("[v0] 🟢 Public Reply Sent!", pubJson)
+              }
+            } catch (e) {
+              console.error("[v0] 🔴 Public Reply Network Error:", e)
+              publicReplyOk = false
+            }
+
+            // Private Reply (DM)
+            const apiBody: any = { recipient: { comment_id: commentId } }
+
+            if (content.message) {
+              apiBody.message = { text: content.message }
+            } else if (content.card) {
+              const card = content.card
+              const apiButtons = card.buttons.map((b: any) => ({
+                type: b.type,
+                title: b.title,
+                url: b.url || undefined,
+                payload: b.payload || undefined,
+              }))
+              const element: any = { title: card.title, buttons: apiButtons }
+              if (card.subtitle) element.subtitle = card.subtitle
+              if (card.image_url && card.image_url.startsWith("http")) element.image_url = card.image_url
+
+              apiBody.message = {
+                attachment: {
+                  type: "template",
+                  payload: {
+                    template_type: "generic",
+                    elements: [element],
                   },
-                )
-                const pubJson = await pubRes.json()
-                if (pubJson.error) console.error("[v0] 🔴 Public Reply Failed:", JSON.stringify(pubJson.error))
-                else console.log("[v0] 🟢 Public Reply Sent!", pubJson)
-              } catch (e) {
-                console.error("[v0] 🔴 Public Reply Network Error:", e)
+                },
               }
+            }
+            if (content.delay_seconds && content.delay_seconds > 0) {
+              console.log(`[v0] ⏳ Delaying comment DM by ${content.delay_seconds} seconds...`)
+              await new Promise((resolve) => setTimeout(resolve, content.delay_seconds * 1000))
+            }
 
-              // Private Reply (DM)
-              const apiBody: any = { recipient: { comment_id: commentId } }
+            try {
+              const dmRes = await fetch(
+                `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(user.access_token)}`,
+                { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) },
+              )
+              const dmJson = await dmRes.json()
+              if (dmJson.error) {
+                console.error("[v0] 🔴 Private DM Failed:", JSON.stringify(dmJson.error))
+                await logRun(supabase, {
+                  userId: user.id,
+                  automationId: match.id,
+                  eventType: "comment",
+                  triggerText: commentText,
+                  matched: true,
+                  actionStatus: "failed",
+                  errorMessage: JSON.stringify(dmJson.error),
+                })
+              } else {
+                console.log("[v0] 🟢 Private DM Sent!", dmJson)
+                await logRun(supabase, {
+                  userId: user.id,
+                  automationId: match.id,
+                  eventType: "comment",
+                  triggerText: commentText,
+                  matched: true,
+                  actionStatus: publicReplyOk ? "sent" : "sent",
+                  errorMessage: publicReplyOk ? null : "Public reply failed, private DM sent",
+                })
 
-              if (content.message) {
-                // Plain Text
-                apiBody.message = { text: content.message }
-              } else if (content.card) {
-                // Rich Card / Generic Template
-                const card = content.card
-                const apiButtons = card.buttons.map((b: any) => ({
-                  type: b.type,
-                  title: b.title,
-                  url: b.url || undefined,
-                  payload: b.payload || undefined,
-                }))
-                const element: any = { title: card.title, buttons: apiButtons }
-                if (card.subtitle) element.subtitle = card.subtitle
-                if (card.image_url && card.image_url.startsWith("http")) element.image_url = card.image_url
+                // Save comment trigger and DM reply to DB
+                try {
+                  let { data: conv } = await supabase
+                    .from("conversations")
+                    .select("id")
+                    .eq("user_id", user.id)
+                    .eq("recipient_id", senderId)
+                    .single()
 
-                apiBody.message = {
-                  attachment: {
-                    type: "template",
-                    payload: {
-                      template_type: "generic",
-                      elements: [element],
-                    },
-                  },
-                }
-              }
-              // Handle delay_seconds if present
-              if (content.delay_seconds && content.delay_seconds > 0) {
-                console.log(`[v0] ⏳ Delaying comment DM by ${content.delay_seconds} seconds...`)
-                await new Promise((resolve) => setTimeout(resolve, content.delay_seconds * 1000))
-              }
-
-              try {
-                const dmRes = await fetch(
-                  `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(user.access_token)}`,
-                  { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) },
-                )
-                const dmJson = await dmRes.json()
-                if (dmJson.error) {
-                  console.error("[v0] 🔴 Private DM Failed:", JSON.stringify(dmJson.error))
-                } else {
-                  console.log("[v0] 🟢 Private DM Sent!", dmJson)
-
-                  // Save comment trigger and DM reply to DB
-                  try {
-                    let { data: conv } = await supabase
-                      .from("conversations")
-                      .select("id")
-                      .eq("user_id", user.id)
-                      .eq("recipient_id", senderId)
-                      .single()
-
-                    if (!conv) {
-                      let realUsername = `cnt_${senderId.slice(0, 5)}...`
-                      try {
-                        const profileUrl = `https://graph.instagram.com/v24.0/${senderId}?fields=username&access_token=${user.access_token}`
-                        const profileRes = await fetch(profileUrl)
-                        const profileData = await profileRes.json()
-                        if (profileData.username) {
-                          realUsername = profileData.username
-                        }
-                      } catch (e) {
-                        console.error("[v0] Failed to fetch username in comment DM log", e)
+                  if (!conv) {
+                    let realUsername = `cnt_${senderId.slice(0, 5)}...`
+                    try {
+                      const profileUrl = `https://graph.instagram.com/v24.0/${senderId}?fields=username&access_token=${user.access_token}`
+                      const profileRes = await fetch(profileUrl)
+                      const profileData = await profileRes.json()
+                      if (profileData.username) {
+                        realUsername = profileData.username
                       }
-
-                      const { data: newConv } = await supabase
-                        .from("conversations")
-                        .insert({
-                          user_id: user.id,
-                          recipient_id: senderId,
-                          recipient_username: realUsername,
-                          last_message_at: new Date().toISOString(),
-                        })
-                        .select("id")
-                        .single()
-                      conv = newConv
-                    } else {
-                      await supabase
-                        .from("conversations")
-                        .update({ last_message_at: new Date().toISOString() })
-                        .eq("id", conv.id)
+                    } catch (e) {
+                      console.error("[v0] Failed to fetch username in comment DM log", e)
                     }
 
-                    if (conv) {
-                      // Save comment trigger as incoming message
-                      await supabase.from("messages").insert({
-                        id: `mid_cmt_trig_${Date.now()}_${Math.random()}`,
-                        conversation_id: conv.id,
+                    const { data: newConv } = await supabase
+                      .from("conversations")
+                      .insert({
                         user_id: user.id,
-                        sender_id: senderId,
-                        sender_username: "User",
-                        content: `💬 Commented: "${change.value.text}"`,
-                        is_from_instagram: true,
+                        recipient_id: senderId,
+                        recipient_username: realUsername,
+                        last_message_at: new Date().toISOString(),
                       })
-
-                      // Save outgoing DM reply
-                      await supabase.from("messages").insert({
-                        id: dmJson.message_id || `mid_cmt_reply_${Date.now()}_${Math.random()}`,
-                        conversation_id: conv.id,
-                        user_id: user.id,
-                        sender_id: user.business_account_id,
-                        sender_username: user.username,
-                        content: content.message || `[Sent rich card: "${content.card?.title || 'Card'}"]`,
-                        is_from_instagram: false,
-                      })
-                    }
-                  } catch (dbErr) {
-                    console.error("[v0] Failed to log comment automation to DB:", dbErr)
+                      .select("id")
+                      .single()
+                    conv = newConv
+                  } else {
+                    await supabase
+                      .from("conversations")
+                      .update({ last_message_at: new Date().toISOString() })
+                      .eq("id", conv.id)
                   }
+
+                  if (conv) {
+                    await supabase.from("messages").insert({
+                      id: `mid_cmt_trig_${Date.now()}_${Math.random()}`,
+                      conversation_id: conv.id,
+                      user_id: user.id,
+                      sender_id: senderId,
+                      sender_username: "User",
+                      content: `💬 Commented: "${change.value.text}"`,
+                      is_from_instagram: true,
+                    })
+
+                    await supabase.from("messages").insert({
+                      id: dmJson.message_id || `mid_cmt_reply_${Date.now()}_${Math.random()}`,
+                      conversation_id: conv.id,
+                      user_id: user.id,
+                      sender_id: user.business_account_id,
+                      sender_username: user.username,
+                      content: content.message || `[Sent rich card: "${content.card?.title || 'Card'}"]`,
+                      is_from_instagram: false,
+                    })
+                  }
+                } catch (dbErr) {
+                  console.error("[v0] Failed to log comment automation to DB:", dbErr)
                 }
-              } catch (e) {
-                console.error("[v0] 🔴 Private DM Network Error:", e)
               }
+            } catch (e) {
+              console.error("[v0] 🔴 Private DM Network Error:", e)
+              await logRun(supabase, {
+                userId: user.id,
+                automationId: match.id,
+                eventType: "comment",
+                triggerText: commentText,
+                matched: true,
+                actionStatus: "failed",
+                errorMessage: String(e),
+              })
             }
           }
         }
@@ -360,12 +467,18 @@ export async function POST(request: NextRequest) {
           const senderId = event.sender.id
           const recipientId = event.recipient.id
 
-          // Skip system events
           if (event.read || event.delivery || event.message?.is_echo || senderId === recipientId) continue
 
-          // Filter story automations only
           const storyAutomations = automations.filter((a: any) => a.trigger_source === 'story')
           if (storyAutomations.length === 0) continue
+
+          // --- Idempotency guard ---
+          const storyEventId =
+            event.message?.mid || `story_${senderId}_${event.reaction?.mid || event.timestamp || ""}`
+          if (await isDuplicateEvent(supabase, `story_${storyEventId}`, "story")) {
+            console.log(`[v0] 🔁 Duplicate story event skipped: ${storyEventId}`)
+            continue
+          }
 
           let match = null
           let storyMediaId: string | null = null
@@ -381,7 +494,7 @@ export async function POST(request: NextRequest) {
             )
           }
 
-          // 2️⃣ Story Reaction Handler  
+          // 2️⃣ Story Reaction Handler
           else if (event.reaction) {
             const reactionEmoji = event.reaction.emoji
             storyMediaId = event.reaction.mid || null
@@ -410,14 +523,13 @@ export async function POST(request: NextRequest) {
               const triggers = a.trigger_value?.split(',').map((t: string) => t.trim()) || []
               if (triggers.length > 0 && triggers[0] !== 'ALL' && triggers[0] !== 'ALL_MENTIONS' && triggers[0] !== '') {
                 return triggers.some((keyword: string) =>
-                  new RegExp(`\\b${keyword}\\b`, 'i').test(messageText)
+                  new RegExp(`\\b${escapeRegex(keyword)}\\b`, 'i').test(messageText)
                 )
               }
               return true
             })
           }
 
-          // Send response if match found
           if (match) {
             console.log(`✨ Story automation matched: ${match.name}`)
 
@@ -450,7 +562,6 @@ export async function POST(request: NextRequest) {
                 }
               }
 
-              // Handle delay_seconds if present
               if (content.delay_seconds && content.delay_seconds > 0) {
                 console.log(`[v0] ⏳ Delaying story DM by ${content.delay_seconds} seconds...`)
                 await new Promise((resolve) => setTimeout(resolve, content.delay_seconds * 1000))
@@ -492,25 +603,33 @@ export async function POST(request: NextRequest) {
             continue
           }
 
+          // --- Idempotency guard ---
+          const dmEventId =
+            triggerType === "keyword"
+              ? event.message?.mid || `dm_${senderId}_${event.timestamp || Date.now()}`
+              : `postback_${senderId}_${event.timestamp || triggerValue}`
+          if (await isDuplicateEvent(supabase, `dm_${dmEventId}`, "dm")) {
+            console.log(`[v0] 🔁 Duplicate DM event skipped: ${dmEventId}`)
+            continue
+          }
+
           console.log(`[v0] 📩 DM from ${senderId}: "${triggerValue}"`)
 
           // ============================================================
-          // 💾 1. SAVE INCOMING MESSAGE (Live Inbox Logic)
+          // 💾 1. SAVE INCOMING MESSAGE (Live Inbox Logic) + track last_inbound_at
           // ============================================================
+          let conv: any = null
           try {
-            // A. Upsert Conversation
-            // We try to find an existing conv first to get the ID
-            let { data: conv } = await supabase
+            let { data: existingConv } = await supabase
               .from("conversations")
-              .select("id")
+              .select("id, last_inbound_at")
               .eq("user_id", user.id)
               .eq("recipient_id", senderId)
               .single()
 
-            if (!conv) {
-              // Create new conversation
+            const nowIso = new Date().toISOString()
 
-              // 1. Try to fetch real username first
+            if (!existingConv) {
               let realUsername = `cnt_${senderId.slice(0, 5)}...`
               try {
                 const profileUrl = `https://graph.instagram.com/v24.0/${senderId}?fields=username&access_token=${user.access_token}`
@@ -529,29 +648,29 @@ export async function POST(request: NextRequest) {
                   user_id: user.id,
                   recipient_id: senderId,
                   recipient_username: realUsername,
-                  last_message_at: new Date().toISOString(),
+                  last_message_at: nowIso,
+                  last_inbound_at: nowIso,
                 })
-                .select("id")
+                .select("id, last_inbound_at")
                 .single()
               conv = newConv
             } else {
-              // Update timestamp
               await supabase
                 .from("conversations")
-                .update({ last_message_at: new Date().toISOString() })
-                .eq("id", conv.id)
+                .update({ last_message_at: nowIso, last_inbound_at: nowIso })
+                .eq("id", existingConv.id)
+              conv = { id: existingConv.id, last_inbound_at: nowIso }
             }
 
             if (conv) {
-              // B. Save User Message
               await supabase.from("messages").insert({
                 id: event.message?.mid || `mid_${Date.now()}_${Math.random()}`,
                 conversation_id: conv.id,
                 user_id: user.id,
                 sender_id: senderId,
-                sender_username: "User", // We don't have their username easily here
+                sender_username: "User",
                 content: triggerValue,
-                is_from_instagram: true, // True = FROM the user TO us
+                is_from_instagram: true,
               })
             }
           } catch (err) {
@@ -559,13 +678,38 @@ export async function POST(request: NextRequest) {
           }
           // ============================================================
 
+          // ============================================================
+          // ⏰ 24-HOUR MESSAGING WINDOW CHECK
+          // Meta only allows business-initiated sends within 24h of the user's
+          // last message. This applies to standard DM replies (this section) —
+          // NOT to comment-triggered private replies (PART A), which have their
+          // own separate allowance under Meta's rules.
+          // ============================================================
+          const withinWindow = (() => {
+            if (!conv?.last_inbound_at) return true // just created above, always within window
+            const hoursSince = (Date.now() - new Date(conv.last_inbound_at).getTime()) / 36e5
+            return hoursSince <= 24
+          })()
+
+          if (!withinWindow) {
+            console.log(`[v0] ⏸️ Skipped DM to ${senderId} — outside 24h messaging window`)
+            await logRun(supabase, {
+              userId: user.id,
+              eventType: triggerType === "postback" ? "postback" : "dm",
+              triggerText: triggerValue,
+              matched: false,
+              actionStatus: "skipped",
+              errorMessage: "Outside 24h messaging window",
+            })
+            continue
+          }
+
           let match = null
           if (triggerType === "postback") {
             if (triggerValue.startsWith("UNLOCK_CONTENT_")) {
               const ruleId = triggerValue.replace("UNLOCK_CONTENT_", "")
               match = automations.find((a: any) => a.id === ruleId)
             } else if (triggerValue.startsWith("ICE_BREAKER_")) {
-              // Handle Ice Breaker
               const iceBreakerId = triggerValue.replace("ICE_BREAKER_", "")
               const { data: ibMatches } = await supabase
                 .from("ice_breakers")
@@ -575,7 +719,6 @@ export async function POST(request: NextRequest) {
                 .single()
 
               if (ibMatches) {
-                // Construct a temporary match object to reuse the sending logic
                 match = {
                   name: "Ice Breaker: " + ibMatches.question,
                   response_content: { message: ibMatches.response },
@@ -585,14 +728,13 @@ export async function POST(request: NextRequest) {
               match = automations.find((a: any) => a.trigger_type === "postback" && a.trigger_value === triggerValue)
             }
           } else {
-            // Filter to DM-only automations (exclude comment/story triggers)
             const dmAutomations = automations.filter(
               (a: any) => a.trigger_source === 'dm' || !a.trigger_source
             )
             match = dmAutomations.find(
               (a: any) =>
                 a.trigger_type === "keyword" &&
-                a.trigger_value.split(",").some((k: string) => new RegExp(`\\b${k.trim()}\\b`, "i").test(triggerValue)),
+                a.trigger_value.split(",").some((k: string) => new RegExp(`\\b${escapeRegex(k.trim())}\\b`, "i").test(triggerValue)),
             )
           }
 
@@ -609,7 +751,6 @@ export async function POST(request: NextRequest) {
                   continue
                 }
 
-                // Fetch recent conversation history to match tone
                 let chatHistory: { role: string; content: string }[] = []
                 const { data: convData } = await supabase
                   .from("conversations")
@@ -636,7 +777,6 @@ export async function POST(request: NextRequest) {
                   }
                 }
 
-                // Build dynamic system prompt based on history
                 const hasHistory = chatHistory.length > 0
                 const userMsgs = chatHistory.filter(m => m.role === "user").map(m => m.content).join(" ")
 
@@ -675,17 +815,14 @@ STRICT RULES — follow every single one:
                   { role: "user", content: triggerValue },
                 ]
 
-                // Mark message as seen (read receipt)
                 fetch(
                   `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(user.access_token)}`,
                   { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipient: { id: senderId }, sender_action: "mark_seen" }) },
                 ).catch(() => {})
 
-                // Random human-like delay before typing (1.5s - 5s)
                 const preDelay = Math.floor(Math.random() * 3500) + 1500
                 await new Promise(r => setTimeout(r, preDelay))
 
-                // Send typing indicator before AI generates reply
                 const typingBody = {
                   recipient: { id: senderId },
                   sender_action: "typing_on",
@@ -710,7 +847,6 @@ STRICT RULES — follow every single one:
                   }),
                 })
 
-                // Turn off typing indicator after AI responds
                 fetch(
                   `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(user.access_token)}`,
                   { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipient: { id: senderId }, sender_action: "typing_off" }) },
@@ -718,10 +854,17 @@ STRICT RULES — follow every single one:
 
                 if (!aiRes.ok) {
                   console.log(`[v0] ❌ AI proxy error: ${aiRes.status}`)
+                  await logRun(supabase, {
+                    userId: user.id,
+                    eventType: "dm",
+                    triggerText: triggerValue,
+                    matched: false,
+                    actionStatus: "failed",
+                    errorMessage: `AI proxy error: ${aiRes.status}`,
+                  })
                   continue
                 }
 
-                // Parse SSE stream from proxy
                 let aiReply = ""
                 let aiData: any = null
                 const contentType = aiRes.headers.get("content-type") || ""
@@ -749,14 +892,12 @@ STRICT RULES — follow every single one:
                         try {
                           const parsed = JSON.parse(dataStr)
                           chunkCount++
-                          // Try multiple possible content locations
                           const chunk = parsed.choices?.[0]?.delta?.content ||
                                         parsed.choices?.[0]?.text ||
                                         parsed.choices?.[0]?.delta?.text ||
                                         parsed.content ||
                                         parsed.delta?.content
                           if (chunk) aiReply += chunk
-                          // Also handle non-streaming format
                           const full = parsed.choices?.[0]?.message?.content ||
                                        parsed.message?.content ||
                                        parsed.content
@@ -769,11 +910,9 @@ STRICT RULES — follow every single one:
                     console.log(`[v0] 🤖 AI SSE stream complete, total chunks: ${chunkCount}, reply length: ${aiReply.length}`)
                   }
                 } else {
-                  // Plain JSON fallback
                   aiData = await aiRes.json()
                   console.log(`[v0] 🤖 AI JSON response keys: ${Object.keys(aiData).join(", ")}`)
                   console.log(`[v0] 🔍 choices[0]: ${JSON.stringify(aiData.choices?.[0])}`)
-                  // Try multiple possible response formats
                   aiReply = aiData.choices?.[0]?.message?.content?.trim() ||
                             aiData.choices?.[0]?.text?.trim() ||
                             aiData.message?.content?.trim() ||
@@ -787,7 +926,6 @@ STRICT RULES — follow every single one:
 
                 if (!aiReply) {
                   console.log(`[v0] ❌ AI returned empty reply. finish_reason: ${aiData?.choices?.[0]?.finish_reason}`)
-                  // Fallback: send a generic reply instead of nothing
                   const fallbackReplies = [
                     "hanji batao",
                     "bolo",
@@ -802,7 +940,6 @@ STRICT RULES — follow every single one:
 
                 console.log(`[v0] 🤖 AI Reply: "${aiReply}"`)
 
-                // Send AI reply via Instagram
                 const aiApiBody = {
                   recipient: { id: senderId },
                   message: { text: aiReply },
@@ -815,10 +952,25 @@ STRICT RULES — follow every single one:
                 const sendJson = await sendRes.json()
                 if (sendJson.error) {
                   console.error("[v0] 🔴 AI Reply Send Failed:", sendJson.error)
+                  await logRun(supabase, {
+                    userId: user.id,
+                    eventType: "dm",
+                    triggerText: triggerValue,
+                    matched: false,
+                    actionStatus: "failed",
+                    errorMessage: JSON.stringify(sendJson.error),
+                  })
                 } else {
                   console.log("[v0] 🟢 AI Reply Sent!")
+                  await logRun(supabase, {
+                    userId: user.id,
+                    eventType: "dm",
+                    triggerText: triggerValue,
+                    matched: false,
+                    actionStatus: "sent",
+                    errorMessage: "AI fallback reply",
+                  })
 
-                  // Save AI reply to DB
                   const { data: aiConv } = await supabase
                     .from("conversations")
                     .select("id")
@@ -845,6 +997,12 @@ STRICT RULES — follow every single one:
             }
 
             console.log(`[v0] ❌ No match.`)
+            await logRun(supabase, {
+              userId: user.id,
+              eventType: triggerType === "postback" ? "postback" : "dm",
+              triggerText: triggerValue,
+              matched: false,
+            })
             continue
           }
 
@@ -874,7 +1032,6 @@ STRICT RULES — follow every single one:
             }
           }
 
-          // Follow Gate Logic
           const isUnlockEvent = triggerType === "postback" && triggerValue.startsWith("UNLOCK_CONTENT_")
           if (content.check_follow === true && !isUnlockEvent) {
             replyTextLog = "[Locked Content Gate]"
@@ -898,7 +1055,6 @@ STRICT RULES — follow every single one:
             }
           }
 
-          // Handle delay_seconds if present
           if (content.delay_seconds && content.delay_seconds > 0) {
             console.log(`[v0] ⏳ Delaying reply DM by ${content.delay_seconds} seconds...`)
             await new Promise((resolve) => setTimeout(resolve, content.delay_seconds * 1000))
@@ -911,38 +1067,58 @@ STRICT RULES — follow every single one:
               { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) },
             )
             const json = await res.json()
-            if (json.error) console.error("[v0] 🔴 Reply Failed:", json.error)
-            else {
+            if (json.error) {
+              console.error("[v0] 🔴 Reply Failed:", json.error)
+              await logRun(supabase, {
+                userId: user.id,
+                automationId: match.id,
+                eventType: triggerType === "postback" ? "postback" : "dm",
+                triggerText: triggerValue,
+                matched: true,
+                actionStatus: "failed",
+                errorMessage: JSON.stringify(json.error),
+              })
+            } else {
               console.log("[v0] 🟢 Reply Sent!")
+              await logRun(supabase, {
+                userId: user.id,
+                automationId: match.id,
+                eventType: triggerType === "postback" ? "postback" : "dm",
+                triggerText: triggerValue,
+                matched: true,
+                actionStatus: "sent",
+              })
 
-              // ============================================================
-              // 💾 2. SAVE OUTGOING REPLY (Live Inbox Logic)
-              // ============================================================
-              // We need to find the conversation ID again (or pass it down)
-              // For safety, we just re-query or use the one if we scoped it.
-              // Doing a quick localized lookup for robustness:
-              const { data: conv } = await supabase
+              const { data: outConv } = await supabase
                 .from("conversations")
                 .select("id")
                 .eq("user_id", user.id)
                 .eq("recipient_id", senderId)
                 .single()
 
-              if (conv) {
+              if (outConv) {
                 await supabase.from("messages").insert({
                   id: `mid_reply_${Date.now()}_${Math.random()}`,
-                  conversation_id: conv.id,
+                  conversation_id: outConv.id,
                   user_id: user.id,
-                  sender_id: user.business_account_id, // It's us
+                  sender_id: user.business_account_id,
                   sender_username: user.username,
                   content: replyTextLog,
-                  is_from_instagram: false, // False = FROM US
+                  is_from_instagram: false,
                 })
               }
-              // ============================================================
             }
           } catch (e) {
             console.error("[v0] Network Error:", e)
+            await logRun(supabase, {
+              userId: user.id,
+              automationId: match.id,
+              eventType: triggerType === "postback" ? "postback" : "dm",
+              triggerText: triggerValue,
+              matched: true,
+              actionStatus: "failed",
+              errorMessage: String(e),
+            })
           }
         }
       }
