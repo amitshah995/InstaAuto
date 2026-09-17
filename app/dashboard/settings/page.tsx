@@ -4,14 +4,14 @@ import { useEffect, useState } from "react"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { 
-  Instagram, 
-  Settings, 
-  Trash2, 
-  CheckCircle2, 
-  AlertCircle, 
-  ShieldCheck, 
-  Loader2, 
+import {
+  Instagram,
+  Settings,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  ShieldCheck,
+  Loader2,
   ArrowRight,
   ExternalLink,
   Copy,
@@ -34,10 +34,14 @@ import {
   Activity,
   ChevronRight,
   FileText,
-  UserCheck
+  UserCheck,
+  Bot
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 
 export default function SettingsPage() {
   const { username, userId, logout, isLoading: sessionLoading } = useInstagramSession()
@@ -49,6 +53,11 @@ export default function SettingsPage() {
   const [copiedId, setCopiedId] = useState(false)
   const [copiedUsername, setCopiedUsername] = useState(false)
   const [showDisconnectModal, setShowDisconnectModal] = useState(false)
+
+  // AI Auto-Reply (Groq)
+  const [aiEnabled, setAiEnabled] = useState(false)
+  const [aiContext, setAiContext] = useState("")
+  const [aiSaving, setAiSaving] = useState(false)
 
   // Entrance animation state
   const [isVisible, setIsVisible] = useState(false)
@@ -70,6 +79,11 @@ export default function SettingsPage() {
         if (picData.success && picData.profilePictureUrl) {
           setProfilePictureUrl(picData.profilePictureUrl)
         }
+
+        const aiRes = await fetch(`/api/groq/auto-reply?userId=${userId}`)
+        const aiData = await aiRes.json()
+        setAiEnabled(!!aiData.enabled)
+        setAiContext(aiData.ai_context || "")
       } catch (err) {
         console.error("Failed to load settings data:", err)
       } finally {
@@ -79,6 +93,28 @@ export default function SettingsPage() {
 
     fetchData()
   }, [userId])
+
+  const handleSaveAiSettings = async (nextEnabled: boolean, contextOverride?: string) => {
+    if (!userId) return
+    setAiSaving(true)
+    const previousEnabled = aiEnabled
+    setAiEnabled(nextEnabled)
+    try {
+      const res = await fetch("/api/groq/auto-reply", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, enabled: nextEnabled, ai_context: contextOverride ?? aiContext }),
+      })
+      if (!res.ok) throw new Error("Failed to save")
+      toast.success(nextEnabled ? "AI Auto-Reply enabled" : "AI Auto-Reply disabled")
+    } catch (err) {
+      console.error("Failed to save AI settings:", err)
+      setAiEnabled(previousEnabled)
+      toast.error("Failed to save AI settings")
+    } finally {
+      setAiSaving(false)
+    }
+  }
 
   // Copy helpers
   const handleCopyId = () => {
@@ -381,6 +417,56 @@ export default function SettingsPage() {
                   Disconnecting triggers an immediate database purge complying with Meta Data Access Renewal standards.
                 </p>
               </CardContent>
+            </Card>
+
+            {/* AI Auto-Reply (Groq) Card */}
+            <Card className={`border-border bg-card/90 backdrop-blur-md shadow-sm p-5 space-y-4 hover:shadow-md transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '250ms' : '0ms', transitionDuration: '700ms' }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-foreground text-sm">AI Auto-Reply</h3>
+                    <p className="text-[10px] text-muted-foreground font-semibold">Groq-powered dynamic DM replies</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={aiEnabled}
+                  disabled={aiSaving}
+                  onCheckedChange={(v) => handleSaveAiSettings(v)}
+                />
+              </div>
+
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                When ON, any DM that doesn't match a keyword automation gets a dynamic AI-generated reply instead of going unanswered. Give the AI context about your business below.
+              </p>
+
+              <div className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-start gap-2">
+                <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  A "Reply to ALL DMs" (wildcard) automation always wins over AI Auto-Reply — the AI only replies when no automation matched. Don't run both for the same use case.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Business Context (optional)</Label>
+                <Textarea
+                  value={aiContext}
+                  onChange={(e) => setAiContext(e.target.value)}
+                  placeholder="e.g. We sell handmade candles, ship across India, price range ₹299-999..."
+                  className="bg-secondary/30 border-border min-h-[70px] text-xs resize-none"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={aiSaving}
+                  onClick={() => handleSaveAiSettings(aiEnabled, aiContext)}
+                  className="h-7 text-xs"
+                >
+                  {aiSaving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null} Save Context
+                </Button>
+              </div>
             </Card>
 
             {/* Quick Meta Compliance Card */}
