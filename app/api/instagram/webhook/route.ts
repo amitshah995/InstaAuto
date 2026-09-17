@@ -53,6 +53,79 @@ async function logRun(
   }
 }
 
+// Sends a response as one or more sequential DM steps, each with its own delay.
+// Falls back to the legacy single message/card shape when content.steps isn't
+// present, so every existing automation keeps working unmodified.
+// firstRecipient is { comment_id } for a comment's private reply, or { id: psid }
+// for a normal DM/story reply. Every step after the first always targets psid,
+// since only the very first private-reply message can be addressed by comment_id.
+async function sendSteps(
+  accessToken: string,
+  firstRecipient: any,
+  psid: string,
+  content: any,
+): Promise<{ ok: boolean; results: { text: string; ok: boolean; messageId?: string; error?: string }[] }> {
+  const steps: any[] =
+    Array.isArray(content.steps) && content.steps.length > 0
+      ? content.steps
+      : [{ text: content.message, card: content.card, delay_seconds: content.delay_seconds }]
+
+  const results: { text: string; ok: boolean; messageId?: string; error?: string }[] = []
+  let allOk = true
+
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i]
+    const delay = step.delay_seconds || 0
+    if (delay > 0) {
+      console.log(`[v0] ⏳ Delaying step ${i + 1}/${steps.length} by ${delay}s...`)
+      await new Promise((resolve) => setTimeout(resolve, delay * 1000))
+    }
+
+    const apiBody: any = { recipient: i === 0 ? firstRecipient : { id: psid } }
+    let textLog = ""
+
+    if (step.card) {
+      const card = step.card
+      const apiButtons = card.buttons.map((b: any) => ({
+        type: b.type,
+        title: b.title,
+        url: b.url || undefined,
+        payload: b.payload || undefined,
+      }))
+      const element: any = { title: card.title, buttons: apiButtons }
+      if (card.subtitle) element.subtitle = card.subtitle
+      if (card.image_url && card.image_url.startsWith("http")) element.image_url = card.image_url
+      apiBody.message = { attachment: { type: "template", payload: { template_type: "generic", elements: [element] } } }
+      textLog = `[Card] ${card.title}`
+    } else {
+      apiBody.message = { text: step.text || "" }
+      textLog = step.text || ""
+    }
+
+    try {
+      const res = await fetch(
+        `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(accessToken)}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) },
+      )
+      const json = await res.json()
+      if (json.error) {
+        console.error(`[v0] 🔴 Step ${i + 1}/${steps.length} send failed:`, JSON.stringify(json.error))
+        results.push({ text: textLog, ok: false, error: JSON.stringify(json.error) })
+        allOk = false
+        break // stop the sequence on first failure — don't send later steps out of order
+      }
+      results.push({ text: textLog, ok: true, messageId: json.message_id })
+    } catch (e) {
+      console.error(`[v0] 🔴 Step ${i + 1}/${steps.length} network error:`, e)
+      results.push({ text: textLog, ok: false, error: String(e) })
+      allOk = false
+      break
+    }
+  }
+
+  return { ok: allOk, results }
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const mode = searchParams.get("hub.mode")
@@ -317,134 +390,17 @@ export async function POST(request: NextRequest) {
               publicReplyOk = false
             }
 
-            // Private Reply (DM)
-            const apiBody: any = { recipient: { comment_id: commentId } }
+            // Private Reply (DM) — one or more sequential steps
+            const { ok: dmOk, results: dmResults } = await sendSteps(
+              user.access_token,
+              { comment_id: commentId },
+              senderId,
+              content,
+            )
 
-            if (content.message) {
-              apiBody.message = { text: content.message }
-            } else if (content.card) {
-              const card = content.card
-              const apiButtons = card.buttons.map((b: any) => ({
-                type: b.type,
-                title: b.title,
-                url: b.url || undefined,
-                payload: b.payload || undefined,
-              }))
-              const element: any = { title: card.title, buttons: apiButtons }
-              if (card.subtitle) element.subtitle = card.subtitle
-              if (card.image_url && card.image_url.startsWith("http")) element.image_url = card.image_url
-
-              apiBody.message = {
-                attachment: {
-                  type: "template",
-                  payload: {
-                    template_type: "generic",
-                    elements: [element],
-                  },
-                },
-              }
-            }
-            if (content.delay_seconds && content.delay_seconds > 0) {
-              console.log(`[v0] ⏳ Delaying comment DM by ${content.delay_seconds} seconds...`)
-              await new Promise((resolve) => setTimeout(resolve, content.delay_seconds * 1000))
-            }
-
-            try {
-              const dmRes = await fetch(
-                `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(user.access_token)}`,
-                { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) },
-              )
-              const dmJson = await dmRes.json()
-              if (dmJson.error) {
-                console.error("[v0] 🔴 Private DM Failed:", JSON.stringify(dmJson.error))
-                await logRun(supabase, {
-                  userId: user.id,
-                  automationId: match.id,
-                  eventType: "comment",
-                  triggerText: commentText,
-                  matched: true,
-                  actionStatus: "failed",
-                  errorMessage: JSON.stringify(dmJson.error),
-                })
-              } else {
-                console.log("[v0] 🟢 Private DM Sent!", dmJson)
-                await logRun(supabase, {
-                  userId: user.id,
-                  automationId: match.id,
-                  eventType: "comment",
-                  triggerText: commentText,
-                  matched: true,
-                  actionStatus: publicReplyOk ? "sent" : "sent",
-                  errorMessage: publicReplyOk ? null : "Public reply failed, private DM sent",
-                })
-
-                // Save comment trigger and DM reply to DB
-                try {
-                  let { data: conv } = await supabase
-                    .from("conversations")
-                    .select("id")
-                    .eq("user_id", user.id)
-                    .eq("recipient_id", senderId)
-                    .single()
-
-                  if (!conv) {
-                    let realUsername = `cnt_${senderId.slice(0, 5)}...`
-                    try {
-                      const profileUrl = `https://graph.instagram.com/v24.0/${senderId}?fields=username&access_token=${user.access_token}`
-                      const profileRes = await fetch(profileUrl)
-                      const profileData = await profileRes.json()
-                      if (profileData.username) {
-                        realUsername = profileData.username
-                      }
-                    } catch (e) {
-                      console.error("[v0] Failed to fetch username in comment DM log", e)
-                    }
-
-                    const { data: newConv } = await supabase
-                      .from("conversations")
-                      .insert({
-                        user_id: user.id,
-                        recipient_id: senderId,
-                        recipient_username: realUsername,
-                        last_message_at: new Date().toISOString(),
-                      })
-                      .select("id")
-                      .single()
-                    conv = newConv
-                  } else {
-                    await supabase
-                      .from("conversations")
-                      .update({ last_message_at: new Date().toISOString() })
-                      .eq("id", conv.id)
-                  }
-
-                  if (conv) {
-                    await supabase.from("messages").insert({
-                      id: `mid_cmt_trig_${Date.now()}_${Math.random()}`,
-                      conversation_id: conv.id,
-                      user_id: user.id,
-                      sender_id: senderId,
-                      sender_username: "User",
-                      content: `💬 Commented: "${change.value.text}"`,
-                      is_from_instagram: true,
-                    })
-
-                    await supabase.from("messages").insert({
-                      id: dmJson.message_id || `mid_cmt_reply_${Date.now()}_${Math.random()}`,
-                      conversation_id: conv.id,
-                      user_id: user.id,
-                      sender_id: user.business_account_id,
-                      sender_username: user.username,
-                      content: content.message || `[Sent rich card: "${content.card?.title || 'Card'}"]`,
-                      is_from_instagram: false,
-                    })
-                  }
-                } catch (dbErr) {
-                  console.error("[v0] Failed to log comment automation to DB:", dbErr)
-                }
-              }
-            } catch (e) {
-              console.error("[v0] 🔴 Private DM Network Error:", e)
+            if (!dmOk) {
+              const lastError = dmResults[dmResults.length - 1]?.error
+              console.error("[v0] 🔴 Private DM Failed:", lastError)
               await logRun(supabase, {
                 userId: user.id,
                 automationId: match.id,
@@ -452,8 +408,86 @@ export async function POST(request: NextRequest) {
                 triggerText: commentText,
                 matched: true,
                 actionStatus: "failed",
-                errorMessage: String(e),
+                errorMessage: lastError,
               })
+            } else {
+              console.log(`[v0] 🟢 Private DM Sent! (${dmResults.length} step${dmResults.length > 1 ? "s" : ""})`)
+              await logRun(supabase, {
+                userId: user.id,
+                automationId: match.id,
+                eventType: "comment",
+                triggerText: commentText,
+                matched: true,
+                actionStatus: publicReplyOk ? "sent" : "sent",
+                errorMessage: publicReplyOk ? null : "Public reply failed, private DM sent",
+              })
+
+              // Save comment trigger and DM reply steps to DB
+              try {
+                let { data: conv } = await supabase
+                  .from("conversations")
+                  .select("id")
+                  .eq("user_id", user.id)
+                  .eq("recipient_id", senderId)
+                  .single()
+
+                if (!conv) {
+                  let realUsername = `cnt_${senderId.slice(0, 5)}...`
+                  try {
+                    const profileUrl = `https://graph.instagram.com/v24.0/${senderId}?fields=username&access_token=${user.access_token}`
+                    const profileRes = await fetch(profileUrl)
+                    const profileData = await profileRes.json()
+                    if (profileData.username) {
+                      realUsername = profileData.username
+                    }
+                  } catch (e) {
+                    console.error("[v0] Failed to fetch username in comment DM log", e)
+                  }
+
+                  const { data: newConv } = await supabase
+                    .from("conversations")
+                    .insert({
+                      user_id: user.id,
+                      recipient_id: senderId,
+                      recipient_username: realUsername,
+                      last_message_at: new Date().toISOString(),
+                    })
+                    .select("id")
+                    .single()
+                  conv = newConv
+                } else {
+                  await supabase
+                    .from("conversations")
+                    .update({ last_message_at: new Date().toISOString() })
+                    .eq("id", conv.id)
+                }
+
+                if (conv) {
+                  await supabase.from("messages").insert({
+                    id: `mid_cmt_trig_${Date.now()}_${Math.random()}`,
+                    conversation_id: conv.id,
+                    user_id: user.id,
+                    sender_id: senderId,
+                    sender_username: "User",
+                    content: `💬 Commented: "${change.value.text}"`,
+                    is_from_instagram: true,
+                  })
+
+                  for (const step of dmResults) {
+                    await supabase.from("messages").insert({
+                      id: step.messageId || `mid_cmt_reply_${Date.now()}_${Math.random()}`,
+                      conversation_id: conv.id,
+                      user_id: user.id,
+                      sender_id: user.business_account_id,
+                      sender_username: user.username,
+                      content: step.text || "[Sent rich card]",
+                      is_from_instagram: false,
+                    })
+                  }
+                }
+              } catch (dbErr) {
+                console.error("[v0] Failed to log comment automation to DB:", dbErr)
+              }
             }
           }
         }
@@ -535,44 +569,18 @@ export async function POST(request: NextRequest) {
 
             try {
               const content = match.response_content
-              const apiBody: any = { recipient: { id: senderId } }
-
-              if (content.message) {
-                apiBody.message = { text: content.message }
-              } else if (content.card) {
-                const card = content.card
-                const apiButtons = card.buttons.map((b: any) => ({
-                  type: b.type,
-                  title: b.title,
-                  url: b.url || undefined,
-                  payload: b.payload || undefined,
-                }))
-                const element: any = { title: card.title, buttons: apiButtons }
-                if (card.subtitle) element.subtitle = card.subtitle
-                if (card.image_url && card.image_url.startsWith("http")) element.image_url = card.image_url
-
-                apiBody.message = {
-                  attachment: {
-                    type: "template",
-                    payload: {
-                      template_type: "generic",
-                      elements: [element],
-                    },
-                  },
-                }
-              }
-
-              if (content.delay_seconds && content.delay_seconds > 0) {
-                console.log(`[v0] ⏳ Delaying story DM by ${content.delay_seconds} seconds...`)
-                await new Promise((resolve) => setTimeout(resolve, content.delay_seconds * 1000))
-              }
-
-              await fetch(
-                `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(user.access_token)}`,
-                { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) },
+              const { ok: storyOk, results: storyResults } = await sendSteps(
+                user.access_token,
+                { id: senderId },
+                senderId,
+                content,
               )
 
-              console.log(`✅ Story automation sent: ${match.name}`)
+              if (storyOk) {
+                console.log(`✅ Story automation sent: ${match.name} (${storyResults.length} step${storyResults.length > 1 ? "s" : ""})`)
+              } else {
+                console.error(`❌ Story automation send failed: ${match.name}`, storyResults[storyResults.length - 1]?.error)
+              }
             } catch (err) {
               console.error('❌ Story automation error:', err)
             }
@@ -1016,108 +1024,35 @@ STRICT RULES — follow every single one:
 
           console.log(`[v0] ✅ Match: "${match.name}"`)
           const content = match.response_content
-          const apiBody: any = { recipient: { id: senderId } }
-
-          let replyTextLog = ""
-
-          if (content.message) {
-            apiBody.message = { text: content.message }
-            replyTextLog = content.message
-          } else if (content.card) {
-            const card = content.card
-            replyTextLog = `[Card] ${card.title}`
-            const apiButtons = card.buttons.map((b: any) => ({
-              type: b.type,
-              title: b.title,
-              url: b.url || undefined,
-              payload: b.payload || undefined,
-            }))
-            const element: any = { title: card.title, buttons: apiButtons }
-            if (card.subtitle) element.subtitle = card.subtitle
-            if (card.image_url && card.image_url.startsWith("http")) element.image_url = card.image_url
-            apiBody.message = {
-              attachment: { type: "template", payload: { template_type: "generic", elements: [element] } },
-            }
-          }
 
           const isUnlockEvent = triggerType === "postback" && triggerValue.startsWith("UNLOCK_CONTENT_")
-          if (content.check_follow === true && !isUnlockEvent) {
-            replyTextLog = "[Locked Content Gate]"
-            apiBody.message = {
-              attachment: {
-                type: "template",
-                payload: {
-                  template_type: "generic",
-                  elements: [
-                    {
-                      title: "🔒 Content Locked",
-                      subtitle: `Please follow @${user.username} to see this!`,
-                      buttons: [
-                        { type: "web_url", url: `https://instagram.com/${user.username}`, title: "Follow Us" },
-                        { type: "postback", title: "I Followed! ✅", payload: `UNLOCK_CONTENT_${match.id}` },
-                      ],
-                    },
+          const isFollowGate = content.check_follow === true && !isUnlockEvent
+
+          // Follow-gate is always a single locked-content card, never a sequence —
+          // steps only apply to the normal (non-gated) reply content.
+          const sendContent = isFollowGate
+            ? {
+                card: {
+                  title: "🔒 Content Locked",
+                  subtitle: `Please follow @${user.username} to see this!`,
+                  buttons: [
+                    { type: "web_url", url: `https://instagram.com/${user.username}`, title: "Follow Us" },
+                    { type: "postback", title: "I Followed! ✅", payload: `UNLOCK_CONTENT_${match.id}` },
                   ],
                 },
-              },
-            }
-          }
-
-          if (content.delay_seconds && content.delay_seconds > 0) {
-            console.log(`[v0] ⏳ Delaying reply DM by ${content.delay_seconds} seconds...`)
-            await new Promise((resolve) => setTimeout(resolve, content.delay_seconds * 1000))
-          }
-
-          // SEND REPLY
-          try {
-            const res = await fetch(
-              `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(user.access_token)}`,
-              { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) },
-            )
-            const json = await res.json()
-            if (json.error) {
-              console.error("[v0] 🔴 Reply Failed:", json.error)
-              await logRun(supabase, {
-                userId: user.id,
-                automationId: match.id,
-                eventType: triggerType === "postback" ? "postback" : "dm",
-                triggerText: triggerValue,
-                matched: true,
-                actionStatus: "failed",
-                errorMessage: JSON.stringify(json.error),
-              })
-            } else {
-              console.log("[v0] 🟢 Reply Sent!")
-              await logRun(supabase, {
-                userId: user.id,
-                automationId: match.id,
-                eventType: triggerType === "postback" ? "postback" : "dm",
-                triggerText: triggerValue,
-                matched: true,
-                actionStatus: "sent",
-              })
-
-              const { data: outConv } = await supabase
-                .from("conversations")
-                .select("id")
-                .eq("user_id", user.id)
-                .eq("recipient_id", senderId)
-                .single()
-
-              if (outConv) {
-                await supabase.from("messages").insert({
-                  id: `mid_reply_${Date.now()}_${Math.random()}`,
-                  conversation_id: outConv.id,
-                  user_id: user.id,
-                  sender_id: user.business_account_id,
-                  sender_username: user.username,
-                  content: replyTextLog,
-                  is_from_instagram: false,
-                })
               }
-            }
-          } catch (e) {
-            console.error("[v0] Network Error:", e)
+            : content
+
+          const { ok: dmOk, results: dmResults } = await sendSteps(
+            user.access_token,
+            { id: senderId },
+            senderId,
+            sendContent,
+          )
+
+          if (!dmOk) {
+            const lastError = dmResults[dmResults.length - 1]?.error
+            console.error("[v0] 🔴 Reply Failed:", lastError)
             await logRun(supabase, {
               userId: user.id,
               automationId: match.id,
@@ -1125,8 +1060,39 @@ STRICT RULES — follow every single one:
               triggerText: triggerValue,
               matched: true,
               actionStatus: "failed",
-              errorMessage: String(e),
+              errorMessage: lastError,
             })
+          } else {
+            console.log(`[v0] 🟢 Reply Sent! (${dmResults.length} step${dmResults.length > 1 ? "s" : ""})`)
+            await logRun(supabase, {
+              userId: user.id,
+              automationId: match.id,
+              eventType: triggerType === "postback" ? "postback" : "dm",
+              triggerText: triggerValue,
+              matched: true,
+              actionStatus: "sent",
+            })
+
+            const { data: outConv } = await supabase
+              .from("conversations")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("recipient_id", senderId)
+              .single()
+
+            if (outConv) {
+              for (const step of dmResults) {
+                await supabase.from("messages").insert({
+                  id: step.messageId || `mid_reply_${Date.now()}_${Math.random()}`,
+                  conversation_id: outConv.id,
+                  user_id: user.id,
+                  sender_id: user.business_account_id,
+                  sender_username: user.username,
+                  content: step.text || "[Sent rich card]",
+                  is_from_instagram: false,
+                })
+              }
+            }
           }
         }
       }
