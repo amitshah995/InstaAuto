@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSessionUserId } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
     try {
-        const searchParams = request.nextUrl.searchParams
-        const userId = searchParams.get("userId")
-        if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 })
+        const userId = getSessionUserId(request)
+        if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
         const supabase = await getSupabaseServerClient()
 
@@ -24,16 +24,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json()
-        const { userId, is_running, interval_minutes, start_time, end_time } = body
+        const userId = getSessionUserId(request)
+        if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
-        if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 })
+        const body = await request.json()
+        const { is_running, interval_minutes, start_time, end_time } = body
 
         const supabase = await getSupabaseServerClient()
 
-        // Calculate initial next_run if enabling
-        // For simplicity, just set next_run to NOW() so it triggers immediately, 
-        // or keep existing logic.
         const updates = {
             is_running,
             interval_minutes,
