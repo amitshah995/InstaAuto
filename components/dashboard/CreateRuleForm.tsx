@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2, Lock, Film, ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, Send, AtSign, Heart, MessageSquare } from "lucide-react"
+import { Plus, Trash2, Lock, Film, ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, Send, AtSign, Heart, MessageSquare, ListOrdered, Clock } from "lucide-react"
 import { TagInput } from "@/components/ui/tag-input"
 import type { ProButton } from "@/lib/types"
 import { toast } from "sonner"
@@ -29,12 +29,15 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
   const [showReelPicker, setShowReelPicker] = useState(false)
 
   // Step 2: Response
-  const [type, setType] = useState<"text" | "card">("text")
+  const [type, setType] = useState<"text" | "card" | "sequence">("text")
   const [messageText, setMessageText] = useState("")
   const [cardTitle, setCardTitle] = useState("")
   const [cardSubtitle, setCardSubtitle] = useState("")
   const [cardImage, setCardImage] = useState("")
   const [buttons, setButtons] = useState<ProButton[]>([])
+  const [steps, setSteps] = useState<{ id: string; text: string; delay_seconds: number }[]>([
+    { id: "1", text: "", delay_seconds: 0 },
+  ])
 
   // Step 3: Settings
   const [name, setName] = useState("")
@@ -85,6 +88,20 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
     setButtons(buttons.filter((b) => b.id !== id))
   }
 
+  const handleAddStep = () => {
+    if (steps.length >= 5) return
+    setSteps([...steps, { id: Date.now().toString(), text: "", delay_seconds: 3 }])
+  }
+
+  const updateStep = (id: string, field: "text" | "delay_seconds", value: string | number) => {
+    setSteps(steps.map((s) => (s.id === id ? { ...s, [field]: value } : s)))
+  }
+
+  const removeStep = (id: string) => {
+    if (steps.length <= 1) return
+    setSteps(steps.filter((s) => s.id !== id))
+  }
+
   // Validation per step
   const canProceedStep1 = () => {
     const isStoryMentionOrReaction = triggerSource === 'story' && (storyTriggerType === 'mention' || storyTriggerType === 'reaction')
@@ -108,6 +125,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
       toast.error("Missing Title", { description: "Rich cards need a title." })
       return false
     }
+    if (type === "sequence" && !steps.some((s) => s.text.trim())) {
+      toast.error("Missing Messages", { description: "Add text to at least one step." })
+      return false
+    }
     return true
   }
 
@@ -118,7 +139,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
     }
 
     const content: any = { check_follow: checkFollow }
-    if (type === "text") {
+    if (type === "sequence") {
+      content.steps = steps
+        .filter((s) => s.text.trim())
+        .map((s, idx) => ({ type: "text", text: s.text.trim(), delay_seconds: idx === 0 ? 0 : s.delay_seconds || 0 }))
+    } else if (type === "text") {
       content.message = messageText
     } else {
       const cleanButtons = buttons
@@ -174,6 +199,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
         setCardSubtitle("")
         setCardImage("")
         setButtons([])
+        setSteps([{ id: "1", text: "", delay_seconds: 0 }])
+        setType("text")
         setSelectedReel(null)
         setCheckFollow(false)
         onSuccess()
@@ -271,6 +298,24 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
 
   // DM Preview Bubble
   const DMPreview = () => {
+    if (type === "sequence") {
+      const filledSteps = steps.filter((s) => s.text.trim())
+      if (filledSteps.length === 0) return null
+      return (
+        <div className="mt-4 flex flex-col items-end gap-2">
+          {filledSteps.map((s, i) => (
+            <div key={s.id} className="max-w-[260px] animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-sm shadow-lg shadow-blue-500/20">
+                <p className="leading-relaxed">{s.text.slice(0, 120)}{s.text.length > 120 && "..."}</p>
+              </div>
+              {i > 0 && <p className="text-[10px] text-muted-foreground mt-0.5 text-right">after {s.delay_seconds}s</p>}
+            </div>
+          ))}
+          <p className="text-[10px] text-muted-foreground mt-1">Preview — this is how the sequence will look</p>
+        </div>
+      )
+    }
+
     const previewText = type === "text" ? messageText : cardTitle
     if (!previewText) return null
 
@@ -455,7 +500,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
       </div>
 
       {/* Response type toggle */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <button
           type="button"
           onClick={() => setType("text")}
@@ -480,9 +525,75 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
           <Send className="w-4 h-4" />
           <span className="text-sm font-bold">Rich Card</span>
         </button>
+        <button
+          type="button"
+          onClick={() => setType("sequence")}
+          className={`p-3 rounded-xl border transition-all flex items-center gap-2 ${
+            type === "sequence"
+              ? "border-foreground bg-foreground text-background shadow-lg shadow-foreground/10"
+              : "border-border text-muted-foreground hover:bg-secondary hover:border-border"
+          }`}
+        >
+          <ListOrdered className="w-4 h-4" />
+          <span className="text-sm font-bold">Sequence</span>
+        </button>
       </div>
 
-      {type === "text" ? (
+      {type === "sequence" ? (
+        <div className="space-y-3">
+          <p className="text-[11px] text-muted-foreground">
+            Send multiple messages one after another, each with its own delay.
+          </p>
+          {steps.map((s, idx) => (
+            <div key={s.id} className="p-3 rounded-xl border border-border bg-secondary/20 space-y-2 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Message {idx + 1}
+                </span>
+                {steps.length > 1 && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeStep(s.id)}
+                    className="h-6 w-6 text-red-500 hover:bg-red-500/10"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+              <Textarea
+                value={s.text}
+                onChange={(e) => updateStep(s.id, "text", e.target.value)}
+                className="bg-background border-border min-h-[70px] resize-none text-sm"
+                placeholder={idx === 0 ? "First message, sent immediately..." : "Next message..."}
+              />
+              {idx > 0 && (
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <Label className="text-[11px] text-muted-foreground whitespace-nowrap">Wait</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={s.delay_seconds}
+                    onChange={(e) => updateStep(s.id, "delay_seconds", Math.max(0, parseInt(e.target.value) || 0))}
+                    className="h-7 w-16 text-xs bg-background border-border"
+                  />
+                  <Label className="text-[11px] text-muted-foreground">seconds, then send</Label>
+                </div>
+              )}
+            </div>
+          ))}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleAddStep}
+            disabled={steps.length >= 5}
+            className="w-full h-9 text-xs border border-dashed border-border hover:bg-secondary"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" /> Add another message
+          </Button>
+        </div>
+      ) : type === "text" ? (
         <div className="space-y-2">
           <Textarea
             value={messageText}
@@ -615,7 +726,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground font-medium">Reply:</span>
           <span className="text-foreground font-semibold truncate">
-            {type === 'text' ? messageText.slice(0, 40) + (messageText.length > 40 ? '...' : '') : `Card: ${cardTitle}`}
+            {type === 'sequence'
+              ? `${steps.filter(s => s.text.trim()).length} messages in sequence`
+              : type === 'text'
+                ? messageText.slice(0, 40) + (messageText.length > 40 ? '...' : '')
+                : `Card: ${cardTitle}`}
           </span>
         </div>
         {checkFollow && (
