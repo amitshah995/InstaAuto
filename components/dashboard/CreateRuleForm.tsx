@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2, Lock, Film, ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, Send, AtSign, Heart, MessageSquare, ListOrdered, Clock } from "lucide-react"
+import { Plus, Trash2, Lock, Film, ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, Send, AtSign, Heart, MessageSquare, ListOrdered, Clock, ListChecks } from "lucide-react"
 import { TagInput } from "@/components/ui/tag-input"
 import type { ProButton } from "@/lib/types"
 import { toast } from "sonner"
@@ -29,7 +29,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
   const [showReelPicker, setShowReelPicker] = useState(false)
 
   // Step 2: Response
-  const [type, setType] = useState<"text" | "card" | "sequence">("text")
+  const [type, setType] = useState<"text" | "card" | "sequence" | "leadgen">("text")
   const [messageText, setMessageText] = useState("")
   const [cardTitle, setCardTitle] = useState("")
   const [cardSubtitle, setCardSubtitle] = useState("")
@@ -38,6 +38,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
   const [steps, setSteps] = useState<{ id: string; text: string; delay_seconds: number }[]>([
     { id: "1", text: "", delay_seconds: 0 },
   ])
+  const [questions, setQuestions] = useState<{ id: string; field: string; prompt: string }[]>([
+    { id: "1", field: "name", prompt: "What's your name?" },
+  ])
+  const [closingMessage, setClosingMessage] = useState("Thanks! We'll get back to you shortly.")
 
   // Step 3: Settings
   const [name, setName] = useState("")
@@ -102,6 +106,20 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
     setSteps(steps.filter((s) => s.id !== id))
   }
 
+  const handleAddQuestion = () => {
+    if (questions.length >= 8) return
+    setQuestions([...questions, { id: Date.now().toString(), field: "", prompt: "" }])
+  }
+
+  const updateQuestion = (id: string, field: "field" | "prompt", value: string) => {
+    setQuestions(questions.map((q) => (q.id === id ? { ...q, [field]: value } : q)))
+  }
+
+  const removeQuestion = (id: string) => {
+    if (questions.length <= 1) return
+    setQuestions(questions.filter((q) => q.id !== id))
+  }
+
   // Validation per step
   const canProceedStep1 = () => {
     const isStoryMentionOrReaction = triggerSource === 'story' && (storyTriggerType === 'mention' || storyTriggerType === 'reaction')
@@ -129,6 +147,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
       toast.error("Missing Messages", { description: "Add text to at least one step." })
       return false
     }
+    if (type === "leadgen" && !questions.some((q) => q.field.trim() && q.prompt.trim())) {
+      toast.error("Missing Questions", { description: "Add at least one question with a field name and prompt." })
+      return false
+    }
     return true
   }
 
@@ -139,7 +161,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
     }
 
     const content: any = { check_follow: checkFollow }
-    if (type === "sequence") {
+    if (type === "leadgen") {
+      content.questions = questions
+        .filter((q) => q.field.trim() && q.prompt.trim())
+        .map((q) => ({ field: q.field.trim(), prompt: q.prompt.trim() }))
+      if (closingMessage.trim()) content.closing_message = closingMessage.trim()
+    } else if (type === "sequence") {
       content.steps = steps
         .filter((s) => s.text.trim())
         .map((s, idx) => ({ type: "text", text: s.text.trim(), delay_seconds: idx === 0 ? 0 : s.delay_seconds || 0 }))
@@ -200,6 +227,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
         setCardImage("")
         setButtons([])
         setSteps([{ id: "1", text: "", delay_seconds: 0 }])
+        setQuestions([{ id: "1", field: "name", prompt: "What's your name?" }])
+        setClosingMessage("Thanks! We'll get back to you shortly.")
         setType("text")
         setSelectedReel(null)
         setCheckFollow(false)
@@ -500,7 +529,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
       </div>
 
       {/* Response type toggle */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className={`grid gap-2 ${triggerSource === 'dm' ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
         <button
           type="button"
           onClick={() => setType("text")}
@@ -537,9 +566,78 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
           <ListOrdered className="w-4 h-4" />
           <span className="text-sm font-bold">Sequence</span>
         </button>
+        {triggerSource === 'dm' && (
+          <button
+            type="button"
+            onClick={() => setType("leadgen")}
+            className={`p-3 rounded-xl border transition-all flex items-center gap-2 ${
+              type === "leadgen"
+                ? "border-foreground bg-foreground text-background shadow-lg shadow-foreground/10"
+                : "border-border text-muted-foreground hover:bg-secondary hover:border-border"
+            }`}
+          >
+            <ListChecks className="w-4 h-4" />
+            <span className="text-sm font-bold">Lead Qual</span>
+          </button>
+        )}
       </div>
 
-      {type === "sequence" ? (
+      {type === "leadgen" ? (
+        <div className="space-y-3">
+          <p className="text-[11px] text-muted-foreground">
+            Ask questions one at a time. Each answer is saved to Contacts — "name", "email" and "phone" map to dedicated fields, anything else (e.g. "budget", "city") is saved as a custom field.
+          </p>
+          {questions.map((q, idx) => (
+            <div key={q.id} className="p-3 rounded-xl border border-border bg-secondary/20 space-y-2 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Question {idx + 1}
+                </span>
+                {questions.length > 1 && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeQuestion(q.id)}
+                    className="h-6 w-6 text-red-500 hover:bg-red-500/10"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+              <Input
+                value={q.field}
+                onChange={(e) => updateQuestion(q.id, "field", e.target.value)}
+                className="h-8 text-xs bg-background border-border font-mono"
+                placeholder="Field name (e.g. name, email, budget)"
+              />
+              <Input
+                value={q.prompt}
+                onChange={(e) => updateQuestion(q.id, "prompt", e.target.value)}
+                className="h-9 text-sm bg-background border-border"
+                placeholder="Question to ask (e.g. What's your email?)"
+              />
+            </div>
+          ))}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleAddQuestion}
+            disabled={questions.length >= 8}
+            className="w-full h-9 text-xs border border-dashed border-border hover:bg-secondary"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" /> Add another question
+          </Button>
+          <div className="space-y-1.5 pt-1">
+            <Label className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Closing Message (optional)</Label>
+            <Textarea
+              value={closingMessage}
+              onChange={(e) => setClosingMessage(e.target.value)}
+              className="bg-secondary/30 border-border min-h-[60px] resize-none text-sm"
+              placeholder="Sent after the last question is answered..."
+            />
+          </div>
+        </div>
+      ) : type === "sequence" ? (
         <div className="space-y-3">
           <p className="text-[11px] text-muted-foreground">
             Send multiple messages one after another, each with its own delay.
@@ -726,11 +824,13 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground font-medium">Reply:</span>
           <span className="text-foreground font-semibold truncate">
-            {type === 'sequence'
-              ? `${steps.filter(s => s.text.trim()).length} messages in sequence`
-              : type === 'text'
-                ? messageText.slice(0, 40) + (messageText.length > 40 ? '...' : '')
-                : `Card: ${cardTitle}`}
+            {type === 'leadgen'
+              ? `${questions.filter(q => q.field.trim() && q.prompt.trim()).length} question flow`
+              : type === 'sequence'
+                ? `${steps.filter(s => s.text.trim()).length} messages in sequence`
+                : type === 'text'
+                  ? messageText.slice(0, 40) + (messageText.length > 40 ? '...' : '')
+                  : `Card: ${cardTitle}`}
           </span>
         </div>
         {checkFollow && (
