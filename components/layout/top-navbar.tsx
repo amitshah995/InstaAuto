@@ -14,6 +14,7 @@ import {
   X,
   Compass,
   Instagram,
+  Users,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/dashboard", icon: <Zap className="w-4 h-4" />, label: "Home", exact: true },
   { href: "/dashboard/automations", icon: <Zap className="w-4 h-4" />, label: "Automations" },
   { href: "/dashboard/inbox", icon: <MessageSquare className="w-4 h-4" />, label: "Inbox" },
+  { href: "/dashboard/contacts", icon: <Users className="w-4 h-4" />, label: "Contacts" },
   { href: "/dashboard/analytics", icon: <BarChart3 className="w-4 h-4" />, label: "Analytics" },
   { href: "/dashboard/settings", icon: <Settings className="w-4 h-4" />, label: "Settings" },
 ]
