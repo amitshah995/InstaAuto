@@ -731,11 +731,19 @@ export async function POST(request: NextRequest) {
             const dmAutomations = automations.filter(
               (a: any) => a.trigger_source === 'dm' || !a.trigger_source
             )
+
+            // Priority 1: specific keyword match
             match = dmAutomations.find(
               (a: any) =>
                 a.trigger_type === "keyword" &&
                 a.trigger_value.split(",").some((k: string) => new RegExp(`\\b${escapeRegex(k.trim())}\\b`, "i").test(triggerValue)),
             )
+
+            // Priority 2: wildcard catch-all — matches ANY DM. Only used when no
+            // specific keyword automation matched, so keyword rules always win.
+            if (!match) {
+              match = dmAutomations.find((a: any) => a.trigger_type === "wildcard")
+            }
           }
 
           if (!match) {
