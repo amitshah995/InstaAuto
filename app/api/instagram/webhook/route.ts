@@ -656,7 +656,7 @@ export async function POST(request: NextRequest) {
           try {
             let { data: existingConv } = await supabase
               .from("conversations")
-              .select("id, last_inbound_at, active_flow_automation_id, active_flow_step")
+              .select("id, last_inbound_at, active_flow_automation_id, active_flow_step, human_handled")
               .eq("user_id", user.id)
               .eq("recipient_id", senderId)
               .single()
@@ -698,6 +698,7 @@ export async function POST(request: NextRequest) {
                 last_inbound_at: nowIso,
                 active_flow_automation_id: existingConv.active_flow_automation_id,
                 active_flow_step: existingConv.active_flow_step,
+                human_handled: existingConv.human_handled,
               }
             }
 
@@ -716,6 +717,24 @@ export async function POST(request: NextRequest) {
             console.error("[v0] Failed to save incoming message DB", err)
           }
           // ============================================================
+
+          // ============================================================
+          // 🙋 HUMAN HANDOFF — a human agent has taken over this conversation
+          // from the Inbox. Automations and AI stay silent until it's turned
+          // back off, so the bot never talks over a human mid-conversation.
+          // ============================================================
+          if (conv?.human_handled) {
+            console.log(`[v0] 🙋 Human is handling ${senderId} — skipping automation`)
+            await logRun(supabase, {
+              userId: user.id,
+              eventType: triggerType === "postback" ? "postback" : "dm",
+              triggerText: triggerValue,
+              matched: false,
+              actionStatus: "skipped",
+              errorMessage: "Human handoff active",
+            })
+            continue
+          }
 
           // ============================================================
           // ⏰ 24-HOUR MESSAGING WINDOW CHECK
@@ -902,6 +921,7 @@ STRICT RULES — follow every single one:
 - Sound like a real busy person who replies quickly — not a customer service bot.
 - If you don't know something, say "hmm let me check" or "kal bata deta hoon" — whatever fits the vibe.
 - DO NOT use hashtags, bullet points, or formal formatting in DMs.
+- If the person asks something you genuinely don't know, seems upset/frustrated, asks for a refund, or needs a decision only the real account owner should make — reply with EXACTLY this and nothing else: ESCALATE_TO_HUMAN
 - Detect language from user's messages: ${userMsgs.slice(0, 100)}`
                   : `You are ${user.username} — a real person replying to your own Instagram DMs.${accountContext}
 
@@ -913,7 +933,8 @@ STRICT RULES — follow every single one:
 - NO cringe openers like "Absolutely!", "Sure thing!", "Great to hear!". Just reply normally.
 - NO hashtags, NO bullet points, NO robotic formatting.
 - If you don't know something, say something like "let me check and get back to you" — casual, real.
-- Vary your style slightly — don't always start with "Hey" or the same word.`
+- Vary your style slightly — don't always start with "Hey" or the same word.
+- If the person asks something you genuinely don't know, seems upset/frustrated, asks for a refund, or needs a decision only the real account owner should make — reply with EXACTLY this and nothing else: ESCALATE_TO_HUMAN`
 
                 const aiMessages = [
                   { role: "system", content: systemPrompt },
@@ -1042,6 +1063,48 @@ STRICT RULES — follow every single one:
                   ]
                   aiReply = fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)]
                   console.log(`[v0] 🔄 Using fallback reply: "${aiReply}"`)
+                }
+
+                // ============================================================
+                // 🙋 AI ESCALATION — model decided it can't/shouldn't handle this
+                // itself. Flip on human handoff and send one handoff message
+                // instead of the raw sentinel text.
+                // ============================================================
+                if (aiReply.includes("ESCALATE_TO_HUMAN")) {
+                  console.log(`[v0] 🙋 AI requested escalation for ${senderId}`)
+                  if (conv) {
+                    await supabase.from("conversations").update({ human_handled: true }).eq("id", conv.id)
+                  }
+                  const handoffMessage = "Let me get one of our team to help you with that — they'll be with you shortly! 🙋"
+                  const handoffRes = await fetch(
+                    `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(user.access_token)}`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ recipient: { id: senderId }, message: { text: handoffMessage } }),
+                    },
+                  )
+                  const handoffJson = await handoffRes.json()
+                  await logRun(supabase, {
+                    userId: user.id,
+                    eventType: "dm",
+                    triggerText: triggerValue,
+                    matched: false,
+                    actionStatus: handoffJson.error ? "failed" : "sent",
+                    errorMessage: "Escalated to human",
+                  })
+                  if (!handoffJson.error && conv) {
+                    await supabase.from("messages").insert({
+                      id: `mid_escalate_${Date.now()}_${Math.random()}`,
+                      conversation_id: conv.id,
+                      user_id: user.id,
+                      sender_id: user.business_account_id,
+                      sender_username: user.username,
+                      content: handoffMessage,
+                      is_from_instagram: false,
+                    })
+                  }
+                  continue
                 }
 
                 console.log(`[v0] 🤖 AI Reply: "${aiReply}"`)
