@@ -10,12 +10,13 @@ import {
   LogOut, 
   Settings, 
   BarChart3, 
-  MessageSquare, 
-  Snowflake, 
+  MessageSquare,
+  Snowflake,
   Clapperboard,
   Sun,
   Moon,
-  Compass
+  Compass,
+  Users
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -104,6 +105,14 @@ export function Sidebar({ className, username = "Demo User", profilePictureUrl, 
           icon={<MessageSquare className="w-4 h-4" />}
           label="Inbox"
           active={isActive("/dashboard/inbox")}
+          onClick={onNavigate}
+          isCollapsed={isCollapsed}
+        />
+        <NavItem
+          href="/dashboard/contacts"
+          icon={<Users className="w-4 h-4" />}
+          label="Contacts"
+          active={isActive("/dashboard/contacts")}
           onClick={onNavigate}
           isCollapsed={isCollapsed}
         />
