@@ -1,14 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSessionUserId } from "@/lib/auth"
 import fs from "fs"
 import path from "path"
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json()
-        const { userId, videoUrl, caption, coverUrl } = body
+        const userId = getSessionUserId(request)
+        if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
-        if (!userId || !videoUrl) {
+        const body = await request.json()
+        const { videoUrl, caption, coverUrl } = body
+
+        if (!videoUrl) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
         }
 
@@ -24,6 +28,8 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
 
         // 2. Save locally into public/uploads (consistent with local upload API)
+        // userId here comes from the session (an internal numeric id), never from
+        // client input, so it can't be used for path traversal into uploadDir.
         const contentType = vidRes.headers.get("content-type") || "video/mp4"
         let fileExt = "mp4"
         if (contentType.includes("image/jpeg")) fileExt = "jpg"
