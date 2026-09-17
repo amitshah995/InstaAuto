@@ -126,6 +126,31 @@ async function sendSteps(
   return { ok: allOk, results }
 }
 
+// Saves one answer from a lead-qualification flow to the contacts table.
+// name/email/phone get their own columns; anything else goes into custom_fields
+// (merged, not overwritten, so earlier answers in the same flow aren't lost).
+async function saveFlowAnswer(supabase: any, userId: number, igsid: string, field: string, value: string) {
+  const standardFields = ["name", "email", "phone"]
+  const { data: existing } = await supabase
+    .from("contacts")
+    .select("id, custom_fields")
+    .eq("user_id", userId)
+    .eq("igsid", igsid)
+    .single()
+
+  const customFields = { ...(existing?.custom_fields || {}) }
+  if (!standardFields.includes(field)) customFields[field] = value
+
+  const payload: any = { updated_at: new Date().toISOString(), custom_fields: customFields }
+  if (standardFields.includes(field)) payload[field] = value
+
+  if (existing) {
+    await supabase.from("contacts").update(payload).eq("id", existing.id)
+  } else {
+    await supabase.from("contacts").insert({ user_id: userId, igsid, created_at: new Date().toISOString(), ...payload })
+  }
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const mode = searchParams.get("hub.mode")
@@ -600,6 +625,7 @@ export async function POST(request: NextRequest) {
 
           let triggerType = "",
             triggerValue = ""
+          const rawMessageText = event.message?.text || ""
 
           if (event.message?.text) {
             triggerType = "keyword"
@@ -630,7 +656,7 @@ export async function POST(request: NextRequest) {
           try {
             let { data: existingConv } = await supabase
               .from("conversations")
-              .select("id, last_inbound_at")
+              .select("id, last_inbound_at, active_flow_automation_id, active_flow_step")
               .eq("user_id", user.id)
               .eq("recipient_id", senderId)
               .single()
@@ -659,7 +685,7 @@ export async function POST(request: NextRequest) {
                   last_message_at: nowIso,
                   last_inbound_at: nowIso,
                 })
-                .select("id, last_inbound_at")
+                .select("id, last_inbound_at, active_flow_automation_id, active_flow_step")
                 .single()
               conv = newConv
             } else {
@@ -667,7 +693,12 @@ export async function POST(request: NextRequest) {
                 .from("conversations")
                 .update({ last_message_at: nowIso, last_inbound_at: nowIso })
                 .eq("id", existingConv.id)
-              conv = { id: existingConv.id, last_inbound_at: nowIso }
+              conv = {
+                id: existingConv.id,
+                last_inbound_at: nowIso,
+                active_flow_automation_id: existingConv.active_flow_automation_id,
+                active_flow_step: existingConv.active_flow_step,
+              }
             }
 
             if (conv) {
@@ -698,6 +729,65 @@ export async function POST(request: NextRequest) {
             const hoursSince = (Date.now() - new Date(conv.last_inbound_at).getTime()) / 36e5
             return hoursSince <= 24
           })()
+
+          // ============================================================
+          // 🧭 LEAD-QUALIFICATION FLOW — if this conversation is mid-flow (a
+          // lead-qualification automation asked a question), this message is
+          // the ANSWER to that question, not something to keyword-match.
+          // ============================================================
+          if (triggerType === "keyword" && conv?.active_flow_automation_id && withinWindow) {
+            const flowAutomation = automations.find((a: any) => a.id === conv.active_flow_automation_id)
+            const questions = flowAutomation?.response_content?.questions
+            const stepIndex = conv.active_flow_step ?? 0
+
+            if (flowAutomation && Array.isArray(questions) && questions[stepIndex]) {
+              const currentQuestion = questions[stepIndex]
+              await saveFlowAnswer(supabase, user.id, senderId, currentQuestion.field, rawMessageText.trim())
+
+              const nextIndex = stepIndex + 1
+              const nextQuestion = questions[nextIndex]
+
+              if (nextQuestion) {
+                await supabase.from("conversations").update({ active_flow_step: nextIndex }).eq("id", conv.id)
+                await sendSteps(user.access_token, { id: senderId }, senderId, { message: nextQuestion.prompt })
+              } else {
+                await supabase
+                  .from("conversations")
+                  .update({ active_flow_automation_id: null, active_flow_step: null })
+                  .eq("id", conv.id)
+                if (flowAutomation.response_content.closing_message) {
+                  await sendSteps(user.access_token, { id: senderId }, senderId, {
+                    message: flowAutomation.response_content.closing_message,
+                  })
+                }
+              }
+
+              await logRun(supabase, {
+                userId: user.id,
+                automationId: flowAutomation.id,
+                eventType: "dm",
+                triggerText: triggerValue,
+                matched: true,
+                actionStatus: "sent",
+                errorMessage: nextQuestion ? `Flow step ${nextIndex}/${questions.length}` : "Flow completed",
+              })
+
+              const outText = nextQuestion ? nextQuestion.prompt : flowAutomation.response_content.closing_message || null
+              if (outText) {
+                await supabase.from("messages").insert({
+                  id: `mid_flow_${Date.now()}_${Math.random()}`,
+                  conversation_id: conv.id,
+                  user_id: user.id,
+                  sender_id: user.business_account_id,
+                  sender_username: user.username,
+                  content: outText,
+                  is_from_instagram: false,
+                })
+              }
+
+              continue
+            }
+          }
 
           if (!withinWindow) {
             console.log(`[v0] ⏸️ Skipped DM to ${senderId} — outside 24h messaging window`)
@@ -1024,6 +1114,46 @@ STRICT RULES — follow every single one:
 
           console.log(`[v0] ✅ Match: "${match.name}"`)
           const content = match.response_content
+
+          // Lead-qualification flow: instead of sending the configured reply
+          // directly, ask the first question and mark this conversation as
+          // "in a flow" — the next inbound DM is captured as the answer by
+          // the flow-answer block above, not matched against keywords.
+          if (triggerType === "keyword" && conv && Array.isArray(content.questions) && content.questions.length > 0) {
+            const firstQuestion = content.questions[0]
+            await supabase
+              .from("conversations")
+              .update({ active_flow_automation_id: match.id, active_flow_step: 0 })
+              .eq("id", conv.id)
+
+            const { ok: flowStartOk } = await sendSteps(user.access_token, { id: senderId }, senderId, {
+              message: firstQuestion.prompt,
+            })
+
+            await logRun(supabase, {
+              userId: user.id,
+              automationId: match.id,
+              eventType: "dm",
+              triggerText: triggerValue,
+              matched: true,
+              actionStatus: flowStartOk ? "sent" : "failed",
+              errorMessage: flowStartOk ? "Flow started" : "Failed to send first question",
+            })
+
+            if (flowStartOk) {
+              await supabase.from("messages").insert({
+                id: `mid_flow_${Date.now()}_${Math.random()}`,
+                conversation_id: conv.id,
+                user_id: user.id,
+                sender_id: user.business_account_id,
+                sender_username: user.username,
+                content: firstQuestion.prompt,
+                is_from_instagram: false,
+              })
+            }
+
+            continue
+          }
 
           const isUnlockEvent = triggerType === "postback" && triggerValue.startsWith("UNLOCK_CONTENT_")
           const isFollowGate = content.check_follow === true && !isUnlockEvent
