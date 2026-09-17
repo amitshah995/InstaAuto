@@ -52,7 +52,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
   useEffect(() => {
     if (name) return // Don't overwrite user's custom name
     if (replyToAll) {
-      setName(`All Comments → Reply`)
+      setName(triggerSource === 'dm' ? `All DMs → Reply` : `All Comments → Reply`)
     } else if (triggers.length > 0) {
       setName(`${triggers.slice(0, 2).join(", ")} → Auto Reply`)
     }
@@ -88,7 +88,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
   // Validation per step
   const canProceedStep1 = () => {
     const isStoryMentionOrReaction = triggerSource === 'story' && (storyTriggerType === 'mention' || storyTriggerType === 'reaction')
-    if (replyToAll && !selectedReel) {
+    if (triggerSource === 'comment' && replyToAll && !selectedReel) {
       toast.error("Select a Post", { description: "Reply-All requires selecting a specific post." })
       return false
     }
@@ -149,8 +149,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
           userId,
           name,
           trigger_source: triggerSource,
-          trigger_type: replyToAll ? "reply_all" : (triggerSource === 'story' ? storyTriggerType : "keyword"),
-          trigger_value: replyToAll ? "ALL_COMMENTS" :
+          trigger_type: replyToAll
+            ? (triggerSource === 'dm' ? "wildcard" : "reply_all")
+            : (triggerSource === 'story' ? storyTriggerType : "keyword"),
+          trigger_value: replyToAll ? (triggerSource === 'dm' ? "ALL_DMS" : "ALL_COMMENTS") :
             (triggerSource === 'story' && storyTriggerType === 'mention') ? "ALL_MENTIONS" :
               (triggerSource === 'story' && storyTriggerType === 'reaction' && triggers.length === 0) ? "ALL_REACTIONS" :
                 triggers.length > 0 ? triggers.join(", ") : "ALL",
@@ -364,8 +366,34 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
         </button>
       )}
 
+      {/* Reply to all toggle — DMs only */}
+      {triggerSource === 'dm' && (
+        <button
+          type="button"
+          onClick={() => setReplyToAll(!replyToAll)}
+          className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
+            replyToAll ? 'border-blue-500/50 bg-blue-50' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
+          }`}
+        >
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+            replyToAll ? 'bg-blue-100 text-blue-600' : 'bg-secondary text-muted-foreground'
+          }`}>
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="text-left flex-1">
+            <p className={`text-sm font-bold ${replyToAll ? 'text-blue-600' : 'text-foreground'}`}>Reply to ALL DMs</p>
+            <p className="text-[11px] text-muted-foreground">Auto-reply to every DM you receive, no keyword needed</p>
+          </div>
+          <div className={`w-5 h-5 rounded-full border-2 transition-all ${
+            replyToAll ? 'border-blue-600 bg-blue-600' : 'border-border'
+          }`}>
+            {replyToAll && <Check className="w-3 h-3 text-white m-auto mt-0.5" />}
+          </div>
+        </button>
+      )}
+
       {/* Keyword input — conditional */}
-      {!(triggerSource === 'comment' && replyToAll) && !(triggerSource === 'story' && storyTriggerType === 'mention') && (
+      {!(replyToAll && (triggerSource === 'comment' || triggerSource === 'dm')) && !(triggerSource === 'story' && storyTriggerType === 'mention') && (
         <div className="space-y-2">
           <Label className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider ml-1">
             {triggerSource === 'story' && storyTriggerType === 'reaction' ? 'Emoji Filter (optional)' : 'Keywords'}
@@ -579,7 +607,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground font-medium">When:</span>
           <span className="text-foreground font-semibold">
-            {replyToAll ? 'Any comment' :
+            {replyToAll ? (triggerSource === 'dm' ? 'Any DM' : 'Any comment') :
               triggerSource === 'story' && storyTriggerType === 'mention' ? 'Story mention' :
                 triggers.length > 0 ? triggers.join(", ") : 'All messages'}
           </span>
