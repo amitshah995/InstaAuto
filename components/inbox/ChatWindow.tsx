@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef, useCallback } from "react"
-import { Send, Loader2, MoreVertical, Zap, ChevronLeft, UserCheck } from "lucide-react"
+import { Send, Loader2, MoreVertical, Zap, ChevronLeft, UserCheck, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { Message } from "@/types/db"
@@ -22,7 +22,37 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
     const [sending, setSending] = useState(false)
     const [isAutomationOpen, setIsAutomationOpen] = useState(false)
     const [automations, setAutomations] = useState<any[]>([])
+    const [humanHandled, setHumanHandled] = useState(false)
+    const [togglingHandoff, setTogglingHandoff] = useState(false)
     const bottomRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (!conversationId) return
+        fetch(`/api/inbox/conversations/toggle?conversationId=${conversationId}`)
+            .then((res) => res.json())
+            .then((data) => setHumanHandled(!!data.human_handled))
+            .catch(() => {})
+    }, [conversationId])
+
+    const toggleHumanHandled = async () => {
+        if (!conversationId || togglingHandoff) return
+        setTogglingHandoff(true)
+        const next = !humanHandled
+        setHumanHandled(next)
+        try {
+            const res = await fetch("/api/inbox/conversations/toggle", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ conversationId, human_handled: next }),
+            })
+            if (!res.ok) throw new Error("Failed")
+        } catch (e) {
+            console.error("Failed to toggle human handoff", e)
+            setHumanHandled(!next)
+        } finally {
+            setTogglingHandoff(false)
+        }
+    }
 
     const fetchMessages = useCallback(async () => {
         if (!conversationId) return
@@ -153,7 +183,23 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                         </span>
                     </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant={humanHandled ? "default" : "outline"}
+                        size="sm"
+                        onClick={toggleHumanHandled}
+                        disabled={togglingHandoff}
+                        className={cn(
+                            "h-8 rounded-full text-[11px] font-bold gap-1.5 px-3",
+                            humanHandled
+                                ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"
+                                : "text-muted-foreground border-border hover:bg-secondary"
+                        )}
+                        title={humanHandled ? "Bot is paused — click to resume automations" : "Pause automations and take over manually"}
+                    >
+                        {humanHandled ? <UserCheck className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
+                        {humanHandled ? "You're handling this" : "Bot active"}
+                    </Button>
                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><MoreVertical className="w-4 h-4" /></Button>
                 </div>
             </div>
