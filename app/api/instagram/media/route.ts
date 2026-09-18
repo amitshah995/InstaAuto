@@ -1,12 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSessionUserId } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const userId = searchParams.get("userId")
-
-    if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 })
+    const userId = getSessionUserId(request)
+    if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
     const supabase = await getSupabaseServerClient()
 
@@ -25,10 +24,10 @@ export async function GET(request: NextRequest) {
     // Ye 'instagram.com' use karega jo aapke token ke saath compatible hai.
     // Hum '/me' use kar rahe hain taaki ID mismatch ka lafda hi na ho.
     const url = `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=24&access_token=${user.access_token}`
-    
-    console.log("[v0] Fetching Media from:", url) 
 
-    const res = await fetch(url, { cache: 'no-store' }) 
+    console.log("[v0] Fetching Media from:", url)
+
+    const res = await fetch(url, { cache: 'no-store' })
     const data = await res.json()
 
     if (data.error) {
