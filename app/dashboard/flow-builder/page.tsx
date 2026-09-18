@@ -113,6 +113,10 @@ function FlowBuilderContent() {
   const [automationName, setAutomationName] = useState<string>("Demo Automation Flow")
   const [specificMediaId, setSpecificMediaId] = useState<string | null>(null)
   const [triggerSource, setTriggerSource] = useState<'comment' | 'dm' | 'story'>('dm')
+  // The rule's original response_content, kept so saving can preserve fields
+  // this canvas doesn't understand (e.g. sequence "steps" or lead-qual
+  // "questions") instead of silently discarding them.
+  const [originalContent, setOriginalContent] = useState<any>(null)
 
   const canvasRef = useRef<HTMLDivElement>(null)
   const [isVisible, setIsVisible] = useState(false)
@@ -142,6 +146,7 @@ function FlowBuilderContent() {
             setAutomationName(rule.name)
             setSpecificMediaId(rule.specific_media_id)
             setTriggerSource(rule.trigger_source)
+            setOriginalContent(rule.response_content || null)
 
             // Map database rule into nodes
             const triggerNode: Node = {
@@ -354,6 +359,23 @@ function FlowBuilderContent() {
 
     // If editing a real database automation
     if (flowId && userId) {
+      // This canvas only understands a single message + delay + follow-gate.
+      // Sequence ("steps") and Lead Qualification ("questions") automations
+      // store richer data this canvas can't show — saving here would silently
+      // discard it, so block it instead.
+      if (Array.isArray(originalContent?.steps) && originalContent.steps.length > 0) {
+        toast.error("Can't edit here", {
+          description: "This is a Message Sequence automation — its messages aren't editable in the visual builder yet. Delete and recreate it to change them.",
+        })
+        return
+      }
+      if (Array.isArray(originalContent?.questions) && originalContent.questions.length > 0) {
+        toast.error("Can't edit here", {
+          description: "This is a Lead Qualification automation — its questions aren't editable in the visual builder yet. Delete and recreate it to change them.",
+        })
+        return
+      }
+
       try {
         setIsSaved(true)
         const triggerNode = nodes.find(n => n.type === "trigger")
