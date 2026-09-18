@@ -10,42 +10,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Lock, Film, ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, Send, AtSign, Heart, MessageSquare, ListOrdered, Clock, ListChecks } from "lucide-react"
 import { TagInput } from "@/components/ui/tag-input"
 import type { ProButton } from "@/lib/types"
+import type { AutomationTemplate } from "@/lib/automation-templates"
 import { toast } from "sonner"
 
 interface CreateRuleFormProps {
   userId: string
   triggerSource: 'comment' | 'dm' | 'story' | 'live'
   onSuccess: () => void
+  template?: AutomationTemplate | null
 }
 
-export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleFormProps) {
+export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: CreateRuleFormProps) {
   const [step, setStep] = useState(1)
+  const d = template?.defaults
 
   // Step 1: Trigger
-  const [replyToAll, setReplyToAll] = useState(false)
-  const [triggers, setTriggers] = useState<string[]>([])
-  const [storyTriggerType, setStoryTriggerType] = useState<'mention' | 'reaction' | 'reply'>('mention')
+  const [replyToAll, setReplyToAll] = useState(d?.replyToAll ?? false)
+  const [triggers, setTriggers] = useState<string[]>(d?.triggers ?? [])
+  const [storyTriggerType, setStoryTriggerType] = useState<'mention' | 'reaction' | 'reply'>(d?.storyTriggerType ?? 'mention')
   const [selectedReel, setSelectedReel] = useState<any | null>(null)
   const [showReelPicker, setShowReelPicker] = useState(false)
 
   // Step 2: Response
-  const [type, setType] = useState<"text" | "card" | "sequence" | "leadgen">("text")
-  const [messageText, setMessageText] = useState("")
+  const [type, setType] = useState<"text" | "card" | "sequence" | "leadgen">(d?.type ?? "text")
+  const [messageText, setMessageText] = useState(d?.messageText ?? "")
   const [cardTitle, setCardTitle] = useState("")
   const [cardSubtitle, setCardSubtitle] = useState("")
   const [cardImage, setCardImage] = useState("")
   const [buttons, setButtons] = useState<ProButton[]>([])
-  const [steps, setSteps] = useState<{ id: string; text: string; delay_seconds: number }[]>([
-    { id: "1", text: "", delay_seconds: 0 },
-  ])
-  const [questions, setQuestions] = useState<{ id: string; field: string; prompt: string }[]>([
-    { id: "1", field: "name", prompt: "What's your name?" },
-  ])
-  const [closingMessage, setClosingMessage] = useState("Thanks! We'll get back to you shortly.")
+  const [steps, setSteps] = useState<{ id: string; text: string; delay_seconds: number }[]>(
+    d?.steps?.length ? d.steps.map((s, i) => ({ id: String(i + 1), ...s })) : [{ id: "1", text: "", delay_seconds: 0 }],
+  )
+  const [questions, setQuestions] = useState<{ id: string; field: string; prompt: string }[]>(
+    d?.questions?.length ? d.questions.map((q, i) => ({ id: String(i + 1), ...q })) : [{ id: "1", field: "name", prompt: "What's your name?" }],
+  )
+  const [closingMessage, setClosingMessage] = useState(d?.closingMessage ?? "Thanks! We'll get back to you shortly.")
 
   // Step 3: Settings
-  const [name, setName] = useState("")
-  const [checkFollow, setCheckFollow] = useState(false)
+  const [name, setName] = useState(d?.name ?? "")
+  const [checkFollow, setCheckFollow] = useState(d?.checkFollow ?? false)
 
   // Media
   const [reels, setReels] = useState<any[]>([])
