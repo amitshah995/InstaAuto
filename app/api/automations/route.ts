@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate trigger_source
-    if (!['comment', 'dm', 'story'].includes(trigger_source)) {
+    if (!['comment', 'dm', 'story', 'live'].includes(trigger_source)) {
       return NextResponse.json({ error: "Invalid trigger source" }, { status: 400 })
     }
 
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Validate trigger_source if provided
-    if (trigger_source && !['comment', 'dm', 'story'].includes(trigger_source)) {
+    if (trigger_source && !['comment', 'dm', 'story', 'live'].includes(trigger_source)) {
       return NextResponse.json({ error: "Invalid trigger source" }, { status: 400 })
     }
 
