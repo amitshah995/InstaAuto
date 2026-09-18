@@ -151,6 +151,85 @@ async function saveFlowAnswer(supabase: any, userId: number, igsid: string, fiel
   }
 }
 
+// Runs (or resumes) a branching flow — a graph of message/condition nodes
+// built in the visual Flow Builder. Walks forward auto-sending message nodes
+// until it hits a condition node (which needs the next inbound reply to pick
+// a branch) or the end of the flow. Capped at 20 hops so a malformed/cyclic
+// graph can't hang a single webhook request.
+//
+// currentNodeId: pass flow.startNodeId to begin a new run, or the
+// conversation's saved active_flow_node_id to resume one.
+// incomingText: only used when currentNodeId is a condition node (the reply
+// being evaluated against its branches) — ignored otherwise.
+async function runFlow(
+  accessToken: string,
+  psid: string,
+  flow: { startNodeId: string; nodes: Record<string, any> },
+  currentNodeId: string,
+  incomingText: string | null,
+): Promise<{ nodeId: string | null; sentTexts: string[] }> {
+  let nodeId: string | null = currentNodeId
+  const sentTexts: string[] = []
+  let hops = 0
+
+  // Resuming at a condition node — evaluate the reply against its branches first.
+  let node = flow.nodes[nodeId]
+  if (node?.type === "condition") {
+    const text = (incomingText || "").toLowerCase().trim()
+    const branch = (node.branches || []).find(
+      (b: any) => b.keyword && new RegExp(`\\b${escapeRegex(b.keyword.trim())}\\b`, "i").test(text),
+    )
+    nodeId = branch?.next || node.default_next || null
+  }
+
+  while (nodeId && hops < 20) {
+    hops++
+    node = flow.nodes[nodeId]
+    if (!node) break
+
+    if (node.type === "condition") {
+      // Reached a condition mid-walk (not at resume) — pause here for the reply.
+      break
+    }
+
+    if (node.type === "message") {
+      const delay = node.delay_seconds || 0
+      if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay * 1000))
+
+      try {
+        const res = await fetch(
+          `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(accessToken)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipient: { id: psid }, message: { text: node.text || "" } }),
+          },
+        )
+        const json = await res.json()
+        if (!json.error) sentTexts.push(node.text || "")
+      } catch (e) {
+        console.error("[v0] 🔴 Flow node send error:", e)
+      }
+
+      const nextNode = node.next ? flow.nodes[node.next] : null
+      if (!nextNode) {
+        nodeId = null // end of flow
+        break
+      }
+      if (nextNode.type === "condition") {
+        nodeId = node.next // pause here, waiting for the next reply
+        break
+      }
+      nodeId = node.next // auto-continue to the next message node
+      continue
+    }
+
+    break
+  }
+
+  return { nodeId, sentTexts }
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const mode = searchParams.get("hub.mode")
@@ -656,7 +735,7 @@ export async function POST(request: NextRequest) {
           try {
             let { data: existingConv } = await supabase
               .from("conversations")
-              .select("id, last_inbound_at, active_flow_automation_id, active_flow_step, human_handled")
+              .select("id, last_inbound_at, active_flow_automation_id, active_flow_step, active_flow_node_id, human_handled")
               .eq("user_id", user.id)
               .eq("recipient_id", senderId)
               .single()
@@ -685,7 +764,7 @@ export async function POST(request: NextRequest) {
                   last_message_at: nowIso,
                   last_inbound_at: nowIso,
                 })
-                .select("id, last_inbound_at, active_flow_automation_id, active_flow_step")
+                .select("id, last_inbound_at, active_flow_automation_id, active_flow_step, active_flow_node_id")
                 .single()
               conv = newConv
             } else {
@@ -698,6 +777,7 @@ export async function POST(request: NextRequest) {
                 last_inbound_at: nowIso,
                 active_flow_automation_id: existingConv.active_flow_automation_id,
                 active_flow_step: existingConv.active_flow_step,
+                active_flow_node_id: existingConv.active_flow_node_id,
                 human_handled: existingConv.human_handled,
               }
             }
@@ -800,6 +880,57 @@ export async function POST(request: NextRequest) {
                   sender_id: user.business_account_id,
                   sender_username: user.username,
                   content: outText,
+                  is_from_instagram: false,
+                })
+              }
+
+              continue
+            }
+          }
+
+          // ============================================================
+          // 🌳 BRANCHING FLOW — if this conversation is paused at a condition
+          // node in a Flow Builder automation, resume it with this reply.
+          // ============================================================
+          if (triggerType === "keyword" && conv?.active_flow_automation_id && conv?.active_flow_node_id && withinWindow) {
+            const flowAutomation = automations.find((a: any) => a.id === conv.active_flow_automation_id)
+            const flow = flowAutomation?.response_content?.flow
+
+            if (flowAutomation && flow?.nodes) {
+              const { nodeId: nextNodeId, sentTexts } = await runFlow(
+                user.access_token,
+                senderId,
+                flow,
+                conv.active_flow_node_id,
+                rawMessageText.trim(),
+              )
+
+              await supabase
+                .from("conversations")
+                .update({
+                  active_flow_node_id: nextNodeId,
+                  active_flow_automation_id: nextNodeId ? conv.active_flow_automation_id : null,
+                })
+                .eq("id", conv.id)
+
+              await logRun(supabase, {
+                userId: user.id,
+                automationId: flowAutomation.id,
+                eventType: "dm",
+                triggerText: triggerValue,
+                matched: true,
+                actionStatus: sentTexts.length > 0 ? "sent" : "skipped",
+                errorMessage: nextNodeId ? "Flow continuing" : "Flow completed",
+              })
+
+              for (const text of sentTexts) {
+                await supabase.from("messages").insert({
+                  id: `mid_flow_${Date.now()}_${Math.random()}`,
+                  conversation_id: conv.id,
+                  user_id: user.id,
+                  sender_id: user.business_account_id,
+                  sender_username: user.username,
+                  content: text,
                   is_from_instagram: false,
                 })
               }
@@ -1211,6 +1342,51 @@ STRICT RULES — follow every single one:
                 sender_id: user.business_account_id,
                 sender_username: user.username,
                 content: firstQuestion.prompt,
+                is_from_instagram: false,
+              })
+            }
+
+            continue
+          }
+
+          // Branching flow (Flow Builder): walk the graph from its start node,
+          // auto-sending messages until it hits a condition node (then pause
+          // and wait for the reply) or the end.
+          if (triggerType === "keyword" && conv && content.flow?.nodes && content.flow?.startNodeId) {
+            const { nodeId: nextNodeId, sentTexts } = await runFlow(
+              user.access_token,
+              senderId,
+              content.flow,
+              content.flow.startNodeId,
+              null,
+            )
+
+            await supabase
+              .from("conversations")
+              .update({
+                active_flow_automation_id: nextNodeId ? match.id : null,
+                active_flow_node_id: nextNodeId,
+              })
+              .eq("id", conv.id)
+
+            await logRun(supabase, {
+              userId: user.id,
+              automationId: match.id,
+              eventType: "dm",
+              triggerText: triggerValue,
+              matched: true,
+              actionStatus: sentTexts.length > 0 ? "sent" : "failed",
+              errorMessage: nextNodeId ? "Flow started, paused at condition" : "Flow completed in one pass",
+            })
+
+            for (const text of sentTexts) {
+              await supabase.from("messages").insert({
+                id: `mid_flow_${Date.now()}_${Math.random()}`,
+                conversation_id: conv.id,
+                user_id: user.id,
+                sender_id: user.business_account_id,
+                sender_username: user.username,
+                content: text,
                 is_from_instagram: false,
               })
             }
