@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { AutomationList } from "@/components/dashboard/AutomationList"
 import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
-import { MessageCircle, Send, Sparkles, Zap, Plus, Loader2, X, RefreshCw, Eye, Flame, Inbox, Heart, MessageSquare } from "lucide-react"
+import { MessageCircle, Send, Sparkles, Zap, Plus, Loader2, X, RefreshCw, Eye, Flame, Inbox, Heart, MessageSquare, Radio } from "lucide-react"
 import { IceBreakersManager } from "@/components/dashboard/IceBreakersManager"
 import type { Automation } from "@/lib/types"
 
@@ -12,7 +12,7 @@ export default function AutomationsPage() {
     const { userId, isLoading: isSessionLoading } = useInstagramSession()
     const [automations, setAutomations] = useState<Automation[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'comment' | 'dm' | 'story'>('comment')
+    const [activeTab, setActiveTab] = useState<'comment' | 'dm' | 'story' | 'live'>('comment')
     const [showCreateForm, setShowCreateForm] = useState(false)
 
     // Simulation states
@@ -94,12 +94,14 @@ export default function AutomationsPage() {
         comment: automations.filter(a => a.trigger_source === 'comment').length,
         dm: automations.filter(a => a.trigger_source === 'dm').length,
         story: automations.filter(a => a.trigger_source === 'story').length,
+        live: automations.filter(a => a.trigger_source === 'live').length,
     }
 
     const tabs = [
         { key: 'comment' as const, icon: <MessageCircle className="w-4 h-4" />, label: 'Comments', count: counts.comment },
         { key: 'dm' as const, icon: <Send className="w-4 h-4" />, label: 'DMs', count: counts.dm },
         { key: 'story' as const, icon: <Sparkles className="w-4 h-4" />, label: 'Stories', count: counts.story },
+        { key: 'live' as const, icon: <Radio className="w-4 h-4" />, label: 'Live', count: counts.live },
     ]
 
     return (
@@ -244,7 +246,11 @@ export default function AutomationsPage() {
                                         <div className="bg-white rounded-xl rounded-tl-none p-1.5 max-w-[85%] border border-slate-200/50 shadow-sm text-left">
                                             <p className="text-[7px] font-black text-slate-800 leading-none">user_101</p>
                                             <p className="text-[8.5px] text-slate-600 mt-0.5 font-bold leading-normal">
-                                                {previewAutomation.trigger_source === "comment" ? `Commented: "${previewAutomation.trigger_value}"` : `DM: "${previewAutomation.trigger_value}"`}
+                                                {previewAutomation.trigger_source === "comment"
+                                                    ? `Commented: "${previewAutomation.trigger_value}"`
+                                                    : previewAutomation.trigger_source === "live"
+                                                        ? `Live comment: "${previewAutomation.trigger_value}"`
+                                                        : `DM: "${previewAutomation.trigger_value}"`}
                                             </p>
                                         </div>
                                     </div>
