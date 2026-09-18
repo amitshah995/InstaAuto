@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, X, Loader2, MessageCircle, Send, Tag, Check, Sparkles, AlertCircle } from "lucide-react"
+import { Pencil, X, Loader2, MessageCircle, Send, Tag, Check, Sparkles, AlertCircle, ListOrdered, ListChecks, Compass } from "lucide-react"
+import Link from "next/link"
 import { toast } from "sonner"
 import type { Automation } from "@/lib/types"
 
@@ -22,6 +23,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
   const [keywordsInput, setKeywordsInput] = useState("")
   const [messageText, setMessageText] = useState("")
   const [isCard, setIsCard] = useState(false)
+  const [contentType, setContentType] = useState<"text" | "card" | "sequence" | "leadgen">("text")
   const [cardTitle, setCardTitle] = useState("")
   const [cardSubtitle, setCardSubtitle] = useState("")
   const [cardImageUrl, setCardImageUrl] = useState("")
@@ -36,7 +38,14 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
     setKeywordsInput(rule.trigger_value || "")
 
     const content = rule.response_content || {}
-    if (content.card) {
+    if (Array.isArray(content.steps) && content.steps.length > 0) {
+      setContentType("sequence")
+      setIsCard(false)
+    } else if (Array.isArray(content.questions) && content.questions.length > 0) {
+      setContentType("leadgen")
+      setIsCard(false)
+    } else if (content.card) {
+      setContentType("card")
       setIsCard(true)
       setCardTitle(content.card.title || "")
       setCardSubtitle(content.card.subtitle || "")
@@ -46,6 +55,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
       setCardButtonUrl(firstBtn?.url || "")
       setMessageText(content.message || "")
     } else {
+      setContentType("text")
       setIsCard(false)
       setMessageText(content.message || "")
     }
@@ -70,24 +80,26 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
       return
     }
 
-    if (!isCard && !messageText.trim()) {
+    if (contentType === "text" && !messageText.trim()) {
       toast.error("Message Required", { description: "Please enter the reply message." })
       return
     }
 
-    if (isCard && !cardTitle.trim()) {
+    if (contentType === "card" && !cardTitle.trim()) {
       toast.error("Card Title Required", { description: "Cards require a title." })
       return
     }
 
     setSaving(true)
 
-    // Build updated content object
+    // Build updated content object. For sequence/leadgen automations, this
+    // modal only edits name + keywords — the existing steps/questions are
+    // carried over untouched via the spread below (edit those in Flow Builder).
     const updatedContent: any = {
       ...(rule.response_content || {}),
     }
 
-    if (isCard) {
+    if (contentType === "card") {
       const updatedButtons = []
       if (cardButtonTitle.trim()) {
         let cleanUrl = cardButtonUrl.trim()
@@ -110,7 +122,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
       if (messageText.trim()) {
         updatedContent.message = messageText.trim()
       }
-    } else {
+    } else if (contentType === "text") {
       updatedContent.message = messageText.trim()
     }
 
@@ -231,30 +243,60 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
             </p>
           </div>
 
-          {/* 3. Reply Message (DM Text) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="message-text" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-500" /> Automated Direct Message (DM)
-              </Label>
-              <span className="text-[10px] text-muted-foreground font-mono">{messageText.length} chars</span>
+          {/* 3. Reply Message (DM Text) — simple text automations only */}
+          {contentType === "text" && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="message-text" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5 text-emerald-500" /> Automated Direct Message (DM)
+                </Label>
+                <span className="text-[10px] text-muted-foreground font-mono">{messageText.length} chars</span>
+              </div>
+
+              <Textarea
+                id="message-text"
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                placeholder="Write the message that will be sent to the user..."
+                rows={4}
+                className="bg-background text-sm rounded-xl border-border resize-none leading-relaxed"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Tip: You can include links (e.g. https://yourwebsite.com) or coupon codes directly in the message.
+              </p>
             </div>
-            
-            <Textarea
-              id="message-text"
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              placeholder="Write the message that will be sent to the user..."
-              rows={4}
-              className="bg-background text-sm rounded-xl border-border resize-none leading-relaxed"
-            />
-            <p className="text-[11px] text-muted-foreground">
-              Tip: You can include links (e.g. https://yourwebsite.com) or coupon codes directly in the message.
-            </p>
-          </div>
+          )}
+
+          {/* Sequence / Lead Qualification — messages/questions aren't editable
+              here, only name + keywords. Editing the actual steps needs the
+              full builder so we don't silently drop data in this quick modal. */}
+          {(contentType === "sequence" || contentType === "leadgen") && (
+            <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-2.5">
+              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                {contentType === "sequence" ? (
+                  <ListOrdered className="w-3.5 h-3.5 text-blue-500" />
+                ) : (
+                  <ListChecks className="w-3.5 h-3.5 text-blue-500" />
+                )}
+                {contentType === "sequence"
+                  ? `Message Sequence (${rule.response_content?.steps?.length || 0} messages)`
+                  : `Lead Qualification (${rule.response_content?.questions?.length || 0} questions)`}
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                This automation's messages aren't editable here — only its name and keywords are. Open the Flow
+                Builder to change the actual {contentType === "sequence" ? "messages" : "questions"}.
+              </p>
+              <Link
+                href={`/dashboard/flow-builder?id=${rule.id}`}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+              >
+                <Compass className="w-3.5 h-3.5" /> Open in Flow Builder
+              </Link>
+            </div>
+          )}
 
           {/* 4. Rich Card Fields (Only if this rule uses a Card template) */}
-          {isCard && (
+          {contentType === "card" && (
             <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-3.5">
               <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                 <Send className="w-3.5 h-3.5 text-blue-500" /> Rich Card Settings
