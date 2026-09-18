@@ -14,7 +14,7 @@ import { toast } from "sonner"
 
 interface CreateRuleFormProps {
   userId: string
-  triggerSource: 'comment' | 'dm' | 'story'
+  triggerSource: 'comment' | 'dm' | 'story' | 'live'
   onSuccess: () => void
 }
 
@@ -378,14 +378,17 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess }: CreateRuleF
         <h3 className="text-lg font-bold text-foreground mb-1">
           {triggerSource === 'comment' ? '💬 When to reply?' :
             triggerSource === 'dm' ? '📩 When to reply?' :
-              '📸 Story trigger'}
+              triggerSource === 'live' ? '📡 Live comment trigger' :
+                '📸 Story trigger'}
         </h3>
         <p className="text-xs text-muted-foreground">
-          {triggerSource === 'comment' 
+          {triggerSource === 'comment'
             ? 'Auto-reply when someone comments these keywords.'
             : triggerSource === 'dm'
               ? 'Auto-reply when someone DMs these keywords.'
-              : 'Engage when someone interacts with your story.'}
+              : triggerSource === 'live'
+                ? 'Auto-DM when someone comments these keywords during your live broadcast. Requires Meta Advanced Access approval and the live_comments webhook field enabled.'
+                : 'Engage when someone interacts with your story.'}
         </p>
       </div>
 
