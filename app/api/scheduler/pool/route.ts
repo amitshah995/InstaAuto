@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSessionUserId } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
     try {
-        const searchParams = request.nextUrl.searchParams
-        const userId = searchParams.get("userId")
-        if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 })
+        const userId = getSessionUserId(request)
+        if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
         const supabase = await getSupabaseServerClient()
 
@@ -27,10 +27,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json()
-        const { userId, video_url, caption, cover_url } = body
+        const userId = getSessionUserId(request)
+        if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
-        if (!userId || !video_url) return NextResponse.json({ error: "Missing fields" }, { status: 400 })
+        const body = await request.json()
+        const { video_url, caption, cover_url } = body
+
+        if (!video_url) return NextResponse.json({ error: "Missing fields" }, { status: 400 })
 
         const supabase = await getSupabaseServerClient()
 
@@ -68,6 +71,9 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
+        const userId = getSessionUserId(request)
+        if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
         const searchParams = request.nextUrl.searchParams
         const id = searchParams.get("id")
         if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
@@ -78,6 +84,7 @@ export async function DELETE(request: NextRequest) {
             .from("content_pool")
             .delete()
             .eq("id", id)
+            .eq("user_id", userId)
 
         if (error) throw error
 
