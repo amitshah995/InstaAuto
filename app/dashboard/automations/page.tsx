@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { AutomationList } from "@/components/dashboard/AutomationList"
 import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
@@ -17,12 +18,45 @@ const TEMPLATE_BADGE_STYLE: Record<string, string> = {
 
 export default function AutomationsPage() {
     const { userId, isLoading: isSessionLoading } = useInstagramSession()
+    const router = useRouter()
     const [automations, setAutomations] = useState<Automation[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'comment' | 'dm' | 'story' | 'live'>('comment')
     const [showCreateForm, setShowCreateForm] = useState(false)
     const [showTemplates, setShowTemplates] = useState(false)
     const [selectedTemplate, setSelectedTemplate] = useState<AutomationTemplate | null>(null)
+    const [creatingFlowTemplate, setCreatingFlowTemplate] = useState(false)
+
+    const startFlowTemplate = async (t: AutomationTemplate) => {
+        if (!userId || !t.flowContent || creatingFlowTemplate) return
+        setCreatingFlowTemplate(true)
+        try {
+            const res = await fetch("/api/automations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId,
+                    name: t.title,
+                    trigger_source: t.triggerSource,
+                    trigger_type: t.flowContent.triggerType,
+                    trigger_value: t.flowContent.triggerValue,
+                    content: {
+                        flow: { startNodeId: t.flowContent.startNodeId, nodes: t.flowContent.nodes },
+                        check_follow: false,
+                    },
+                }),
+            })
+            const data = await res.json()
+            if (res.ok && data?.id) {
+                setShowTemplates(false)
+                router.push(`/dashboard/flow-builder?id=${data.id}`)
+            }
+        } catch (err) {
+            console.error("Failed to create flow template:", err)
+        } finally {
+            setCreatingFlowTemplate(false)
+        }
+    }
 
     // Simulation states
     const [previewAutomation, setPreviewAutomation] = useState<Automation | null>(null)
@@ -238,18 +272,30 @@ export default function AutomationsPage() {
                                                 {templatesForGoal.map((t) => (
                                                     <button
                                                         key={t.id}
+                                                        disabled={creatingFlowTemplate}
                                                         onClick={() => {
+                                                            if (t.kind === "flow") {
+                                                                startFlowTemplate(t)
+                                                                return
+                                                            }
                                                             setSelectedTemplate(t)
                                                             setActiveTab(t.triggerSource)
                                                             setShowCreateForm(true)
                                                             setShowTemplates(false)
                                                         }}
-                                                        className="text-left p-4 rounded-2xl border border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/40 transition-all group"
+                                                        className="text-left p-4 rounded-2xl border border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/40 transition-all group disabled:opacity-60 disabled:cursor-wait"
                                                     >
                                                         <div className="flex items-center justify-between gap-2 mb-1.5">
-                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-background px-2 py-0.5 rounded-full border border-border/60">
-                                                                {TRIGGER_SOURCE_LABEL[t.triggerSource]}
-                                                            </span>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-background px-2 py-0.5 rounded-full border border-border/60">
+                                                                    {TRIGGER_SOURCE_LABEL[t.triggerSource]}
+                                                                </span>
+                                                                {t.kind === "flow" && (
+                                                                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-indigo-500/10 text-indigo-600 border-indigo-500/20 flex items-center gap-1">
+                                                                        <Zap className="w-2.5 h-2.5" /> Flow Builder
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                             {t.badge && (
                                                                 <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${TEMPLATE_BADGE_STYLE[t.badge]}`}>
                                                                     {t.badge}
