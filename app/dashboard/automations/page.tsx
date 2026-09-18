@@ -4,9 +4,16 @@ import { useState, useCallback, useEffect } from "react"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { AutomationList } from "@/components/dashboard/AutomationList"
 import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
-import { MessageCircle, Send, Sparkles, Zap, Plus, Loader2, X, RefreshCw, Eye, Flame, Inbox, Heart, MessageSquare, Radio } from "lucide-react"
+import { MessageCircle, Send, Sparkles, Zap, Plus, Loader2, X, RefreshCw, Eye, Flame, Inbox, Heart, MessageSquare, Radio, LayoutTemplate, ArrowRight } from "lucide-react"
 import { IceBreakersManager } from "@/components/dashboard/IceBreakersManager"
 import type { Automation } from "@/lib/types"
+import { AUTOMATION_TEMPLATES, TEMPLATE_GOALS, type AutomationTemplate } from "@/lib/automation-templates"
+
+const TRIGGER_SOURCE_LABEL: Record<string, string> = { comment: "Comments", dm: "DMs", story: "Stories", live: "Live" }
+const TEMPLATE_BADGE_STYLE: Record<string, string> = {
+    Popular: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    New: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+}
 
 export default function AutomationsPage() {
     const { userId, isLoading: isSessionLoading } = useInstagramSession()
@@ -14,6 +21,8 @@ export default function AutomationsPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'comment' | 'dm' | 'story' | 'live'>('comment')
     const [showCreateForm, setShowCreateForm] = useState(false)
+    const [showTemplates, setShowTemplates] = useState(false)
+    const [selectedTemplate, setSelectedTemplate] = useState<AutomationTemplate | null>(null)
 
     // Simulation states
     const [previewAutomation, setPreviewAutomation] = useState<Automation | null>(null)
@@ -124,10 +133,17 @@ export default function AutomationsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => setShowCreateForm(!showCreateForm)}
+                            onClick={() => setShowTemplates(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all active:scale-95 cursor-pointer justify-center shadow-xs bg-secondary text-foreground hover:bg-muted border border-border"
+                        >
+                            <LayoutTemplate className="w-4 h-4" />
+                            Templates
+                        </button>
+                        <button
+                            onClick={() => { setSelectedTemplate(null); setShowCreateForm(!showCreateForm) }}
                             className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all active:scale-95 cursor-pointer w-full sm:w-auto justify-center shadow-xs ${
-                                showCreateForm 
-                                    ? 'bg-secondary text-foreground hover:bg-muted border border-border' 
+                                showCreateForm
+                                    ? 'bg-secondary text-foreground hover:bg-muted border border-border'
                                     : 'bg-primary text-primary-foreground hover:bg-primary/90'
                             }`}
                         >
@@ -165,14 +181,94 @@ export default function AutomationsPage() {
                 {/* Create Form (Collapsible) */}
                 {showCreateForm && (
                     <div className="rounded-2xl border border-border bg-card/40 p-4 md:p-6 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
+                        {selectedTemplate && (
+                            <div className="mb-4 p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between gap-2">
+                                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <LayoutTemplate className="w-3.5 h-3.5 text-primary" /> Starting from "{selectedTemplate.title}" — edit anything below
+                                </span>
+                                <button
+                                    onClick={() => setSelectedTemplate(null)}
+                                    className="text-[11px] font-bold text-muted-foreground hover:text-foreground"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                        )}
                         <CreateRuleForm
+                            key={selectedTemplate?.id || 'blank'}
                             userId={userId}
                             triggerSource={activeTab}
+                            template={selectedTemplate}
                             onSuccess={() => {
                                 fetchAutomations()
                                 setShowCreateForm(false)
+                                setSelectedTemplate(null)
                             }}
                         />
+                    </div>
+                )}
+
+                {/* Templates Picker Modal */}
+                {showTemplates && (
+                    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+                        <div className="absolute inset-0" onClick={() => setShowTemplates(false)} />
+                        <div className="relative bg-card border border-border rounded-3xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col z-10 animate-in zoom-in-95 duration-200">
+                            <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
+                                <div>
+                                    <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
+                                        <LayoutTemplate className="w-5 h-5 text-primary" /> Templates
+                                    </h3>
+                                    <p className="text-xs text-muted-foreground mt-0.5">Start from a ready-made automation, then customize it.</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowTemplates(false)}
+                                    className="w-8 h-8 rounded-full bg-secondary hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                {TEMPLATE_GOALS.map((goal) => {
+                                    const templatesForGoal = AUTOMATION_TEMPLATES.filter((t) => t.goal === goal)
+                                    if (templatesForGoal.length === 0) return null
+                                    return (
+                                        <div key={goal} className="space-y-3">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{goal}</h4>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {templatesForGoal.map((t) => (
+                                                    <button
+                                                        key={t.id}
+                                                        onClick={() => {
+                                                            setSelectedTemplate(t)
+                                                            setActiveTab(t.triggerSource)
+                                                            setShowCreateForm(true)
+                                                            setShowTemplates(false)
+                                                        }}
+                                                        className="text-left p-4 rounded-2xl border border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/40 transition-all group"
+                                                    >
+                                                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-background px-2 py-0.5 rounded-full border border-border/60">
+                                                                {TRIGGER_SOURCE_LABEL[t.triggerSource]}
+                                                            </span>
+                                                            {t.badge && (
+                                                                <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${TEMPLATE_BADGE_STYLE[t.badge]}`}>
+                                                                    {t.badge}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                                                            {t.title}
+                                                            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-primary" />
+                                                        </p>
+                                                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{t.description}</p>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
                     </div>
                 )}
 
