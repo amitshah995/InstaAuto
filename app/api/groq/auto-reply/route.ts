@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { getSessionUserId } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get("userId");
-    if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    const userId = getSessionUserId(request);
+    if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const supabase = await getSupabaseServerClient();
     const { data: user, error } = await supabase
@@ -26,9 +27,12 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { userId, enabled, ai_context } = await request.json();
-    if (!userId || typeof enabled !== "boolean") {
-      return NextResponse.json({ error: "Missing userId or enabled" }, { status: 400 });
+    const userId = getSessionUserId(request);
+    if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+    const { enabled, ai_context } = await request.json();
+    if (typeof enabled !== "boolean") {
+      return NextResponse.json({ error: "Missing enabled" }, { status: 400 });
     }
 
     const supabase = await getSupabaseServerClient();
