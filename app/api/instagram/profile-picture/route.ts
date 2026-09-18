@@ -1,13 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSessionUserId } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const userId = searchParams.get("userId")
-
+    const userId = getSessionUserId(request)
     if (!userId) {
-      return NextResponse.json({ error: "Missing userId" }, { status: 400 })
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
     const supabase = await getSupabaseServerClient()
@@ -25,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // 2. Fetch Profile Picture from Instagram Graph API
     const url = `https://graph.instagram.com/me?fields=id,username,profile_picture_url&access_token=${user.access_token}`
-    
+
     console.log("[v0] Fetching Profile Picture from:", url)
 
     const res = await fetch(url, { cache: 'no-store' })
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: data.error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       profilePictureUrl: data.profile_picture_url || null,
       username: data.username
