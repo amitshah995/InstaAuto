@@ -5,7 +5,12 @@ export interface AutomationTemplate {
   triggerSource: 'comment' | 'dm' | 'story' | 'live'
   goal: 'Grow followers' | 'Engage audience' | 'Drive traffic' | 'Capture leads'
   badge?: 'Popular' | 'New'
-  defaults: {
+  // "quick" opens the step-by-step form prefilled (defaults below).
+  // "flow" creates a draft automation and opens it straight in the visual
+  // Flow Builder canvas, prefilled with flowContent's node graph — for
+  // templates that branch or chain multiple messages visually.
+  kind?: 'quick' | 'flow'
+  defaults?: {
     replyToAll?: boolean
     triggers?: string[]
     storyTriggerType?: 'mention' | 'reaction' | 'reply'
@@ -16,6 +21,14 @@ export interface AutomationTemplate {
     closingMessage?: string
     checkFollow?: boolean
     name?: string
+  }
+  // "flow" templates only — matches the shape webhook/route.ts's runFlow()
+  // interpreter and the Flow Builder's deserializeFlow() both expect.
+  flowContent?: {
+    triggerType: 'keyword' | 'wildcard'
+    triggerValue: string
+    startNodeId: string
+    nodes: Record<string, any>
   }
 }
 
@@ -149,6 +162,52 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
       type: "text",
       messageText: "Thanks for watching live! Here's what you asked for: https://yourwebsite.com",
       name: "Live Comment → DM",
+    },
+  },
+  {
+    id: "qualify-branching-flow",
+    title: "Qualify with a branching flow",
+    description: "Ask A or B, then route to a different reply for each answer — built visually in Flow Builder.",
+    triggerSource: "dm",
+    goal: "Capture leads",
+    badge: "New",
+    kind: "flow",
+    flowContent: {
+      triggerType: "wildcard",
+      triggerValue: "ALL_DMS",
+      startNodeId: "msg1",
+      nodes: {
+        msg1: { type: "message", text: "Hey! Are you looking for A) Pricing info or B) A demo?", delay_seconds: 0, next: "cond1" },
+        cond1: {
+          type: "condition",
+          branches: [
+            { keyword: "a", next: "msgA" },
+            { keyword: "b", next: "msgB" },
+          ],
+          default_next: "msgElse",
+        },
+        msgA: { type: "message", text: "Great! Our pricing starts at ₹999/mo — want the full breakdown?", delay_seconds: 0, next: null },
+        msgB: { type: "message", text: "Awesome! Here's a link to book a demo: https://yourwebsite.com/demo", delay_seconds: 0, next: null },
+        msgElse: { type: "message", text: "Sorry, just reply with A or B and I'll help you out!", delay_seconds: 0, next: "cond1" },
+      },
+    },
+  },
+  {
+    id: "sell-from-dm-flow",
+    title: "Sell from a DM keyword",
+    description: "One message with a coupon, a short delay, then a reminder — built visually in Flow Builder.",
+    triggerSource: "dm",
+    goal: "Drive traffic",
+    kind: "flow",
+    flowContent: {
+      triggerType: "keyword",
+      triggerValue: "shop, buy",
+      startNodeId: "msg1",
+      nodes: {
+        msg1: { type: "message", text: "Hey! Tap below to get your coupon code for 10% off your first purchase 🎉", delay_seconds: 0, next: "msg2" },
+        msg2: { type: "message", text: "Your code is: HAPPY10 — shop now before it expires!", delay_seconds: 3, next: "msg3" },
+        msg3: { type: "message", text: "Just a reminder in case you missed it — your 10% off code is still active 👀", delay_seconds: 10, next: null },
+      },
     },
   },
 ]
