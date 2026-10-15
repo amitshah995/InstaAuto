@@ -40,7 +40,7 @@ export const TUNING = {
 }
 
 export const METHODOLOGY =
-  "Scores are computed from publicly visible data on your most recent posts using adjustable " +
+  "Scores are computed from your profile and your most recent posts (read with your permission) using adjustable " +
   "heuristics (not official Instagram benchmarks). Treat them as a starting point, not a verdict."
 
 const LABELS: Record<CategoryId, string> = {
