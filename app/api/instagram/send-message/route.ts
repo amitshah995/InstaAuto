@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { authorizeUser } from "@/lib/auth"
 
 /**
  * POST /api/instagram/send-message
@@ -14,9 +15,14 @@ import { getSupabaseServerClient } from "@/lib/supabase-server"
  */
 export async function POST(request: NextRequest) {
   try {
-    const { user_id, recipient_id, message } = await request.json()
+    const body = await request.json()
+    const { recipient_id, message } = body
 
-    if (!user_id || !recipient_id || !message) {
+    const auth = authorizeUser(request, body.user_id)
+    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+    const user_id = auth.userId
+
+    if (!recipient_id || !message) {
       return NextResponse.json({ error: "Missing required fields: user_id, recipient_id, message" }, { status: 400 })
     }
 
