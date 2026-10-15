@@ -62,10 +62,15 @@ async function runSQLFile(client, filePath) {
 }
 
 async function main() {
-  const client = new Client({ connectionString });
+  const isSupabase = /supabase\.(com|co)/i.test(connectionString);
+  const client = new Client(
+    isSupabase
+      ? { connectionString: connectionString.replace(/[?&]sslmode=[^&]*/i, ''), ssl: { rejectUnauthorized: false } }
+      : { connectionString }
+  );
   
   try {
-    console.log('🔌 Connecting to Neon PostgreSQL...');
+    console.log('🔌 Connecting to PostgreSQL...');
     await client.connect();
     console.log('✅ Connected successfully!');
 
@@ -77,13 +82,14 @@ async function main() {
       path.join(__dirname, '..', 'migrations', '08-add-groq-auto-reply.sql'), // Groq auto-reply flag
       path.join(__dirname, '..', 'migrations', '09-add-ai-context.sql'), // AI context column
       path.join(__dirname, '..', 'migrations', 'add_trigger_source.sql'), // Trigger source column & data migration
+      path.join(__dirname, '..', 'migrations', '10-audit-schema.sql'), // Instagram Audit funnel tables
     ];
 
     for (const migrationPath of migrations) {
       await runSQLFile(client, migrationPath);
     }
 
-    console.log('\n🎉 Database migrations completed successfully on Neon!');
+    console.log('\n🎉 Database migrations completed successfully!');
   } catch (error) {
     console.error('\n💥 Migration execution failed:', error);
     process.exit(1);

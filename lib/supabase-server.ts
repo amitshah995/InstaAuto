@@ -30,7 +30,21 @@ loadEnv();
 const connectionString = process.env.DATABASE_URL;
 
 // Module-level connection pool (shared across all queries, max 10 connections)
-const pool = connectionString ? new Pool({ connectionString, max: 10 }) : null;
+// Supabase's pooler/direct hosts present a certificate chain Node does not trust by default, and
+// pg treats `sslmode=require` as verify-full. For Supabase hosts, keep TLS on but skip chain
+// verification. Other hosts (Neon, local) keep their connection-string behaviour.
+const isSupabaseHost = !!connectionString && /supabase\.(com|co)/i.test(connectionString);
+const poolConnectionString =
+  connectionString && isSupabaseHost ? connectionString.replace(/[?&]sslmode=[^&]*/i, '') : connectionString;
+// Serverless functions each hold their own pool; keep it small so many instances do not exhaust
+// the free-tier pooler limit.
+const pool = poolConnectionString
+  ? new Pool({
+      connectionString: poolConnectionString,
+      max: isSupabaseHost ? 3 : 10,
+      ...(isSupabaseHost ? { ssl: { rejectUnauthorized: false } } : {}),
+    })
+  : null;
 
 class NeonQueryBuilder {
   private tableName: string;
