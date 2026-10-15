@@ -15,6 +15,7 @@ import {
   Compass,
   Instagram,
   Users,
+  ClipboardCheck,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/dashboard/inbox", icon: <MessageSquare className="w-4 h-4" />, label: "Inbox" },
   { href: "/dashboard/contacts", icon: <Users className="w-4 h-4" />, label: "Contacts" },
   { href: "/dashboard/analytics", icon: <BarChart3 className="w-4 h-4" />, label: "Analytics" },
+  { href: "/instagram-audit", icon: <ClipboardCheck className="w-4 h-4" />, label: "Audit", also: ["/audit"] },
   { href: "/dashboard/settings", icon: <Settings className="w-4 h-4" />, label: "Settings" },
 ]
 
@@ -47,7 +49,8 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
 
   const isActive = (item: typeof navItems[0]) => {
     if (item.exact) return pathname === item.href
-    return pathname.startsWith(item.href)
+    const extra = (item as { also?: string[] }).also ?? []
+    return [item.href, ...extra].some((p) => pathname === p || pathname.startsWith(p + "/"))
   }
 
  const instagramAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID}&redirect_uri=${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}&response_type=code&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments#weblink`

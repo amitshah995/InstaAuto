@@ -16,7 +16,8 @@ import {
   Sun,
   Moon,
   Compass,
-  Users
+  Users,
+  ClipboardCheck
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -122,6 +123,14 @@ export function Sidebar({ className, username = "Demo User", profilePictureUrl, 
           icon={<BarChart3 className="w-4 h-4" />}
           label="Analytics"
           active={isActive("/dashboard/analytics")}
+          onClick={onNavigate}
+          isCollapsed={isCollapsed}
+        />
+        <NavItem
+          href="/instagram-audit"
+          icon={<ClipboardCheck className="w-4 h-4" />}
+          label="Audit"
+          active={isActive("/instagram-audit") || isActive("/audit")}
           onClick={onNavigate}
           isCollapsed={isCollapsed}
         />
