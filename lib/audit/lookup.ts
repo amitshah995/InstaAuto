@@ -91,7 +91,8 @@ export function mapGraphError(err: any): LookupError {
   if (/invalid user id|cannot be found|does not exist|not a business|no such user|unsupported get request/i.test(msg) || code === 110) {
     return new LookupError("not_found_or_not_professional", "Account not found or not a Business/Creator account")
   }
-  return new LookupError("provider_unavailable", "Instagram lookup failed")
+  // The detail goes to server logs only (the route shows users a generic message). No token is included.
+  return new LookupError("provider_unavailable", `Instagram lookup failed (graph code ${code || "?"}: ${msg.slice(0, 200) || "no message"})`)
 }
 
 class BusinessDiscoveryProvider implements LookupProvider {
