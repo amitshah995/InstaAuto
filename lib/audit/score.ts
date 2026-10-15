@@ -8,6 +8,7 @@ import type {
   ProfileSnapshot,
   Severity,
 } from "./types"
+import { computeInsights, toPostPoints, toReportProfile } from "./insights"
 
 /**
  * Pure scoring. No I/O, no Instagram knowledge.
@@ -40,7 +41,7 @@ export const TUNING = {
 }
 
 export const METHODOLOGY =
-  "Scores are computed from publicly visible data on your most recent posts using adjustable " +
+  "Scores are computed from your profile and your most recent posts (read with your permission) using adjustable " +
   "heuristics (not official Instagram benchmarks). Treat them as a starting point, not a verdict."
 
 const LABELS: Record<CategoryId, string> = {
@@ -217,6 +218,7 @@ export function scoreProfile(p: ProfileSnapshot, now = new Date()): AuditReport 
 
   return {
     username: p.username, score, grade: gradeFor(score), categories, findings, stats: s,
+    profile: toReportProfile(p), posts: toPostPoints(p), insights: computeInsights(p, target),
     methodology: METHODOLOGY, generatedAt: now.toISOString(),
   }
 }
