@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // 2. Fetch Profile Picture from Instagram Graph API
     const url = `https://graph.instagram.com/me?fields=id,username,profile_picture_url&access_token=${user.access_token}`
 
-    console.log("[v0] Fetching Profile Picture from:", url)
+    console.log("[v0] Fetching Profile Picture for user", userId) // never log the URL: it contains the access token
 
     const res = await fetch(url, { cache: 'no-store' })
     const data = await res.json()
