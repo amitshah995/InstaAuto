@@ -52,6 +52,22 @@ export function getSessionUserId(request: NextRequest): string | null {
   return null
 }
 
+/**
+ * Like getSessionUserId but ONLY accepts a signed session (never the legacy unsigned cookie).
+ * Use for endpoints that spend an Instagram call or return a user's data, so a forged legacy
+ * cookie cannot act as someone else.
+ */
+export function getVerifiedSessionUserId(request: NextRequest): string | null {
+  const authHeader = request.headers.get("authorization")
+  if (authHeader?.startsWith("Bearer ")) {
+    const payload = verifySessionToken(authHeader.slice(7).trim())
+    if (payload) return payload.uid
+  }
+  const raw = request.cookies.get(SESSION_COOKIE)?.value
+  const signed = raw ? verifySessionToken(raw) : null
+  return signed ? signed.uid : null
+}
+
 export type AuthResult =
   | { ok: true; userId: string }
   | { ok: false; status: 401 | 403; error: string }
