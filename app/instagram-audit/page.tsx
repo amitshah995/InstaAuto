@@ -5,7 +5,7 @@ import { AuditForm } from "@/components/audit/audit-form"
 export const metadata: Metadata = {
   title: "Free Instagram Audit",
   description:
-    "Get a free Instagram audit in seconds: profile, posting consistency, engagement, content mix and lead capture, scored with clear fixes. Works for public Business and Creator accounts.",
+    "Connect your Instagram account and get a free audit in seconds: profile, posting consistency, engagement, content mix and lead capture, scored with clear fixes. For Business and Creator accounts.",
   alternates: { canonical: "/instagram-audit" },
 }
 
@@ -24,13 +24,15 @@ export default function InstagramAuditPage() {
       <section className="mx-auto max-w-3xl px-4 pt-20 pb-12 text-center">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-balance">Free Instagram audit</h1>
         <p className="mt-4 text-lg text-muted-foreground text-balance">
-          Enter your username. Get your score in seconds, then unlock the full report with fixes for every issue.
+          Connect your Instagram account and get your score in seconds, with the exact fixes for every issue.
         </p>
         <div className="mt-8">
           <AuditForm />
         </div>
         <p className="mt-4 text-xs text-muted-foreground">
-          Works for public Business and Creator accounts. No password needed. Switching to a Professional account is free.
+          For Business and Creator accounts (switching to a Professional account is free). You sign in on Instagram, so we
+          never see your password. The audit only reads your profile and recent posts; we do not post anything. Instagram
+          will also list the permissions DMSpark uses for comment and DM automation.
         </p>
       </section>
 
