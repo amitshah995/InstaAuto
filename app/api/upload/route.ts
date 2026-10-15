@@ -1,15 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server"
 import fs from "fs"
 import path from "path"
+import { authorizeUser } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
     const formData: any = await request.formData()
     const file = formData.get("file") as File | null
-    const userId = formData.get("userId") as string | null
+    const auth = authorizeUser(request, formData.get("userId") as string | null)
+    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+    const userId = auth.userId
 
-    if (!file || !userId) {
-      return NextResponse.json({ error: "Missing file or userId" }, { status: 400 })
+    if (!file) {
+      return NextResponse.json({ error: "Missing file" }, { status: 400 })
+    }
+
+    // userId becomes a directory name: only digits allowed (blocks "../" path traversal)
+    if (!/^\d+$/.test(userId)) {
+      return NextResponse.json({ error: "Invalid userId" }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
