@@ -1,10 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { authorizeUser, isEnforced } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get("userId")
-    if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 })
+    const auth = authorizeUser(request, request.nextUrl.searchParams.get("userId"))
+    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+    const userId = auth.userId
 
     const supabase = await getSupabaseServerClient()
 
@@ -26,9 +28,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, name, trigger_source, trigger_type, trigger_value, content, specific_media_id } = await request.json()
+    const { userId: claimedUserId, name, trigger_source, trigger_type, trigger_value, content, specific_media_id } = await request.json()
 
-    if (!userId || !name || !trigger_value || !content || !trigger_source) {
+    const auth = authorizeUser(request, claimedUserId)
+    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+    const userId = auth.userId
+
+    if (!name || !trigger_value || !content || !trigger_source) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 })
     }
 
@@ -72,8 +78,10 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const id = request.nextUrl.searchParams.get("id")
-    const userId = request.nextUrl.searchParams.get("userId")
-    if (!id || !userId) return NextResponse.json({ error: "Missing id or userId" }, { status: 400 })
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
+    const auth = authorizeUser(request, request.nextUrl.searchParams.get("userId"))
+    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+    const userId = auth.userId
     const supabase = await getSupabaseServerClient()
     const { error } = await supabase.from("automations").delete().eq("id", id).eq("user_id", userId)
     if (error) throw error
@@ -86,11 +94,21 @@ export async function DELETE(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, name, trigger_source, trigger_type, trigger_value, content, specific_media_id } = await request.json()
+    const { id, userId: claimedUserId, name, trigger_source, trigger_type, trigger_value, content, specific_media_id } = await request.json()
 
     if (!id || !name || !trigger_value || !content) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 })
     }
+
+    // Ownership: this route used to update ANY automation by id. Scope to the caller.
+    // Legacy clients (e.g. Android) send neither session nor userId here; allowed only
+    // until AUTH_ENFORCE=1, with a warning.
+    const auth = authorizeUser(request, claimedUserId ?? request.nextUrl.searchParams.get("userId"))
+    if (!auth.ok && (isEnforced() || auth.status === 403)) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+    const ownerId = auth.ok ? auth.userId : null
+    if (!ownerId) console.warn("[auth] automations PUT without any user identity (legacy client)")
 
     // Validate trigger_source if provided
     if (trigger_source && !['comment', 'dm', 'story', 'live'].includes(trigger_source)) {
@@ -112,14 +130,13 @@ export async function PUT(request: NextRequest) {
       updateData.trigger_source = trigger_source
     }
 
-    const { data, error } = await supabase
-      .from("automations")
-      .update(updateData)
-      .eq("id", id)
-      .select()
-      .single()
+    let query = supabase.from("automations").update(updateData).eq("id", id)
+    if (ownerId) query = query.eq("user_id", ownerId)
+    const { data, error } = await query.select().single()
 
     if (error) throw error
+    // No row matched: either the id does not exist or it belongs to someone else.
+    if (!data) return NextResponse.json({ error: "Automation not found" }, { status: 404 })
     return NextResponse.json(data)
   } catch (error) {
     console.error("[v0] Automations PUT error:", error)
