@@ -16,6 +16,7 @@ import {
   Instagram,
   Users,
   ClipboardCheck,
+  Wrench,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -36,6 +37,7 @@ const navItems = [
   { href: "/dashboard/contacts", icon: <Users className="w-4 h-4" />, label: "Contacts" },
   { href: "/dashboard/analytics", icon: <BarChart3 className="w-4 h-4" />, label: "Analytics" },
   { href: "/instagram-audit", icon: <ClipboardCheck className="w-4 h-4" />, label: "Audit", also: ["/audit"] },
+  { href: "/tools", icon: <Wrench className="w-4 h-4" />, label: "Tools" },
   { href: "/dashboard/settings", icon: <Settings className="w-4 h-4" />, label: "Settings" },
 ]
 
