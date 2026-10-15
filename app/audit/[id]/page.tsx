@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Loader2, Zap, Briefcase, CheckCircle2, Instagram } from "lucide-react"
+import { AuditShell } from "@/components/audit/audit-theme"
+import { Loader2, Zap, Briefcase, CheckCircle2, Instagram, Target, ClipboardCheck } from "lucide-react"
 import { instagramAuthUrl, PENDING_AUDIT_FLAG } from "@/lib/audit/oauth-url"
 import type { AuditReport, Severity } from "@/lib/audit/types"
 
@@ -15,22 +14,19 @@ interface View {
   createdAt: string
 }
 
-const SEVERITY_STYLE: Record<Severity, string> = {
-  high: "bg-red-500/10 text-red-600 dark:text-red-400",
-  medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  low: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
-}
+const GRADE_COLOR = (score: number) => (score >= 70 ? "#3ddc6b" : score >= 40 ? "#f5b301" : "#ff3b52")
 
 function ScoreBadge({ score, grade }: { score: number; grade: string }) {
+  const c = GRADE_COLOR(score)
   return (
-    <div className="flex items-center justify-center gap-4">
-      <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full border-4 border-primary">
-        <span className="text-4xl font-bold">{score}</span>
-        <span className="text-xs text-muted-foreground">out of 100</span>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20 }}>
+      <div style={{ width: 120, height: 120, borderRadius: "50%", border: `5px solid ${c}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", boxShadow: `0 0 40px ${c}33` }}>
+        <span className="au-head" style={{ fontSize: 40, fontWeight: 800, lineHeight: 1 }}>{score}</span>
+        <span className="au-muted" style={{ fontSize: 12 }}>out of 100</span>
       </div>
-      <div className="text-left">
-        <p className="text-sm text-muted-foreground">Grade</p>
-        <p className="text-4xl font-bold">{grade}</p>
+      <div style={{ textAlign: "left" }}>
+        <p className="au-muted" style={{ fontSize: 13 }}>Grade</p>
+        <p className="au-head" style={{ fontSize: 44, fontWeight: 800, color: c, lineHeight: 1 }}>{grade}</p>
       </div>
     </div>
   )
@@ -61,37 +57,34 @@ function LeadForm({ auditId, defaultInterest }: { auditId: string; defaultIntere
 
   if (state === "done") {
     return (
-      <p className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
-        <CheckCircle2 className="h-4 w-4" /> Thanks! We will reach out soon.
+      <p style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#3ddc6b" }}>
+        <CheckCircle2 size={16} /> Thanks! We will reach out soon.
       </p>
     )
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3" noValidate>
-      <Input placeholder="Your name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <Input type="tel" placeholder="WhatsApp number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+    <form onSubmit={submit} noValidate style={{ display: "grid", gap: 12 }}>
+      <input className="au-input" placeholder="Your name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      <div className="au-grid2">
+        <input className="au-input" type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        <input className="au-input" type="tel" placeholder="WhatsApp number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
       </div>
-      <select
-        value={form.interest}
-        onChange={(e) => setForm({ ...form, interest: e.target.value })}
-        className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
-        aria-label="What are you interested in?"
-      >
+      <select className="au-input" value={form.interest} onChange={(e) => setForm({ ...form, interest: e.target.value })} aria-label="What are you interested in?">
         <option value="dm_automation">Instagram DM automation</option>
         <option value="smm_services">Social media marketing services</option>
         <option value="other">Something else</option>
       </select>
-      <label className="flex items-start gap-2 text-xs text-muted-foreground">
-        <input type="checkbox" checked={form.consent} onChange={(e) => setForm({ ...form, consent: e.target.checked })} className="mt-0.5" />
+      <label className="au-muted" style={{ display: "flex", gap: 8, fontSize: 12 }}>
+        <input type="checkbox" checked={form.consent} onChange={(e) => setForm({ ...form, consent: e.target.checked })} style={{ marginTop: 2 }} />
         I agree to be contacted about my audit and related services.
       </label>
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" disabled={state === "saving"}>
-        {state === "saving" && <Loader2 className="h-4 w-4 animate-spin" />} Send
-      </Button>
+      {error && <p role="alert" className="au-err">{error}</p>}
+      <div>
+        <button type="submit" className="au-btn" disabled={state === "saving"} style={{ padding: "12px 28px" }}>
+          {state === "saving" && <Loader2 size={16} className="animate-spin" />} Send
+        </button>
+      </div>
     </form>
   )
 }
@@ -119,80 +112,96 @@ export default function AuditResultPage() {
 
   if (notFound) {
     return (
-      <main className="mx-auto max-w-xl px-4 py-24 text-center space-y-4">
-        <h1 className="text-2xl font-semibold">We could not open this report</h1>
-        <p className="text-muted-foreground">
-          Audit reports are private. Connect the Instagram account that created it, or run a new audit for your own account.
-        </p>
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <Button onClick={connect}><Instagram className="h-4 w-4" /> Connect Instagram</Button>
-          <Button asChild variant="outline"><Link href="/instagram-audit">Run a new audit</Link></Button>
+      <AuditShell>
+        <div className="au-wrap" style={{ maxWidth: 560, padding: "96px 16px", textAlign: "center", display: "grid", gap: 16 }}>
+          <h1 className="au-head" style={{ fontSize: 28 }}>We could not open this report</h1>
+          <p className="au-muted">
+            Audit reports are private. Connect the Instagram account that created it, or run a new audit for your own account.
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <button className="au-btn" onClick={connect}><Instagram size={18} /> Connect Instagram</button>
+            <Link href="/instagram-audit" className="au-btn ghost">Run a new audit</Link>
+          </div>
         </div>
-      </main>
+      </AuditShell>
     )
   }
   if (!view) {
-    return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+    return (
+      <AuditShell>
+        <div style={{ display: "flex", minHeight: "60vh", alignItems: "center", justifyContent: "center" }}>
+          <Loader2 size={32} className="animate-spin" style={{ color: "#ff3b52" }} />
+        </div>
+      </AuditShell>
+    )
   }
 
   const { report } = view
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12 space-y-10">
-      <header className="text-center space-y-4">
-        <p className="text-muted-foreground">Audit for <span className="font-medium text-foreground">@{report.username}</span></p>
-        <ScoreBadge score={report.score} grade={report.grade} />
-      </header>
+    <AuditShell>
+      <div className="au-wrap" style={{ maxWidth: 820, padding: "48px 16px 80px", display: "grid", gap: 20 }}>
+        <header className="au-card" style={{ textAlign: "center", display: "grid", gap: 16 }}>
+          <p className="au-muted">Audit for <span style={{ color: "#fff", fontWeight: 600 }}>@{report.username}</span></p>
+          <ScoreBadge score={report.score} grade={report.grade} />
+        </header>
 
-      <>
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">Score breakdown</h2>
-            {report.categories.map((c) => (
-              <div key={c.id}>
-                <div className="flex justify-between text-sm"><span>{c.label}</span><span className="font-medium">{c.score}</span></div>
-                <div className="mt-1 h-2 rounded-full bg-muted"><div className="h-2 rounded-full bg-primary" style={{ width: `${c.score}%` }} /></div>
+        <section className="au-card" style={{ display: "grid", gap: 14 }}>
+          <h2 className="au-head" style={{ fontSize: 20, display: "flex", alignItems: "center", gap: 10 }}>
+            <Target size={20} color="#ff3b52" /> Score breakdown
+          </h2>
+          {report.categories.map((c) => (
+            <div key={c.id} className="au-tile">
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+                <span>{c.label}</span><span className="au-head" style={{ color: GRADE_COLOR(c.score) }}>{c.score}</span>
               </div>
-            ))}
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">Findings and fixes ({report.findings.length})</h2>
-            {report.findings.length === 0 && <p className="text-sm text-muted-foreground">No major issues found. Nice work.</p>}
-            {report.findings.map((f) => (
-              <article key={f.id} className="rounded-xl border bg-card p-4 space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${SEVERITY_STYLE[f.severity]}`}>{f.severity}</span>
-                  <h3 className="font-medium">{f.title}</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">{f.detail}</p>
-                <p className="text-sm"><span className="font-medium">Fix:</span> {f.fix}</p>
-              </article>
-            ))}
-            <p className="text-xs text-muted-foreground">{report.methodology}</p>
-          </section>
-
-          <section className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border bg-card p-5 space-y-3">
-              <Zap className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">Automate comment and DM replies</h3>
-              <p className="text-sm text-muted-foreground">Turn every "price?" or "link please" comment into an instant DM, 24/7.</p>
-              <Button asChild><Link href="/dashboard/automations">Set up automation</Link></Button>
+              <div className="au-bar" style={{ marginTop: 8 }}><i style={{ width: `${c.score}%` }} /></div>
             </div>
-            <div className="rounded-xl border bg-card p-5 space-y-3">
-              <Briefcase className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">Want us to do it for you?</h3>
-              <p className="text-sm text-muted-foreground">Social media management and content, built around this audit.</p>
-              <Button variant="outline" onClick={() => { setInterest("smm_services"); document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }) }}>
+          ))}
+        </section>
+
+        <section className="au-card" style={{ display: "grid", gap: 12 }}>
+          <h2 className="au-head" style={{ fontSize: 20, display: "flex", alignItems: "center", gap: 10 }}>
+            <ClipboardCheck size={20} color="#3ddc6b" /> Findings and fixes ({report.findings.length})
+          </h2>
+          {report.findings.length === 0 && <p className="au-muted" style={{ fontSize: 14 }}>No major issues found. Nice work.</p>}
+          {report.findings.map((f) => (
+            <article key={f.id} className="au-tile" style={{ display: "grid", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span className={`au-pill ${f.severity}`} style={{ textTransform: "capitalize" }}>{f.severity}</span>
+                <h3 className="au-head" style={{ fontSize: 16 }}>{f.title}</h3>
+              </div>
+              <p className="au-muted" style={{ fontSize: 14 }}>{f.detail}</p>
+              <p style={{ fontSize: 14 }}><b>Fix:</b> {f.fix}</p>
+            </article>
+          ))}
+          <p className="au-muted" style={{ fontSize: 12 }}>{report.methodology}</p>
+        </section>
+
+        <section className="au-grid2">
+          <div className="au-card" style={{ display: "grid", gap: 12, alignContent: "start" }}>
+            <span className="au-icon red"><Zap size={16} /></span>
+            <h3 className="au-head" style={{ fontSize: 18 }}>Automate comment and DM replies</h3>
+            <p className="au-muted" style={{ fontSize: 14 }}>Turn every "price?" or "link please" comment into an instant DM, 24/7.</p>
+            <div><Link href="/dashboard/automations" className="au-btn" style={{ padding: "11px 24px", fontSize: 15 }}>Set up automation</Link></div>
+          </div>
+          <div className="au-card" style={{ display: "grid", gap: 12, alignContent: "start" }}>
+            <span className="au-icon red"><Briefcase size={16} /></span>
+            <h3 className="au-head" style={{ fontSize: 18 }}>Want us to do it for you?</h3>
+            <p className="au-muted" style={{ fontSize: 14 }}>Social media management and content, built around this audit.</p>
+            <div>
+              <button className="au-btn ghost" style={{ padding: "11px 24px", fontSize: 15 }} onClick={() => { setInterest("smm_services"); document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }) }}>
                 Talk to us
-              </Button>
+              </button>
             </div>
-          </section>
+          </div>
+        </section>
 
-          <section id="contact" className="rounded-xl border bg-card p-5 space-y-3">
-            <h3 className="font-semibold">Get your plan reviewed</h3>
-            <LeadForm key={interest} auditId={id} defaultInterest={interest} />
-          </section>
-      </>
-    </main>
+        <section id="contact" className="au-card" style={{ display: "grid", gap: 14 }}>
+          <h3 className="au-head" style={{ fontSize: 18 }}>Get your plan reviewed</h3>
+          <LeadForm key={interest} auditId={id} defaultInterest={interest} />
+        </section>
+      </div>
+    </AuditShell>
   )
 }
