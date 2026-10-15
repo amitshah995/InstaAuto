@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { Instagram, Loader2 } from "lucide-react"
 import { instagramAuthUrl, PENDING_AUDIT_FLAG } from "@/lib/audit/oauth-url"
 
@@ -50,12 +49,12 @@ export function AuditForm() {
 
   return (
     <div className="w-full max-w-xl mx-auto text-center">
-      <Button size="lg" onClick={run} disabled={loading} className="h-12 px-8 text-base">
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Instagram className="h-4 w-4" />}
+      <button type="button" className="au-btn" onClick={run} disabled={loading}>
+        {loading ? <Loader2 size={18} className="animate-spin" /> : <Instagram size={18} />}
         {loading ? "Reading your account..." : "Connect Instagram & get my audit"}
-      </Button>
+      </button>
       {error && (
-        <p role="alert" className="mt-3 text-sm text-destructive">
+        <p role="alert" className="au-err" style={{ marginTop: 12 }}>
           {error}
         </p>
       )}

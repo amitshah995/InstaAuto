@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { AuditForm } from "@/components/audit/audit-form"
+import { AuditShell } from "@/components/audit/audit-theme"
+import { User, CalendarClock, Heart, LayoutGrid, Hash, MessageCircle } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Free Instagram Audit",
@@ -10,47 +12,53 @@ export const metadata: Metadata = {
 }
 
 const CHECKS = [
-  ["Profile & bio", "Is your bio, link and call to action turning visitors into followers?"],
-  ["Posting consistency", "How often you really post, versus what keeps you visible."],
-  ["Engagement", "Likes and comments per post, compared with a working target for your size."],
-  ["Content mix", "Reels, carousels and images, and whether you are reaching new people."],
-  ["Captions & hashtags", "Hooks, length, calls to action and hashtag use."],
-  ["Lead capture", "How many of your posts turn attention into conversations and sales."],
-]
+  [User, "Profile & bio", "Is your bio, link and call to action turning visitors into followers?"],
+  [CalendarClock, "Posting consistency", "How often you really post, versus what keeps you visible."],
+  [Heart, "Engagement", "Likes and comments per post, compared with a working target for your size."],
+  [LayoutGrid, "Content mix", "Reels, carousels and images, and whether you are reaching new people."],
+  [Hash, "Captions & hashtags", "Hooks, length, calls to action and hashtag use."],
+  [MessageCircle, "Lead capture", "How many of your posts turn attention into conversations and sales."],
+] as const
 
 export default function InstagramAuditPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <section className="mx-auto max-w-3xl px-4 pt-20 pb-12 text-center">
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-balance">Free Instagram audit</h1>
-        <p className="mt-4 text-lg text-muted-foreground text-balance">
+    <AuditShell>
+      <section className="au-wrap" style={{ paddingTop: 72, paddingBottom: 40, textAlign: "center" }}>
+        <span className="au-pill">Free · Business & Creator accounts</span>
+        <h1 className="au-head" style={{ fontSize: "clamp(34px,6vw,56px)", lineHeight: 1.08, margin: "18px auto 0", maxWidth: 760, fontWeight: 800 }}>
+          Free Instagram audit
+        </h1>
+        <p className="au-muted" style={{ fontSize: 18, margin: "16px auto 0", maxWidth: 560 }}>
           Connect your Instagram account and get your score in seconds, with the exact fixes for every issue.
         </p>
-        <div className="mt-8">
+        <div style={{ marginTop: 32 }}>
           <AuditForm />
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">
-          For Business and Creator accounts (switching to a Professional account is free). You sign in on Instagram, so we
-          never see your password. The audit only reads your profile and recent posts; we do not post anything. Instagram
-          will also list the permissions DMSpark uses for comment and DM automation.
+        <p className="au-muted" style={{ fontSize: 12, margin: "18px auto 0", maxWidth: 620 }}>
+          Switching to a Professional account is free. You sign in on Instagram, so we never see your password. The audit
+          only reads your profile and recent posts; we do not post anything. Instagram will also list the permissions
+          DMSpark uses for comment and DM automation.
         </p>
       </section>
 
-      <section className="mx-auto max-w-4xl px-4 pb-20">
-        <h2 className="text-xl font-semibold text-center mb-6">What we check</h2>
-        <ul className="grid gap-4 sm:grid-cols-2">
-          {CHECKS.map(([title, text]) => (
-            <li key={title} className="rounded-xl border bg-card p-4">
-              <p className="font-medium">{title}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+      <section className="au-wrap" style={{ paddingBottom: 80 }}>
+        <h2 className="au-head" style={{ fontSize: 22, textAlign: "center", marginBottom: 20 }}>What we check</h2>
+        <ul className="au-grid2" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          {CHECKS.map(([Icon, title, text]) => (
+            <li key={title} className="au-card" style={{ padding: 20, display: "flex", gap: 14 }}>
+              <span className="au-icon red"><Icon size={16} /></span>
+              <div>
+                <p className="au-head" style={{ fontSize: 16 }}>{title}</p>
+                <p className="au-muted" style={{ fontSize: 14, marginTop: 4 }}>{text}</p>
+              </div>
             </li>
           ))}
         </ul>
-        <p className="mt-10 text-center text-sm text-muted-foreground">
-          Built by <Link href="/" className="underline underline-offset-4">DMSpark</Link>, the Instagram automation
+        <p className="au-muted" style={{ textAlign: "center", fontSize: 14, marginTop: 40 }}>
+          Built by <Link href="/" style={{ color: "#fff", textDecoration: "underline" }}>DMSpark</Link>, the Instagram automation
           platform for comment and DM replies.
         </p>
       </section>
-    </main>
+    </AuditShell>
   )
 }
