@@ -67,6 +67,22 @@ const CSS = `
 .au-post img{width:100%;height:100%;object-fit:cover;display:block}
 .au-post .tag{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.65);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:600}
 .au-post .meta{padding:10px 12px;font-size:12px;display:flex;justify-content:space-between;gap:8px}
+.au-label{display:block;font-size:13px;font-weight:500;color:var(--au-muted);margin-bottom:6px}
+.au-input.ta{height:auto;min-height:140px;padding:12px 14px;line-height:1.55;resize:vertical}
+.au-aff{position:relative}
+.au-aff>span{position:absolute;top:50%;transform:translateY(-50%);font-size:13px;color:var(--au-muted);pointer-events:none}
+.au-aff>span.pre{left:14px}.au-aff>span.suf{right:14px}
+.au-aff>.au-input.hasp{padding-left:30px}.au-aff>.au-input.hass{padding-right:34px}
+.au-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.au-link{color:#ff6e80;text-decoration:underline;text-underline-offset:3px}
+.au-toolcard{display:flex;flex-direction:column;gap:10px;background:var(--au-card);border:1px solid var(--au-line);border-radius:20px;padding:20px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+.au-toolcard:hover{border-color:rgba(255,59,82,.4);transform:translateY(-2px)}
+.au-toolcard:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.au-faq summary{cursor:pointer;font-weight:600;padding:14px 0;list-style:none}
+.au-faq summary::-webkit-details-marker{display:none}
+.au-faq details{border-top:1px solid var(--au-line)}
+.au-bubble{background:#1c1c26;border-radius:18px 18px 18px 4px;padding:12px 14px;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:reduce){.au-toolcard{transition:none}}
 .au-err{color:#ff7a8a;font-size:14px}
 @media (prefers-reduced-motion:reduce){.au-btn{transition:none}}
 `

@@ -17,7 +17,8 @@ import {
   Moon,
   Compass,
   Users,
-  ClipboardCheck
+  ClipboardCheck,
+  Wrench
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -131,6 +132,14 @@ export function Sidebar({ className, username = "Demo User", profilePictureUrl, 
           icon={<ClipboardCheck className="w-4 h-4" />}
           label="Audit"
           active={isActive("/instagram-audit") || isActive("/audit")}
+          onClick={onNavigate}
+          isCollapsed={isCollapsed}
+        />
+        <NavItem
+          href="/tools"
+          icon={<Wrench className="w-4 h-4" />}
+          label="Tools"
+          active={isActive("/tools")}
           onClick={onNavigate}
           isCollapsed={isCollapsed}
         />
