@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { createSessionToken, SESSION_COOKIE } from "@/lib/session"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -117,13 +118,32 @@ export async function POST(request: NextRequest) {
 
     if (upsertError) throw upsertError
 
-    const response = NextResponse.json({ success: true, username, userId: loginUserId })
-    response.cookies.set("insta_session", JSON.stringify({ username, userId: loginUserId }), {
-      path: "/",
-      maxAge: expiresIn,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+    // Signed session (HMAC). If SESSION_SECRET is not configured yet, fall back to the
+    // legacy unsigned cookie so login keeps working during rollout (and say so loudly).
+    let sessionToken: string | null = null
+    try {
+      sessionToken = createSessionToken(loginUserId, username, expiresIn)
+    } catch (e: any) {
+      console.error(`[auth] ${e.message} - issuing LEGACY unsigned session cookie`)
+    }
+
+    const response = NextResponse.json({
+      success: true,
+      username,
+      userId: loginUserId,
+      ...(sessionToken ? { sessionToken } : {}),
     })
+    response.cookies.set(
+      SESSION_COOKIE,
+      sessionToken ?? JSON.stringify({ username, userId: loginUserId }),
+      {
+        path: "/",
+        maxAge: expiresIn,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: !!sessionToken,
+      }
+    )
     return response
 
   } catch (error: any) {
