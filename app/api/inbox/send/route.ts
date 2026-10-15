@@ -1,12 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { authorizeUser } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { userId, recipientId, message, attachment, tag } = body
+        const { userId: claimedUserId, recipientId, message, attachment, tag } = body
 
-        if (!userId || !recipientId || (!message && !attachment)) {
+        const auth = authorizeUser(request, claimedUserId)
+        if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+        const userId = auth.userId
+
+        if (!recipientId || (!message && !attachment)) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
         }
 
