@@ -1,73 +1,64 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Loader2, Search } from "lucide-react"
+import { Instagram, Loader2 } from "lucide-react"
+import { instagramAuthUrl, PENDING_AUDIT_FLAG } from "@/lib/audit/oauth-url"
 
+/**
+ * One button. If the visitor is signed in, run the audit on their own account; if the server says
+ * login is needed, send them through Instagram login and come back here (?run=1) to finish.
+ */
 export function AuditForm() {
   const router = useRouter()
-  const [username, setUsername] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const started = useRef(false)
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    if (loading) return
+  const run = useCallback(async () => {
     setError(null)
     setLoading(true)
     try {
-      const res = await fetch("/api/audit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
-      })
+      const res = await fetch("/api/audit", { method: "POST" })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(data.error || "Something went wrong. Please try again.")
+      if (res.ok && data.id) {
+        router.push(`/audit/${data.id}`)
         return
       }
-      router.push(`/audit/${data.id}`)
+      if (res.status === 401) {
+        try { localStorage.setItem(PENDING_AUDIT_FLAG, "1") } catch {}
+        window.location.href = instagramAuthUrl
+        return
+      }
+      setError(data.error || "Something went wrong. Please try again.")
     } catch {
       setError("Network error. Please try again.")
-    } finally {
-      setLoading(false)
     }
-  }
+    setLoading(false)
+  }, [router])
+
+  // Returning from Instagram login: finish the audit automatically (once).
+  useEffect(() => {
+    if (started.current) return
+    if (new URLSearchParams(window.location.search).get("run") === "1") {
+      started.current = true
+      window.history.replaceState(null, "", "/instagram-audit")
+      void run()
+    }
+  }, [run])
 
   return (
-    <form onSubmit={submit} className="w-full max-w-xl mx-auto" noValidate>
-      <label htmlFor="ig-username" className="sr-only">
-        Instagram username
-      </label>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
-          <Input
-            id="ig-username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="yourbrand"
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            disabled={loading}
-            aria-invalid={!!error}
-            aria-describedby={error ? "audit-error" : undefined}
-            className="h-12 pl-7 text-base"
-          />
-        </div>
-        <Button type="submit" size="lg" disabled={loading || username.trim().length === 0} className="h-12 px-6">
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          {loading ? "Auditing..." : "Audit my account"}
-        </Button>
-      </div>
+    <div className="w-full max-w-xl mx-auto text-center">
+      <Button size="lg" onClick={run} disabled={loading} className="h-12 px-8 text-base">
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Instagram className="h-4 w-4" />}
+        {loading ? "Reading your account..." : "Connect Instagram & get my audit"}
+      </Button>
       {error && (
-        <p id="audit-error" role="alert" className="mt-3 text-sm text-destructive">
+        <p role="alert" className="mt-3 text-sm text-destructive">
           {error}
         </p>
       )}
-    </form>
+    </div>
   )
 }

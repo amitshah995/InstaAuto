@@ -5,14 +5,14 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Lock, Zap, Briefcase, CheckCircle2 } from "lucide-react"
-import type { AuditReport, AuditTeaser, Severity } from "@/lib/audit/types"
+import { Loader2, Zap, Briefcase, CheckCircle2, Instagram } from "lucide-react"
+import { instagramAuthUrl, PENDING_AUDIT_FLAG } from "@/lib/audit/oauth-url"
+import type { AuditReport, Severity } from "@/lib/audit/types"
 
 interface View {
   id: string
-  unlocked: boolean
-  teaser: AuditTeaser
-  report?: AuditReport
+  report: AuditReport
+  createdAt: string
 }
 
 const SEVERITY_STYLE: Record<Severity, string> = {
@@ -20,8 +20,6 @@ const SEVERITY_STYLE: Record<Severity, string> = {
   medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   low: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
 }
-
-const instagramAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID}&redirect_uri=${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}&response_type=code&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments#weblink`
 
 function ScoreBadge({ score, grade }: { score: number; grade: string }) {
   return (
@@ -34,15 +32,6 @@ function ScoreBadge({ score, grade }: { score: number; grade: string }) {
         <p className="text-sm text-muted-foreground">Grade</p>
         <p className="text-4xl font-bold">{grade}</p>
       </div>
-    </div>
-  )
-}
-
-function FindingTitle({ title, severity }: { title: string; severity: Severity }) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
-      <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${SEVERITY_STYLE[severity]}`}>{severity}</span>
-      <span className="text-sm font-medium">{title}</span>
     </div>
   )
 }
@@ -111,8 +100,6 @@ export default function AuditResultPage() {
   const { id } = useParams<{ id: string }>()
   const [view, setView] = useState<View | null>(null)
   const [notFound, setNotFound] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
   const [interest, setInterest] = useState("dm_automation")
 
   const load = useCallback(async () => {
@@ -125,30 +112,22 @@ export default function AuditResultPage() {
     load()
   }, [load])
 
-  async function unlock() {
-    setBusy(true)
-    setMessage(null)
-    try {
-      const res = await fetch(`/api/audit/${id}/claim`, { method: "POST" })
-      if (res.ok) return await load()
-      if (res.status === 401) {
-        // Not signed in: connect Instagram, then the session hook brings the user back here.
-        localStorage.setItem("pending_audit_id", id)
-        window.location.href = instagramAuthUrl
-        return
-      }
-      const data = await res.json().catch(() => ({}))
-      setMessage(data.error || "Could not unlock the report.")
-    } finally {
-      setBusy(false)
-    }
+  function connect() {
+    try { localStorage.setItem(PENDING_AUDIT_FLAG, "1") } catch {}
+    window.location.href = instagramAuthUrl
   }
 
   if (notFound) {
     return (
-      <main className="mx-auto max-w-xl px-4 py-24 text-center">
-        <h1 className="text-2xl font-semibold">Audit not found</h1>
-        <Button asChild className="mt-6"><Link href="/instagram-audit">Run a new audit</Link></Button>
+      <main className="mx-auto max-w-xl px-4 py-24 text-center space-y-4">
+        <h1 className="text-2xl font-semibold">We could not open this report</h1>
+        <p className="text-muted-foreground">
+          Audit reports are private. Connect the Instagram account that created it, or run a new audit for your own account.
+        </p>
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <Button onClick={connect}><Instagram className="h-4 w-4" /> Connect Instagram</Button>
+          <Button asChild variant="outline"><Link href="/instagram-audit">Run a new audit</Link></Button>
+        </div>
       </main>
     )
   }
@@ -156,46 +135,16 @@ export default function AuditResultPage() {
     return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
   }
 
-  const { teaser, report } = view
+  const { report } = view
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-12 space-y-10">
       <header className="text-center space-y-4">
-        <p className="text-muted-foreground">Audit for <span className="font-medium text-foreground">@{teaser.username}</span></p>
-        <ScoreBadge score={teaser.score} grade={teaser.grade} />
+        <p className="text-muted-foreground">Audit for <span className="font-medium text-foreground">@{report.username}</span></p>
+        <ScoreBadge score={report.score} grade={report.grade} />
       </header>
 
-      {!view.unlocked || !report ? (
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Top issues</h2>
-          <div className="space-y-2">
-            {teaser.topFindings.map((f) => <FindingTitle key={f.title} {...f} />)}
-          </div>
-
-          {/* Static placeholders only: the locked content is never sent to the browser. */}
-          <div className="relative rounded-xl border p-4">
-            <div aria-hidden className="space-y-3 blur-sm select-none">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-10 rounded-lg bg-muted" />
-              ))}
-            </div>
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
-              <Lock className="h-5 w-5" />
-              <p className="text-sm font-medium">
-                {teaser.lockedFindingsCount > 0
-                  ? `${teaser.lockedFindingsCount} more findings, your score breakdown and step-by-step fixes`
-                  : "Your score breakdown and step-by-step fixes"}
-              </p>
-              <Button onClick={unlock} disabled={busy}>
-                {busy && <Loader2 className="h-4 w-4 animate-spin" />} Unlock full report (free)
-              </Button>
-              <p className="text-xs text-muted-foreground">Connect your Instagram account securely. We never see your password.</p>
-            </div>
-          </div>
-          {message && <p role="alert" className="text-sm text-destructive text-center">{message}</p>}
-        </section>
-      ) : (
-        <>
+      <>
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Score breakdown</h2>
             {report.categories.map((c) => (
@@ -243,8 +192,7 @@ export default function AuditResultPage() {
             <h3 className="font-semibold">Get your plan reviewed</h3>
             <LeadForm key={interest} auditId={id} defaultInterest={interest} />
           </section>
-        </>
-      )}
+      </>
     </main>
   )
 }

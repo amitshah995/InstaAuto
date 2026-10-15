@@ -51,15 +51,13 @@ export function useInstagramSession() {
                         setUserId(data.userId)
                         setUsername(data.username)
                         setError(null)
-                        // Came from the audit funnel? Send them back to unlock their report.
-                        const pendingAudit = localStorage.getItem("pending_audit_id")
-                        if (pendingAudit && /^[0-9a-f-]{36}$/i.test(pendingAudit)) {
-                            localStorage.removeItem("pending_audit_id")
-                            router.replace(`/audit/${pendingAudit}`)
-                        } else {
-                            // Remove code from URL
-                            router.replace("/dashboard")
-                        }
+                        // Came from the audit funnel? Send them back to finish their audit.
+                        let pendingAudit = false
+                        try {
+                            pendingAudit = localStorage.getItem("pending_audit_run") === "1"
+                            if (pendingAudit) localStorage.removeItem("pending_audit_run")
+                        } catch { }
+                        router.replace(pendingAudit ? "/instagram-audit?run=1" : "/dashboard")
                     } else {
                         console.error("[Insta Autobot] ❌ Login failed:", data.error)
                         setError(data.error || "Login failed")

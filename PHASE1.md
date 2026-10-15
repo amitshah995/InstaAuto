@@ -1,58 +1,58 @@
-# Phase 1: public Instagram Audit funnel
+# Phase 1: Instagram Audit funnel (connect-first)
 
 Apply **after** Phase 0 (needs `migrations/10-audit-schema.sql` and `lib/auth.ts`).
+
+## Why connect-first
+
+Spike 0 result, verified on the live app: with an Instagram-Login token, Instagram answers
+`Tried accessing nonexisting field (business_discovery)`. Looking up OTHER people's accounts is
+therefore not possible with the current login. The funnel audits the **signed-in user's own account**
+(`/me` and `/me/media`), which works with the permission the app already has
+(`instagram_business_basic`). No new Meta review is needed.
 
 ## Flow
 
 ```
-/instagram-audit  ->  POST /api/audit {username}  ->  /audit/[id]
-                                                        |-- anonymous: score + 2 finding TITLES (teaser)
-                                                        '-- "Unlock" -> sign in with Instagram
-                                                              -> POST /api/audit/[id]/claim
-                                                              -> full report + lead form + upsell cards
+/instagram-audit  --click-->  POST /api/audit
+                                 |-- 401 login_required -> Instagram login -> back to /instagram-audit?run=1 (auto-runs)
+                                 '-- 200 {id} -> /audit/[id]   (full report, owner only)
 ```
 
 ## Files
 
 | File | Role |
 |---|---|
-| `lib/audit/types.ts` | Source-agnostic shapes (`ProfileSnapshot`, `AuditReport`, `AuditTeaser`) |
-| `lib/audit/score.ts` | Pure scoring. **All thresholds live in `TUNING`** and are heuristics, not official benchmarks (the report says so) |
-| `lib/audit/lookup.ts` | **The only file that knows how profile data is fetched.** Business Discovery today; 24h cache; hourly cap |
-| `lib/audit/service.ts` | Throttle (5 audits/hour/IP, hashed), create, gate (`getAuditView`), claim |
-| `app/api/audit/*` | `POST /api/audit`, `GET /api/audit/[id]`, `POST /api/audit/[id]/claim` |
-| `app/api/leads/route.ts` | Signed-in user leaves email/WhatsApp (+ explicit consent) |
-| `app/instagram-audit`, `app/audit/[id]`, `components/audit` | Landing (SEO) and result pages (noindex) |
-| `hooks/use-instagram-session.ts` | After login, returns the user to `/audit/<pending id>` |
+| `lib/audit/types.ts` | Source-agnostic shapes |
+| `lib/audit/score.ts` | Pure scoring. Thresholds live in `TUNING` (heuristics, not official benchmarks; the report says so) |
+| `lib/audit/lookup.ts` | **The only file that knows how data is fetched.** Reads the user's own profile and last 30 posts with their token |
+| `lib/audit/service.ts` | `createOwnAudit` (reuses a result created in the last 10 minutes), `getAuditView` (owner only) |
+| `lib/audit/oauth-url.ts` | Instagram login URL + the "pending audit" flag |
+| `app/api/audit/route.ts` | `POST` (signed session required) |
+| `app/api/audit/[id]/route.ts` | `GET`, owner only; everyone else gets 404 |
+| `app/api/audit/[id]/claim/route.ts` | Retired stub (410), kept so old deployments keep building |
+| `app/api/leads/route.ts` | Signed-in user leaves email/WhatsApp with explicit consent; links only to their own audit |
+| `app/instagram-audit`, `app/audit/[id]`, `components/audit` | Landing (SEO) and private result page (noindex) |
+| `hooks/use-instagram-session.ts` | After login, returns the user to `/instagram-audit?run=1` |
 
-## How the gate works
+## Security notes
 
-The browser never receives locked data. `GET /api/audit/[id]` adds `report` only when the audit's
-`user_id` equals the signed-in user. The teaser is built server-side and contains titles only, no
-detail, fixes, categories or stats. The blurred block on the page is static placeholders.
+- The audit endpoints accept **signed sessions only** (`getVerifiedSessionUserId`), never the legacy
+  unsigned cookie, so a forged cookie cannot read or trigger another user's audit.
+- Reports are private. A report id is useless to anyone but the owner.
 
-## Config
+## Needs to be true in production
 
-Set `AUDIT_LOOKUP_USER_ID` (a `users.id` with a valid token). Optional: `AUDIT_MAX_LOOKUPS_PER_HOUR`.
-`AUDIT_PROVIDER=fixture` serves fake profiles for local testing and is ignored in production.
+- `SESSION_SECRET` set (otherwise login issues the legacy cookie and the audit says "connect" again).
+- `TOKEN_ENCRYPTION_KEY` is optional, tokens are decrypted transparently.
+- Users who logged in before `SESSION_SECRET` existed hold a legacy cookie: they simply connect again.
 
-## Read before launching
+## Not verified against real Instagram
 
-- **Spike 0 decides whether lookups work at all.** `lookup.ts` assumes Business Discovery works with an
-  Instagram-Login token. Unverified. If the spike fails, replace only `BusinessDiscoveryProvider`.
-- The "not found" error wording from Instagram is also unconfirmed; `mapGraphError` classifies by
-  code and message and may need adjusting after the first real call.
-- `VIDEO` media is treated as a Reel (the product-type field is not requested, because an unsupported
-  field would fail the whole call).
-- A claim only needs *a* signed-in session. While `SESSION_ACCEPT_LEGACY` is on, that session can be
-  forged, so someone could unlock a public-data report. No private data is exposed, but turn the flag
-  off once users have re-logged in (see PHASE0.md).
-- Privacy policy: add that public Business/Creator profile data is read and cached for 24h, and that
-  contact details given in the lead form are stored. Meta requires an accurate policy.
-- The unlock claim links an audit to any account, not only the audited one. Intentional (it is a signup
-  gate on public data), but it means this is **lead generation, not proof of ownership**.
+`/me` and `/me/media` field names follow the Instagram API docs. If `media_product_type` is rejected,
+the provider retries without it. Check the first real audit in the Vercel logs (`[audit]` lines).
 
 ## Not built yet
 
-Connected-tier audit (reach, saves, best time to post), competitor benchmark, PDF export, email follow-up,
-the free tools hub, and the Meta review for insights.
+Competitor benchmark (needs a Facebook Login based lookup account), connected-tier extras (reach, saves,
+best time to post: need `instagram_business_manage_insights` and Meta review), PDF export, email follow-up,
+free tools hub, token refresh (tokens last about 60 days).
