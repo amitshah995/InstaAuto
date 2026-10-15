@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { authorizeUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams
-        const userId = searchParams.get("userId")
-
-        if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 })
+        const auth = authorizeUser(request, searchParams.get("userId"))
+        if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+        const userId = auth.userId
 
         const supabase = await getSupabaseServerClient()
         const { data, error } = await supabase
@@ -27,9 +28,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { userId, iceBreakers } = body // Array of ice breakers
+        const { userId: claimedUserId, iceBreakers } = body // Array of ice breakers
 
-        if (!userId || !Array.isArray(iceBreakers)) {
+        const auth = authorizeUser(request, claimedUserId)
+        if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+        const userId = auth.userId
+
+        if (!Array.isArray(iceBreakers)) {
             return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
         }
 
