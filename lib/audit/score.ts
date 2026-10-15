@@ -8,6 +8,7 @@ import type {
   ProfileSnapshot,
   Severity,
 } from "./types"
+import { computeInsights, toPostPoints, toReportProfile } from "./insights"
 
 /**
  * Pure scoring. No I/O, no Instagram knowledge.
@@ -217,6 +218,7 @@ export function scoreProfile(p: ProfileSnapshot, now = new Date()): AuditReport 
 
   return {
     username: p.username, score, grade: gradeFor(score), categories, findings, stats: s,
+    profile: toReportProfile(p), posts: toPostPoints(p), insights: computeInsights(p, target),
     methodology: METHODOLOGY, generatedAt: now.toISOString(),
   }
 }
