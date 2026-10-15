@@ -28,7 +28,7 @@ export interface LookupProvider {
 
 const GRAPH = "https://graph.instagram.com/v24.0"
 const PROFILE_FIELDS = "username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count"
-const MEDIA_FIELDS = "caption,comments_count,like_count,media_type,media_product_type,timestamp"
+const MEDIA_FIELDS = "caption,comments_count,like_count,media_type,media_product_type,timestamp,permalink,thumbnail_url,media_url"
 
 function kindOf(mediaType: string | undefined, productType: string | undefined): MediaKind {
   if (productType === "REELS") return "reel"
@@ -51,6 +51,8 @@ export function mapOwnProfile(me: any, mediaItems: any[], fetchedAt = new Date()
       caption: typeof m.caption === "string" ? m.caption : "",
       likeCount: typeof m.like_count === "number" ? m.like_count : undefined,
       commentCount: typeof m.comments_count === "number" ? m.comments_count : 0,
+      permalink: typeof m.permalink === "string" ? m.permalink : undefined,
+      thumbnailUrl: typeof m.thumbnail_url === "string" ? m.thumbnail_url : typeof m.media_url === "string" && m.media_type !== "VIDEO" ? m.media_url : undefined,
     }))
   media.sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp))
 
@@ -60,6 +62,7 @@ export function mapOwnProfile(me: any, mediaItems: any[], fetchedAt = new Date()
     biography: me?.biography || undefined,
     website: me?.website || undefined,
     hasProfilePicture: !!me?.profile_picture_url,
+    profilePictureUrl: typeof me?.profile_picture_url === "string" ? me.profile_picture_url : undefined,
     followersCount: Number(me?.followers_count ?? 0),
     followsCount: me?.follows_count === undefined ? undefined : Number(me.follows_count),
     mediaCount: Number(me?.media_count ?? 0),
