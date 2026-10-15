@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next"
+import { TOOLS } from "@/lib/tools/registry"
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://www.dmspark.in"
@@ -17,6 +18,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: `${baseUrl}/tools`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    ...TOOLS.map((t) => ({
+      url: `${baseUrl}/tools/${t.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
     {
       url: `${baseUrl}/privacy`,
       lastModified: now,
