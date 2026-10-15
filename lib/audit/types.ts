@@ -12,6 +12,9 @@ export interface MediaSample {
   /** Undefined when the owner hides like counts. */
   likeCount?: number
   commentCount: number
+  permalink?: string
+  /** Thumbnail (video) or media URL (image). Instagram CDN links expire, so the UI must tolerate failures. */
+  thumbnailUrl?: string
 }
 
 export interface ProfileSnapshot {
@@ -20,6 +23,7 @@ export interface ProfileSnapshot {
   biography?: string
   website?: string
   hasProfilePicture: boolean
+  profilePictureUrl?: string
   followersCount: number
   followsCount?: number
   mediaCount: number
@@ -66,6 +70,51 @@ export interface AuditStats {
   ctaCaptionSharePct: number
 }
 
+/** Compact post record stored in the report (owner-only) so the page can chart it. */
+export interface PostPoint {
+  kind: MediaKind
+  timestamp: string
+  likes: number | null
+  comments: number
+  caption: string
+  thumb?: string
+  permalink?: string
+}
+
+export interface ReportProfile {
+  name?: string
+  bio?: string
+  website?: string
+  pictureUrl?: string
+  followers: number
+  following?: number
+  posts: number
+}
+
+export type SignalState = "good" | "warn" | "bad"
+
+export interface AuditInsights {
+  tier: { label: string; range: string }
+  erPct: number | null
+  targetPct: number
+  /** erPct - targetPct, in percentage points. */
+  deltaPct: number | null
+  likesHidden: boolean
+  postsUsed: number
+  totalLikes: number
+  totalComments: number
+  avgLikes: number
+  avgComments: number
+  likeCommentRatio: number | null
+  followerFollowingRatio: number | null
+  signals: { id: string; title: string; detail: string; state: SignalState }[]
+  cadence: { perWeek: number; avgGapDays: number | null; consistency: number | null }
+  hashtags: { tag: string; count: number }[]
+  avgCaptionLength: number
+  formats: { kind: MediaKind; count: number; avgInteractions: number }[]
+  top: { index: number; multipleOfAvg: number; erPct: number | null } | null
+}
+
 /** Full, gated payload. Never send to anonymous callers. */
 export interface AuditReport {
   username: string
@@ -74,6 +123,10 @@ export interface AuditReport {
   categories: CategoryScore[]
   findings: Finding[]
   stats: AuditStats
+  /** Added in the v2 report. Older saved reports do not have these. */
+  profile?: ReportProfile
+  posts?: PostPoint[]
+  insights?: AuditInsights
   /** Honest labelling: how the benchmarks used were derived. */
   methodology: string
   generatedAt: string
