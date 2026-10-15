@@ -82,7 +82,8 @@ export function useInstagramSession() {
         localStorage.removeItem("ig_user_id")
         localStorage.removeItem("ig_username")
         sessionStorage.removeItem("ig_processed_code")
-        document.cookie = "insta_session=; Max-Age=0; path=/;"
+        document.cookie = "insta_session=; Max-Age=0; path=/;" // legacy (non-httpOnly) cookie
+        fetch("/api/instagram/logout", { method: "POST" }).catch(() => { })
         setUsername(null)
         setUserId(null)
         setError(null)

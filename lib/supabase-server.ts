@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
+import { encryptToken, decryptToken } from '@/lib/token-crypto';
 
 // Manually load env variables if running in server environments where process.env might not be fully loaded
 function loadEnv() {
@@ -198,6 +199,9 @@ class NeonQueryBuilder {
             const group = [];
             for (const col of columns) {
               let val = row[col];
+              if (this.tableName === 'users' && col === 'access_token' && typeof val === 'string') {
+                val = encryptToken(val);
+              }
               if (val !== null && typeof val === 'object') {
                 val = JSON.stringify(val);
               }
@@ -221,6 +225,9 @@ class NeonQueryBuilder {
           const sets = [];
           for (const [col, val] of Object.entries(this.updateData)) {
             let formattedVal = val;
+            if (this.tableName === 'users' && col === 'access_token' && typeof formattedVal === 'string') {
+              formattedVal = encryptToken(formattedVal);
+            }
             if (formattedVal !== null && typeof formattedVal === 'object') {
               formattedVal = JSON.stringify(formattedVal);
             }
@@ -282,7 +289,20 @@ class NeonQueryBuilder {
       }
 
       const res = await client.query(queryText, queryValues);
-      
+
+      // Transparently decrypt Instagram tokens read from `users` (plaintext passes through).
+      if (this.tableName === 'users') {
+        for (const row of res.rows) {
+          if (typeof row?.access_token === 'string') {
+            try {
+              row.access_token = decryptToken(row.access_token);
+            } catch (e: any) {
+              console.error(`[token-crypto] decrypt failed for user ${row.id ?? '?'}: ${e.message}`);
+            }
+          }
+        }
+      }
+
       let data: any = res.rows;
       let count: number | null = null;
 
