@@ -27,6 +27,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { FlowTester } from "@/components/flows/flow-tester"
+import { VersionHistory } from "@/components/flows/version-history"
 
 interface Node {
   id: string
@@ -68,7 +69,7 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
     const gNode = graphNodes[id]
     if (!gNode) continue
 
-    if ((gNode.type === "message" || gNode.type === "tag") && gNode.next) queue.push({ id: gNode.next, depth: depth + 1 })
+    if ((gNode.type === "message" || gNode.type === "tag" || gNode.type === "ai") && gNode.next) queue.push({ id: gNode.next, depth: depth + 1 })
     if (gNode.type === "condition") {
       for (const b of gNode.branches || []) if (b.next) queue.push({ id: b.next, depth: depth + 1 })
       if (gNode.default_next) queue.push({ id: gNode.default_next, depth: depth + 1 })
@@ -89,12 +90,12 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
       const gNode = graphNodes[id]
       canvasNodes.push({
         id,
-        type: gNode.type === "condition" ? "condition" : gNode.type === "tag" ? "action" : "message",
+        type: gNode.type === "condition" ? "condition" : gNode.type === "tag" || gNode.type === "ai" ? "action" : "message",
         x: 360 + depth * COL_WIDTH,
         y: 60 + i * ROW_HEIGHT,
-        title: gNode.type === "condition" ? "Condition" : gNode.type === "tag" ? "Assign Tag" : "Message",
-        extra: gNode.type === "tag" ? "SaaS CRM Tag" : undefined,
-        content: gNode.type === "message" ? gNode.text || "" : gNode.type === "tag" ? gNode.tag || "" : "",
+        title: gNode.type === "condition" ? "Condition" : gNode.type === "tag" ? "Assign Tag" : gNode.type === "ai" ? "AI Reply" : "Message",
+        extra: gNode.type === "tag" ? "SaaS CRM Tag" : gNode.type === "ai" ? "AI writes the reply" : undefined,
+        content: gNode.type === "message" ? gNode.text || "" : gNode.type === "tag" ? gNode.tag || "" : gNode.type === "ai" ? gNode.instruction || "" : "",
         delaySeconds: gNode.type === "message" ? gNode.delay_seconds || 0 : undefined,
       })
     })
@@ -104,7 +105,7 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
     canvasConnections.push({ id: `c-t-${flow.startNodeId}`, fromId: trigger.id, toId: flow.startNodeId })
   }
   for (const [id, gNode] of Object.entries(graphNodes)) {
-    if ((gNode.type === "message" || gNode.type === "tag") && gNode.next) {
+    if ((gNode.type === "message" || gNode.type === "tag" || gNode.type === "ai") && gNode.next) {
       canvasConnections.push({ id: `c-${id}-${gNode.next}`, fromId: id, toId: gNode.next })
     }
     if (gNode.type === "condition") {
@@ -122,6 +123,9 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
 
 // "Assign Tag" action nodes are real graph nodes (they tag the contact at runtime).
 // Other action nodes (e.g. Follower Check) are still handled elsewhere / folded through.
+function isAiNode(n: Node) {
+  return n.type === "action" && n.title === "AI Reply"
+}
 function isTagNode(n: Node) {
   return n.type === "action" && n.title === "Assign Tag"
 }
@@ -146,7 +150,7 @@ function buildGraph(nodes: Node[], connections: Connection[], triggerId: string)
       const deeper = resolveNext(target.id, visited)
       return { nextId: deeper.nextId, delay: d + deeper.delay }
     }
-    if (target.type === "action" && !isTagNode(target)) {
+    if (target.type === "action" && !isTagNode(target) && !isAiNode(target)) {
       return resolveNext(target.id, visited)
     }
     return { nextId: target.id, delay: 0 }
@@ -162,6 +166,9 @@ function buildGraph(nodes: Node[], connections: Connection[], triggerId: string)
         delay_seconds: node.delaySeconds || delay || 0,
         next: nextId,
       }
+    } else if (node.type === "action" && isAiNode(node)) {
+      const { nextId } = resolveNext(node.id)
+      graphNodes[node.id] = { type: "ai", instruction: node.content, next: nextId }
     } else if (node.type === "action" && isTagNode(node)) {
       const { nextId } = resolveNext(node.id)
       graphNodes[node.id] = { type: "tag", tag: node.content, next: nextId }
@@ -197,7 +204,7 @@ export default function FlowBuilderPage() {
 }
 
 function FlowBuilderContent() {
-  const { userId, isLoading: isSessionLoading } = useInstagramSession()
+  const { userId, username: sessionUsername, isLoading: isSessionLoading } = useInstagramSession()
   const searchParams = useSearchParams()
   const router = useRouter()
   const flowId = searchParams.get("id")
@@ -474,7 +481,8 @@ function FlowBuilderContent() {
   }
 
   // Add new Node
-  const addNewNode = (type: "message" | "delay" | "action" | "condition") => {
+  const addNewNode = (kind: "message" | "delay" | "action" | "condition" | "ai") => {
+    const type = kind === "ai" ? "action" : kind
     const id = `n_${Date.now()}`
     let title = ""
     let content = ""
@@ -492,6 +500,10 @@ function FlowBuilderContent() {
       title = "Condition"
       content = ""
       extra = "Branches on the reply"
+    } else if (kind === "ai") {
+      title = "AI Reply"
+      content = "Answer the follower's question about our services in a friendly way."
+      extra = "AI writes the reply"
     } else {
       title = "Assign Tag"
       content = "Warm Lead"
@@ -663,6 +675,7 @@ function FlowBuilderContent() {
         </div>
 
         <div className="flex items-center gap-3">
+          {flowId && <VersionHistory automationId={flowId} />}
           <Button variant="outline" onClick={() => setShowTester((v) => !v)} className="rounded-xl font-bold">
             {showTester ? "Hide test" : "Test flow"}
           </Button>
@@ -678,6 +691,7 @@ function FlowBuilderContent() {
 
       {showTester && (
         <FlowTester
+          account={sessionUsername || undefined}
           graph={(() => {
             const t = nodes.find((n) => n.type === "trigger")
             if (!t) return null
@@ -739,6 +753,14 @@ function FlowBuilderContent() {
                 className="h-9 rounded-xl text-xs font-bold hover:bg-purple-500 hover:text-white hover:border-purple-500 border-purple-500/25 text-purple-500 transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-purple-500/5 shadow-sm shadow-purple-500/5 hover:shadow-purple-500/15"
               >
                 <Plus className="w-3.5 h-3.5" /> Action
+              </Button>
+              <Button
+                onClick={() => addNewNode("ai")}
+                size="sm"
+                variant="outline"
+                className="h-9 rounded-xl text-xs font-bold hover:bg-pink-500 hover:text-white hover:border-pink-500 border-pink-500/25 text-pink-500 transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-pink-500/5"
+              >
+                <Plus className="w-3.5 h-3.5" /> AI Reply
               </Button>
               <Button
                 onClick={() => { setLinkMode(!linkMode); setLinkFromId(null) }}
@@ -925,7 +947,7 @@ function FlowBuilderContent() {
                 {selectedNode.type !== "condition" && (
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block">
-                      {selectedNode.type === "trigger" ? "Trigger Word / Keywords" : selectedNode.type === "delay" ? "Delay Time (seconds)" : "Message / Tag Content"}
+                      {selectedNode.type === "trigger" ? "Trigger Word / Keywords" : selectedNode.type === "delay" ? "Delay Time (seconds)" : selectedNode.title === "AI Reply" ? "What should the AI do? (instruction)" : "Message / Tag Content"}
                     </label>
                     <textarea
                       rows={4}
