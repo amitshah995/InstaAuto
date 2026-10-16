@@ -26,6 +26,7 @@ import {
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { FlowTester } from "@/components/flows/flow-tester"
 
 interface Node {
   id: string
@@ -67,7 +68,7 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
     const gNode = graphNodes[id]
     if (!gNode) continue
 
-    if (gNode.type === "message" && gNode.next) queue.push({ id: gNode.next, depth: depth + 1 })
+    if ((gNode.type === "message" || gNode.type === "tag") && gNode.next) queue.push({ id: gNode.next, depth: depth + 1 })
     if (gNode.type === "condition") {
       for (const b of gNode.branches || []) if (b.next) queue.push({ id: b.next, depth: depth + 1 })
       if (gNode.default_next) queue.push({ id: gNode.default_next, depth: depth + 1 })
@@ -88,11 +89,12 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
       const gNode = graphNodes[id]
       canvasNodes.push({
         id,
-        type: gNode.type === "condition" ? "condition" : "message",
+        type: gNode.type === "condition" ? "condition" : gNode.type === "tag" ? "action" : "message",
         x: 360 + depth * COL_WIDTH,
         y: 60 + i * ROW_HEIGHT,
-        title: gNode.type === "condition" ? "Condition" : "Message",
-        content: gNode.type === "message" ? gNode.text || "" : "",
+        title: gNode.type === "condition" ? "Condition" : gNode.type === "tag" ? "Assign Tag" : "Message",
+        extra: gNode.type === "tag" ? "SaaS CRM Tag" : undefined,
+        content: gNode.type === "message" ? gNode.text || "" : gNode.type === "tag" ? gNode.tag || "" : "",
         delaySeconds: gNode.type === "message" ? gNode.delay_seconds || 0 : undefined,
       })
     })
@@ -102,7 +104,7 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
     canvasConnections.push({ id: `c-t-${flow.startNodeId}`, fromId: trigger.id, toId: flow.startNodeId })
   }
   for (const [id, gNode] of Object.entries(graphNodes)) {
-    if (gNode.type === "message" && gNode.next) {
+    if ((gNode.type === "message" || gNode.type === "tag") && gNode.next) {
       canvasConnections.push({ id: `c-${id}-${gNode.next}`, fromId: id, toId: gNode.next })
     }
     if (gNode.type === "condition") {
@@ -116,6 +118,12 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
   }
 
   return { nodes: canvasNodes, connections: canvasConnections }
+}
+
+// "Assign Tag" action nodes are real graph nodes (they tag the contact at runtime).
+// Other action nodes (e.g. Follower Check) are still handled elsewhere / folded through.
+function isTagNode(n: Node) {
+  return n.type === "action" && n.title === "Assign Tag"
 }
 
 // Turns canvas nodes + connections into the graph shape the webhook
@@ -138,7 +146,7 @@ function buildGraph(nodes: Node[], connections: Connection[], triggerId: string)
       const deeper = resolveNext(target.id, visited)
       return { nextId: deeper.nextId, delay: d + deeper.delay }
     }
-    if (target.type === "action") {
+    if (target.type === "action" && !isTagNode(target)) {
       return resolveNext(target.id, visited)
     }
     return { nextId: target.id, delay: 0 }
@@ -154,6 +162,9 @@ function buildGraph(nodes: Node[], connections: Connection[], triggerId: string)
         delay_seconds: node.delaySeconds || delay || 0,
         next: nextId,
       }
+    } else if (node.type === "action" && isTagNode(node)) {
+      const { nextId } = resolveNext(node.id)
+      graphNodes[node.id] = { type: "tag", tag: node.content, next: nextId }
     } else if (node.type === "condition") {
       const outgoing = connections.filter((c) => c.fromId === node.id)
       const branches: { keyword: string; next: string }[] = []
@@ -242,6 +253,7 @@ function FlowBuilderContent() {
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [isSaved, setIsSaved] = useState(false)
+  const [showTester, setShowTester] = useState(false)
   const [isLoadingFlow, setIsLoadingFlow] = useState(false)
   const [automationName, setAutomationName] = useState<string>("Demo Automation Flow")
   const [specificMediaId, setSpecificMediaId] = useState<string | null>(null)
@@ -651,6 +663,9 @@ function FlowBuilderContent() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => setShowTester((v) => !v)} className="rounded-xl font-bold">
+            {showTester ? "Hide test" : "Test flow"}
+          </Button>
           <Button
             onClick={handleSave}
             disabled={isSaved}
@@ -660,6 +675,17 @@ function FlowBuilderContent() {
           </Button>
         </div>
       </div>
+
+      {showTester && (
+        <FlowTester
+          graph={(() => {
+            const t = nodes.find((n) => n.type === "trigger")
+            if (!t) return null
+            const g = buildGraph(nodes, connections, t.id)
+            return g.startNodeId ? { startNodeId: g.startNodeId, nodes: g.nodes } : null
+          })()}
+        />
+      )}
 
       {/* Builder Layout Workspace */}
       <div className={`flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch relative min-h-[580px] transition-all duration-700 delay-150 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
