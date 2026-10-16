@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { AuditShell } from "@/components/audit/audit-theme"
 import { FLOW_TEMPLATES, templateBySlug } from "@/lib/flows/templates"
 import { simulate } from "@/lib/flows/engine"
+import { PhoneChat } from "@/components/flows/phone-chat"
 import { ArrowLeft, Zap } from "lucide-react"
 
 export const dynamicParams = false
@@ -52,29 +53,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
 
         <section className="au-card" style={{ display: "grid", gap: 10 }}>
           <h2 className="au-head" style={{ fontSize: 18 }}>What the conversation looks like</h2>
-          <div style={{ display: "grid", gap: 8 }}>
-            {sim.lines.map((l, i) =>
-              l.from === "system" ? (
-                <p key={i} className="au-muted" style={{ fontSize: 12, textAlign: "center" }}>{l.text}</p>
-              ) : (
-                <div key={i} style={{ display: "flex", justifyContent: l.from === "user" ? "flex-end" : "flex-start" }}>
-                  <span
-                    style={{
-                      maxWidth: "82%",
-                      padding: "10px 14px",
-                      borderRadius: 18,
-                      fontSize: 14,
-                      whiteSpace: "pre-wrap",
-                      background: l.from === "user" ? "var(--au-accent, #e1306c)" : "rgba(128,128,128,0.14)",
-                      color: l.from === "user" ? "#fff" : "inherit",
-                    }}
-                  >
-                    {l.text}
-                  </span>
-                </div>
-              ),
-            )}
-          </div>
+          <PhoneChat lines={sim.lines} account="your_brand" height={380} />
           <p className="au-muted" style={{ fontSize: 12 }}>Text in [brackets] is a placeholder you replace with your own link or details.</p>
         </section>
 

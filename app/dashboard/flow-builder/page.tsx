@@ -197,7 +197,7 @@ export default function FlowBuilderPage() {
 }
 
 function FlowBuilderContent() {
-  const { userId, isLoading: isSessionLoading } = useInstagramSession()
+  const { userId, username: sessionUsername, isLoading: isSessionLoading } = useInstagramSession()
   const searchParams = useSearchParams()
   const router = useRouter()
   const flowId = searchParams.get("id")
@@ -678,6 +678,7 @@ function FlowBuilderContent() {
 
       {showTester && (
         <FlowTester
+          account={sessionUsername || undefined}
           graph={(() => {
             const t = nodes.find((n) => n.type === "trigger")
             if (!t) return null
