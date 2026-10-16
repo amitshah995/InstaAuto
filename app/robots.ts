@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next"
+import { getSiteUrl } from "@/lib/site"
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -14,8 +15,8 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/dashboard/", "/whatsapp-dashboard/", "/l/"],
       },
     ],
-    sitemap: "https://www.dmspark.in/sitemap.xml",
-    host: "https://www.dmspark.in",
+    sitemap: `${getSiteUrl()}/sitemap.xml`,
+    host: getSiteUrl(),
   }
 }
 

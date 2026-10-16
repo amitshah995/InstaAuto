@@ -3,6 +3,7 @@
  * and {link:slug} expansion. No database access here so it is easy to test.
  */
 import crypto from "crypto"
+import { getSiteHost, getSiteUrl } from "@/lib/site"
 
 export const MAX_LINKS_PER_USER = 100
 export const MAX_URL_LEN = 2000
@@ -10,7 +11,7 @@ export const REPORTS_TO_DISABLE = 3
 const SLUG_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789" // no look-alikes (i, l, o, 0, 1)
 
 export function siteBase() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "https://www.dmspark.in").replace(/\/+$/, "")
+  return getSiteUrl()
 }
 
 export function makeSlug(len = 7): string {
@@ -44,7 +45,9 @@ export function validateDestination(raw: unknown): { ok: true; url: string } | {
   if (u.username || u.password) return { ok: false, error: "Links with a username or password are not allowed" }
   const host = u.hostname.toLowerCase().replace(/\.$/, "")
   if (!host.includes(".") || isPrivateOrIpHost(host)) return { ok: false, error: "Use a normal website address" }
-  if (BLOCKED_HOST_SUFFIXES.some((b) => host === b || host.endsWith("." + b))) return { ok: false, error: "That address cannot be used" }
+  const own = getSiteHost()
+  const blocked = [...BLOCKED_HOST_SUFFIXES, own, own.replace(/^www\./, "")]
+  if (blocked.some((b) => host === b || host.endsWith("." + b))) return { ok: false, error: "That address cannot be used" }
   return { ok: true, url: u.toString() }
 }
 
