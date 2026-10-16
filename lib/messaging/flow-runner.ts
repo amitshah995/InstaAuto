@@ -3,6 +3,7 @@ import { advance, type FlowGraph } from "@/lib/flows/engine"
 import { addTagToContact } from "@/lib/contacts/tag-actions"
 import { generateFlowReply } from "@/lib/flows/ai-reply"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { expandLinksForUser } from "@/lib/links/store"
 
 export type { FlowGraph }
 
@@ -32,6 +33,7 @@ export async function runFlow(
     }
 
     let text = action.kind === "message" ? action.text : ""
+    if (action.kind === "message" && opts.ctx) text = await expandLinksForUser(opts.ctx.userId, text, "flow")
     if (action.kind === "ai") {
       let businessInfo: string | null = null
       if (opts.ctx) {
