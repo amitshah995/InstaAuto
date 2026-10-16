@@ -30,12 +30,13 @@ export async function GET(request: NextRequest) {
     }
     const customKeyList = Array.from(customKeys)
 
-    const headers = ["igsid", "name", "email", "phone", ...customKeyList, "created_at"]
+    const headers = ["igsid", "name", "email", "phone", "tags", ...customKeyList, "created_at"]
     const rows = (contacts || []).map((c: any) => [
       c.igsid,
       c.name || "",
       c.email || "",
       c.phone || "",
+      (Array.isArray(c.tags) ? c.tags : []).join(";"),
       ...customKeyList.map((k) => c.custom_fields?.[k] ?? ""),
       c.created_at,
     ])
