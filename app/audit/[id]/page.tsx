@@ -6,6 +6,7 @@ import Link from "next/link"
 import { AuditShell } from "@/components/audit/audit-theme"
 import { Loader2, Zap, Briefcase, CheckCircle2, Instagram, Target, ClipboardCheck, Clock, Gauge, Hash, TrendingDown, TrendingUp, CalendarDays, BarChart3, PieChart, Crown, ExternalLink, Activity, AlertTriangle } from "lucide-react"
 import { Bars, Donut, LineChart } from "@/components/audit/charts"
+import { AiReportSection } from "@/components/audit/ai-report"
 import { DAY_SHORT, hourLabel, timeBreakdown } from "@/lib/audit/insights"
 import { instagramAuthUrl, PENDING_AUDIT_FLAG } from "@/lib/audit/oauth-url"
 import type { AuditReport, MediaKind, PostPoint, Severity } from "@/lib/audit/types"
@@ -403,6 +404,8 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
             {avgInter > 0 && <p className="au-muted" style={{ fontSize: 12 }}>Average per post: {Math.round(avgInter)} interactions.</p>}
           </section>
         )}
+
+        {report.insights && report.posts && report.posts.length > 0 && <AiReportSection auditId={id} />}
 
         <section className="au-grid2">
           <div className="au-card" style={{ display: "grid", gap: 12, alignContent: "start" }}>
