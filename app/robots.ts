@@ -6,12 +6,12 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "Googlebot",
         allow: "/",
-        disallow: ["/api/", "/dashboard/", "/whatsapp-dashboard/"],
+        disallow: ["/api/", "/dashboard/", "/whatsapp-dashboard/", "/l/"],
       },
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/dashboard/", "/whatsapp-dashboard/"],
+        disallow: ["/api/", "/dashboard/", "/whatsapp-dashboard/", "/l/"],
       },
     ],
     sitemap: "https://www.dmspark.in/sitemap.xml",
