@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Loader2, Users, Search, Download, Mail, Phone, User, Tag, X } from "lucide-react"
+import { BroadcastPanel } from "@/components/contacts/broadcast-panel"
 import { allTags, cleanTag, cleanTags, matchesSegment, type Segment } from "@/lib/contacts/segments"
 
 interface Contact {
@@ -157,6 +158,8 @@ export default function ContactsPage() {
         {quickBtn("phone", "Has phone")}
         {quickBtn("week", "Added this week")}
       </div>
+
+      <BroadcastPanel segment={segment} />
 
       {tagList.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
