@@ -72,7 +72,7 @@ export function LineChart({ labels, likes, comments }: { labels: string[]; likes
   )
 }
 
-export function Donut({ parts }: { parts: { label: string; value: number; color: string }[] }) {
+export function Donut({ parts, center, hideLegend }: { parts: { label: string; value: number; color: string }[]; center?: { value: string; label: string }; hideLegend?: boolean }) {
   const total = parts.reduce((a, p) => a + p.value, 0)
   const R = 70, C = 2 * Math.PI * R
   let acc = 0
@@ -90,14 +90,14 @@ export function Donut({ parts }: { parts: { label: string; value: number; color:
           acc += len
           return el
         })}
-        <text x="100" y="98" textAnchor="middle" fontSize="26" fontWeight="800" fill="#fff">{total}</text>
-        <text x="100" y="116" textAnchor="middle" fontSize="11" fill={AXIS}>posts</text>
+        <text x="100" y="98" textAnchor="middle" fontSize="26" fontWeight="800" fill="#fff">{center ? center.value : total}</text>
+        <text x="100" y="116" textAnchor="middle" fontSize="11" fill={AXIS}>{center ? center.label : "posts"}</text>
       </svg>
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center", marginTop: 12, fontSize: 13 }}>
+      {!hideLegend && <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center", marginTop: 12, fontSize: 13 }}>
         {parts.map((p) => (
           <span key={p.label}><i style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: p.color, marginRight: 6 }} />{p.label} ({p.value})</span>
         ))}
-      </div>
+      </div>}
     </div>
   )
 }
