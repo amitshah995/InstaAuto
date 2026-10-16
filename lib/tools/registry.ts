@@ -227,6 +227,38 @@ export const TOOLS: ToolMeta[] = [
       ["What size are Reels?", "1080 x 1920 pixels (9:16). Keep text away from the top and bottom edges."],
     ],
   },
+  {
+    slug: "top-instagram-hashtags",
+    name: "Top 100 Instagram Hashtags",
+    short: "Tick commonly used hashtags by topic and copy your set of five.",
+    category: "Content",
+    icon: "Hash",
+    title: "Top 100 Instagram Hashtags: Pick and Copy Your Set",
+    h1: "Top 100 Instagram hashtags",
+    intro: "Browse commonly used hashtags for travel, food, fitness, fashion, beauty, business, photography and India. Tick the ones you want and copy your set. Instagram now limits posts and Reels to five hashtags.",
+    offer: { headline: "Want hashtags and content ideas made for your account?", text: "Leave your details and we will suggest a hashtag and content plan for your niche.", button: "Send me ideas" },
+    faq: [
+      ["How many hashtags can I use on Instagram?", "Instagram announced a limit of five hashtags per post and Reel, rolling out gradually. This tool lets you pick up to five."],
+      ["Are these the most popular hashtags right now?", "They are commonly used tags, not live data. We do not have post counts, so we do not show them. The order is a rough guide."],
+      ["Should I use only the biggest hashtags?", "Not only. The biggest tags are crowded. Mix one or two general tags with specific ones that match your post and audience."],
+    ],
+  },
+  {
+    slug: "instagram-hashtag-generator",
+    name: "Instagram Hashtag Generator",
+    short: "Type your topic and get niche, medium and broad hashtag ideas.",
+    category: "Content",
+    icon: "Hash",
+    title: "Free Instagram Hashtag Generator (AI)",
+    h1: "Instagram hashtag generator",
+    intro: "Type up to five keywords about your post. Get niche, medium, broad and community hashtag ideas, and a balanced set of five with one tap.",
+    offer: { headline: "Want a full content plan, not just hashtags?", text: "Connect your account for a free audit and an AI growth report, or leave your details and we will help.", button: "Help me grow" },
+    faq: [
+      ["How does the generator work?", "An AI model suggests hashtags for your keywords and groups them. We then remove spammy or engagement-bait tags."],
+      ["Does it show how many posts each hashtag has?", "No. We do not have that data, so we never show or guess it. Treat the groups as ideas to test, not a promise of reach."],
+      ["How many hashtags should I use?", "Instagram now limits posts and Reels to five. Smart pick chooses a mix of niche, medium and broad tags."],
+    ],
+  },
 ]
 
 export const toolBySlug = (slug: string) => TOOLS.find((t) => t.slug === slug)

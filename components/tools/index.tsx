@@ -2,6 +2,7 @@ import type { ComponentType } from "react"
 import { CommentToDmCalculator, CreatorPricingCalculator, DmRoiCalculator, EngagementCalculator } from "./calculators"
 import { CaptionChecker, CarouselTextSplitter, HookChecker, InstagramImageSizes, ReelBeatSheet } from "./content-tools"
 import { ChatLinkGenerator, DmTemplates } from "./messaging-tools"
+import { HashtagGenerator, TopHashtags } from "./hashtag-tools"
 import { CaptionFormatter, FancyFontsGenerator, GiveawayPicker } from "./text-tools"
 
 export const TOOL_COMPONENTS: Record<string, ComponentType> = {
@@ -19,4 +20,6 @@ export const TOOL_COMPONENTS: Record<string, ComponentType> = {
   "giveaway-picker": GiveawayPicker,
   "carousel-text-splitter": CarouselTextSplitter,
   "instagram-image-sizes": InstagramImageSizes,
+  "top-instagram-hashtags": TopHashtags,
+  "instagram-hashtag-generator": HashtagGenerator,
 }
