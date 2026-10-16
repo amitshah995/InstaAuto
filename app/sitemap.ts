@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next"
+import { getSiteUrl } from "@/lib/site"
 import { TOOLS } from "@/lib/tools/registry"
 import { FLOW_TEMPLATES } from "@/lib/flows/templates"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://www.dmspark.in"
+  const baseUrl = getSiteUrl()
   const now = new Date()
 
   return [
