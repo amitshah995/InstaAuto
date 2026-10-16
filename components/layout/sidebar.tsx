@@ -17,6 +17,7 @@ import {
   Moon,
   Compass,
   Users,
+  Link2,
   ClipboardCheck,
   Wrench
 } from "lucide-react"
@@ -115,6 +116,14 @@ export function Sidebar({ className, username = "Demo User", profilePictureUrl, 
           icon={<Users className="w-4 h-4" />}
           label="Contacts"
           active={isActive("/dashboard/contacts")}
+          onClick={onNavigate}
+          isCollapsed={isCollapsed}
+        />
+        <NavItem
+          href="/dashboard/links"
+          icon={<Link2 className="w-4 h-4" />}
+          label="Links"
+          active={isActive("/dashboard/links")}
           onClick={onNavigate}
           isCollapsed={isCollapsed}
         />
