@@ -405,7 +405,7 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
           </section>
         )}
 
-        {report.insights && report.posts && report.posts.length > 0 && <AiReportSection auditId={id} />}
+        {report.insights && report.posts && report.posts.length > 0 && <AiReportSection auditId={id} report={report} />}
 
         <section className="au-grid2">
           <div className="au-card" style={{ display: "grid", gap: 12, alignContent: "start" }}>
