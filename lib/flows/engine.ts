@@ -6,6 +6,7 @@
  * Graph node shapes:
  *   message   { type, text, delay_seconds?, next }
  *   tag       { type, tag, next }              // adds a CRM tag to the contact
+ *   ai        { type, instruction, next }      // AI writes one reply from the instruction
  *   condition { type, branches:[{keyword,next}], default_next }
  */
 export type FlowGraph = { startNodeId: string; nodes: Record<string, any> }
@@ -13,6 +14,7 @@ export type FlowGraph = { startNodeId: string; nodes: Record<string, any> }
 export type FlowAction =
   | { kind: "message"; nodeId: string; text: string; delaySeconds: number }
   | { kind: "tag"; nodeId: string; tag: string }
+  | { kind: "ai"; nodeId: string; instruction: string }
 
 const MAX_HOPS = 20
 
@@ -54,6 +56,8 @@ export function advance(
       actions.push({ kind: "message", nodeId, text: node.text || "", delaySeconds: node.delay_seconds || 0 })
     } else if (node.type === "tag") {
       actions.push({ kind: "tag", nodeId, tag: node.tag || "" })
+    } else if (node.type === "ai") {
+      actions.push({ kind: "ai", nodeId, instruction: node.instruction || "" })
     } else {
       return { actions, nodeId: null, truncated: false } // unknown node type: stop safely
     }
@@ -74,6 +78,9 @@ export function simulate(flow: FlowGraph, replies: string[]): { lines: SimLine[]
       if (a.kind === "message") {
         if (a.delaySeconds > 0) lines.push({ from: "system", text: `Waits ${a.delaySeconds}s` })
         lines.push({ from: "bot", text: a.text })
+      } else if (a.kind === "ai") {
+        lines.push({ from: "system", text: "AI reply (written live for each follower)" })
+        lines.push({ from: "bot", text: `✨ AI reply based on: "${a.instruction.slice(0, 80)}"` })
       } else if (a.tag) {
         if (!tags.includes(a.tag)) tags.push(a.tag)
         lines.push({ from: "system", text: `Tag added: #${a.tag}` })

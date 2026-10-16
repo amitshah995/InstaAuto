@@ -1,6 +1,8 @@
 import { enqueueJob, INLINE_MAX_DELAY_S, schedulerEnabled, type SendCtx } from "@/lib/messaging/send-steps"
 import { advance, type FlowGraph } from "@/lib/flows/engine"
 import { addTagToContact } from "@/lib/contacts/tag-actions"
+import { generateFlowReply } from "@/lib/flows/ai-reply"
+import { getSupabaseServerClient } from "@/lib/supabase-server"
 
 export type { FlowGraph }
 
@@ -29,8 +31,21 @@ export async function runFlow(
       continue
     }
 
-    const delay = skipDelay ? 0 : action.delaySeconds
-    skipDelay = false
+    let text = action.kind === "message" ? action.text : ""
+    if (action.kind === "ai") {
+      let businessInfo: string | null = null
+      if (opts.ctx) {
+        const supabase = await getSupabaseServerClient()
+        const { data: u } = await supabase.from("users").select("ai_context").eq("id", opts.ctx.userId).single()
+        businessInfo = u?.ai_context ?? null
+      }
+      const reply = await generateFlowReply({ instruction: action.instruction, businessInfo, followerMessage: incomingText })
+      if (!reply) continue // AI off or failed: skip this step, the rest of the flow carries on
+      text = reply
+    }
+
+    const delay = action.kind === "message" && !skipDelay ? action.delaySeconds : 0
+    if (action.kind === "message") skipDelay = false
     if (delay > INLINE_MAX_DELAY_S && opts.ctx && schedulerEnabled()) {
       const queued = await enqueueJob(opts.ctx, {
         kind: "flow",
@@ -48,11 +63,11 @@ export async function runFlow(
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ recipient: { id: psid }, message: { text: action.text } }),
+          body: JSON.stringify({ recipient: { id: psid }, message: { text } }),
         },
       )
       const json = await res.json()
-      if (!json.error) sentTexts.push(action.text)
+      if (!json.error) sentTexts.push(text)
     } catch (e) {
       console.error("[v0] 🔴 Flow node send error:", e)
     }
