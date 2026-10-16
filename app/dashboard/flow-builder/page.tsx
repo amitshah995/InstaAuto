@@ -27,6 +27,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { FlowTester } from "@/components/flows/flow-tester"
+import { VersionHistory } from "@/components/flows/version-history"
 
 interface Node {
   id: string
@@ -663,6 +664,7 @@ function FlowBuilderContent() {
         </div>
 
         <div className="flex items-center gap-3">
+          {flowId && <VersionHistory automationId={flowId} />}
           <Button variant="outline" onClick={() => setShowTester((v) => !v)} className="rounded-xl font-bold">
             {showTester ? "Hide test" : "Test flow"}
           </Button>
