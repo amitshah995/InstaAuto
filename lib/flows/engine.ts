@@ -65,7 +65,7 @@ export function advance(
 export type SimLine = { from: "bot" | "user" | "system"; text: string }
 
 /** Plays a flow against scripted replies without sending anything. */
-export function simulate(flow: FlowGraph, replies: string[]): { lines: SimLine[]; tags: string[]; finished: boolean } {
+export function simulate(flow: FlowGraph, replies: string[]): { lines: SimLine[]; tags: string[]; finished: boolean; waitingFor: string[] } {
   const lines: SimLine[] = []
   const tags: string[] = []
   const run = (from: string, incoming: string | null): string | null => {
@@ -94,5 +94,10 @@ export function simulate(flow: FlowGraph, replies: string[]): { lines: SimLine[]
       current = null
     }
   }
-  return { lines, tags, finished: current === null }
+  const waiting = current ? flow.nodes[current] : null
+  const waitingFor: string[] =
+    waiting?.type === "condition"
+      ? (waiting.branches || []).map((b: any) => String(b.keyword || "").trim()).filter(Boolean)
+      : []
+  return { lines, tags, finished: current === null, waitingFor }
 }
