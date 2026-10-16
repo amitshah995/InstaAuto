@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     let sent = 0
     let failed = 0
     for (const r of split.eligible) {
-      const res = await sendSteps(user.access_token, { id: r.igsid }, r.igsid, { message: personalize(text, r.name) })
+      const res = await sendSteps(user.access_token, { id: r.igsid }, r.igsid, { message: personalize(text, r.name) }, { userId: Number(userId) })
       if (res.ok) sent++
       else failed++
       await new Promise((resolve) => setTimeout(resolve, 250)) // gentle pacing
