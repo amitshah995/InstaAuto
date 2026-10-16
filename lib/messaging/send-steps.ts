@@ -1,4 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { expandLinksForUser } from "@/lib/links/store"
+import { expandTokens } from "@/lib/links/core"
 
 /**
  * Shared DM sending for the webhook and the scheduled-message cron.
@@ -89,22 +91,26 @@ export async function sendSteps(
     const apiBody: any = { recipient: i === 0 ? firstRecipient : { id: psid } }
     let textLog = ""
 
+    // Without an account context a {link:..} token cannot be resolved, so strip it rather than send it raw.
+    const expand = async (t: string | undefined | null) =>
+      !t ? "" : ctx ? expandLinksForUser(ctx.userId, t) : expandTokens(t, new Map())
     if (step.card) {
       const card = step.card
-      const apiButtons = card.buttons.map((b: any) => ({
+      const apiButtons = await Promise.all(card.buttons.map(async (b: any) => ({
         type: b.type,
         title: b.title,
-        url: b.url || undefined,
+        url: b.url ? await expand(b.url) : undefined,
         payload: b.payload || undefined,
-      }))
+      })))
       const element: any = { title: card.title, buttons: apiButtons }
       if (card.subtitle) element.subtitle = card.subtitle
       if (card.image_url && card.image_url.startsWith("http")) element.image_url = card.image_url
       apiBody.message = { attachment: { type: "template", payload: { template_type: "generic", elements: [element] } } }
       textLog = `[Card] ${card.title}`
     } else {
-      apiBody.message = { text: step.text || "" }
-      textLog = step.text || ""
+      const finalText = await expand(step.text)
+      apiBody.message = { text: finalText }
+      textLog = finalText
     }
 
     try {
