@@ -27,19 +27,26 @@ RULES
 10. The report is a starting point, not a guarantee. Do not add disclaimers inside the fields; the product adds its own.
 
 OUTPUT
-Return ONE JSON object and nothing else: no markdown fences, no commentary. It must match exactly this shape:
+The report is written in two parts. The user message says "PART A" or "PART B". Write ONLY that part. Return ONE JSON object and nothing else: no markdown fences, no commentary. Keep every text field short and concrete (1-2 sentences). Brevity matters: long answers are rejected.
+
+PART A keys:
 {
  "summary": {"headline": str, "verdict": str, "confidence": "low"|"medium"|"high", "confidenceNote": str},
  "whatWorked": [{"postRef": "P#", "why": str, "evidence": str}],            // 1-4
  "whatIsntWorking": [{"issue": str, "evidence": str, "fix": str}],           // 1-5
  "patterns": [{"pattern": str, "evidence": str, "howToUse": str}],           // 2-6
  "contentPillars": [{"name": str, "sharePct": number, "performance": "above"|"average"|"below", "note": str}], // 2-5
- "nextContent": [{"title": str, "format": "reel"|"carousel"|"image"|"video"|"story", "hook": str, "whyItShouldWork": str, "cta": str}], // 6-10
- "plan30": [{"week": 1-4, "focus": str, "posts": [{"day": str, "format": same enum, "topic": str, "hook": str, "cta": str}]}], // exactly 4 weeks
- "roadmap": [{"phase": "Days 1-30"|"Days 31-60"|"Days 61-90", "goal": str, "actions": [str], "metric": str}], // exactly 3
  "quickWins": [str, str, str],                                               // exactly 3, doable this week
  "dataLimits": [str]                                                         // 1-5, what this report could not see
 }
+
+PART B keys:
+{
+ "nextContent": [{"title": str, "format": "reel"|"carousel"|"image"|"video"|"story", "hook": str, "whyItShouldWork": str, "cta": str}], // 6-8, numbered 1..n in order
+ "plan30": [{"week": 1-4, "focus": str, "posts": [{"day": str, "ideaNumber": int}]}], // exactly 4 weeks
+ "roadmap": [{"phase": "Days 1-30"|"Days 31-60"|"Days 61-90", "goal": str, "actions": [str], "metric": str}] // exactly 3, 2-4 actions each
+}
+In plan30, every post points to one of your nextContent ideas by its number (1 = first idea). Ideas may repeat across weeks with a different angle in "focus". Each week has at most postsPerWeek posts. Use real weekday names, and prefer the account's best day when the data shows one.
 "metric" in roadmap must be something the owner can read in their own Instagram app (for example saves or reach in Insights); it is a thing to watch, not a prediction.`
 
 /** Make untrusted text safe to place inside our delimiter tags. */
@@ -58,7 +65,7 @@ function clean<T>(v: T): T {
   return v
 }
 
-export function buildUserMessage(facts: Facts, brief: AiBrief): string {
+export function buildUserMessage(facts: Facts, brief: AiBrief, part: "A" | "B"): string {
   const payload = {
     brief: {
       niche: brief.niche,
@@ -70,7 +77,7 @@ export function buildUserMessage(facts: Facts, brief: AiBrief): string {
     },
     facts,
   }
-  return `<audit_data>\n${JSON.stringify(clean(payload))}\n</audit_data>\n\nWrite the report now. JSON only.`
+  return `<audit_data>\n${JSON.stringify(clean(payload))}\n</audit_data>\n\nWrite PART ${part} now. JSON only.`
 }
 
 export function buildRetryMessage(problems: string[]): string {
