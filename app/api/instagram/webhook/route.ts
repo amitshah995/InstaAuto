@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import crypto from "crypto"
+import { sendSteps } from "@/lib/messaging/send-steps"
+import { runFlow } from "@/lib/messaging/flow-runner"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || "your_verify_token"
 
@@ -53,79 +55,6 @@ async function logRun(
   }
 }
 
-// Sends a response as one or more sequential DM steps, each with its own delay.
-// Falls back to the legacy single message/card shape when content.steps isn't
-// present, so every existing automation keeps working unmodified.
-// firstRecipient is { comment_id } for a comment's private reply, or { id: psid }
-// for a normal DM/story reply. Every step after the first always targets psid,
-// since only the very first private-reply message can be addressed by comment_id.
-async function sendSteps(
-  accessToken: string,
-  firstRecipient: any,
-  psid: string,
-  content: any,
-): Promise<{ ok: boolean; results: { text: string; ok: boolean; messageId?: string; error?: string }[] }> {
-  const steps: any[] =
-    Array.isArray(content.steps) && content.steps.length > 0
-      ? content.steps
-      : [{ text: content.message, card: content.card, delay_seconds: content.delay_seconds }]
-
-  const results: { text: string; ok: boolean; messageId?: string; error?: string }[] = []
-  let allOk = true
-
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i]
-    const delay = step.delay_seconds || 0
-    if (delay > 0) {
-      console.log(`[v0] ⏳ Delaying step ${i + 1}/${steps.length} by ${delay}s...`)
-      await new Promise((resolve) => setTimeout(resolve, delay * 1000))
-    }
-
-    const apiBody: any = { recipient: i === 0 ? firstRecipient : { id: psid } }
-    let textLog = ""
-
-    if (step.card) {
-      const card = step.card
-      const apiButtons = card.buttons.map((b: any) => ({
-        type: b.type,
-        title: b.title,
-        url: b.url || undefined,
-        payload: b.payload || undefined,
-      }))
-      const element: any = { title: card.title, buttons: apiButtons }
-      if (card.subtitle) element.subtitle = card.subtitle
-      if (card.image_url && card.image_url.startsWith("http")) element.image_url = card.image_url
-      apiBody.message = { attachment: { type: "template", payload: { template_type: "generic", elements: [element] } } }
-      textLog = `[Card] ${card.title}`
-    } else {
-      apiBody.message = { text: step.text || "" }
-      textLog = step.text || ""
-    }
-
-    try {
-      const res = await fetch(
-        `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(accessToken)}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) },
-      )
-      const json = await res.json()
-      if (json.error) {
-        console.error(`[v0] 🔴 Step ${i + 1}/${steps.length} send failed:`, JSON.stringify(json.error))
-        results.push({ text: textLog, ok: false, error: JSON.stringify(json.error) })
-        allOk = false
-        break // stop the sequence on first failure — don't send later steps out of order
-      }
-      results.push({ text: textLog, ok: true, messageId: json.message_id })
-    } catch (e) {
-      console.error(`[v0] 🔴 Step ${i + 1}/${steps.length} network error:`, e)
-      results.push({ text: textLog, ok: false, error: String(e) })
-      allOk = false
-      break
-    }
-  }
-
-  return { ok: allOk, results }
-}
-
 // Saves one answer from a lead-qualification flow to the contacts table.
 // name/email/phone get their own columns; anything else goes into custom_fields
 // (merged, not overwritten, so earlier answers in the same flow aren't lost).
@@ -149,85 +78,6 @@ async function saveFlowAnswer(supabase: any, userId: number, igsid: string, fiel
   } else {
     await supabase.from("contacts").insert({ user_id: userId, igsid, created_at: new Date().toISOString(), ...payload })
   }
-}
-
-// Runs (or resumes) a branching flow — a graph of message/condition nodes
-// built in the visual Flow Builder. Walks forward auto-sending message nodes
-// until it hits a condition node (which needs the next inbound reply to pick
-// a branch) or the end of the flow. Capped at 20 hops so a malformed/cyclic
-// graph can't hang a single webhook request.
-//
-// currentNodeId: pass flow.startNodeId to begin a new run, or the
-// conversation's saved active_flow_node_id to resume one.
-// incomingText: only used when currentNodeId is a condition node (the reply
-// being evaluated against its branches) — ignored otherwise.
-async function runFlow(
-  accessToken: string,
-  psid: string,
-  flow: { startNodeId: string; nodes: Record<string, any> },
-  currentNodeId: string,
-  incomingText: string | null,
-): Promise<{ nodeId: string | null; sentTexts: string[] }> {
-  let nodeId: string | null = currentNodeId
-  const sentTexts: string[] = []
-  let hops = 0
-
-  // Resuming at a condition node — evaluate the reply against its branches first.
-  let node = flow.nodes[nodeId]
-  if (node?.type === "condition") {
-    const text = (incomingText || "").toLowerCase().trim()
-    const branch = (node.branches || []).find(
-      (b: any) => b.keyword && new RegExp(`\\b${escapeRegex(b.keyword.trim())}\\b`, "i").test(text),
-    )
-    nodeId = branch?.next || node.default_next || null
-  }
-
-  while (nodeId && hops < 20) {
-    hops++
-    node = flow.nodes[nodeId]
-    if (!node) break
-
-    if (node.type === "condition") {
-      // Reached a condition mid-walk (not at resume) — pause here for the reply.
-      break
-    }
-
-    if (node.type === "message") {
-      const delay = node.delay_seconds || 0
-      if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay * 1000))
-
-      try {
-        const res = await fetch(
-          `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(accessToken)}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ recipient: { id: psid }, message: { text: node.text || "" } }),
-          },
-        )
-        const json = await res.json()
-        if (!json.error) sentTexts.push(node.text || "")
-      } catch (e) {
-        console.error("[v0] 🔴 Flow node send error:", e)
-      }
-
-      const nextNode = node.next ? flow.nodes[node.next] : null
-      if (!nextNode) {
-        nodeId = null // end of flow
-        break
-      }
-      if (nextNode.type === "condition") {
-        nodeId = node.next // pause here, waiting for the next reply
-        break
-      }
-      nodeId = node.next // auto-continue to the next message node
-      continue
-    }
-
-    break
-  }
-
-  return { nodeId, sentTexts }
 }
 
 export async function GET(request: NextRequest) {
@@ -500,6 +350,7 @@ export async function POST(request: NextRequest) {
               { comment_id: commentId },
               senderId,
               content,
+              { userId: user.id },
             )
 
             if (!dmOk) {
@@ -678,6 +529,7 @@ export async function POST(request: NextRequest) {
                 { id: senderId },
                 senderId,
                 content,
+                { userId: user.id },
               )
 
               if (storyOk) {
@@ -897,13 +749,15 @@ export async function POST(request: NextRequest) {
             const flow = flowAutomation?.response_content?.flow
 
             if (flowAutomation && flow?.nodes) {
-              const { nodeId: nextNodeId, sentTexts } = await runFlow(
+              const { nodeId: runNodeId, sentTexts, scheduled: flowScheduled } = await runFlow(
                 user.access_token,
                 senderId,
                 flow,
                 conv.active_flow_node_id,
                 rawMessageText.trim(),
+                { ctx: { userId: user.id }, automationId: flowAutomation.id },
               )
+              const nextNodeId = flowScheduled ? null : runNodeId
 
               await supabase
                 .from("conversations")
@@ -1353,13 +1207,16 @@ STRICT RULES — follow every single one:
           // auto-sending messages until it hits a condition node (then pause
           // and wait for the reply) or the end.
           if (triggerType === "keyword" && conv && content.flow?.nodes && content.flow?.startNodeId) {
-            const { nodeId: nextNodeId, sentTexts } = await runFlow(
+            const { nodeId: runNodeId, sentTexts, scheduled: flowScheduled } = await runFlow(
               user.access_token,
               senderId,
               content.flow,
               content.flow.startNodeId,
               null,
+              { ctx: { userId: user.id }, automationId: match.id },
             )
+            // A delayed node is owned by the scheduler; don't leave the chat parked on it.
+            const nextNodeId = flowScheduled ? null : runNodeId
 
             await supabase
               .from("conversations")
@@ -1417,6 +1274,7 @@ STRICT RULES — follow every single one:
             { id: senderId },
             senderId,
             sendContent,
+            { userId: user.id },
           )
 
           if (!dmOk) {
