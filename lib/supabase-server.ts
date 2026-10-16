@@ -358,3 +358,13 @@ export async function getSupabaseServerClient() {
     from: (tableName: string) => new NeonQueryBuilder(tableName)
   };
 }
+
+/**
+ * Raw parameterised SQL for the few operations the query builder cannot express
+ * (e.g. atomic job claiming with FOR UPDATE SKIP LOCKED). Returns the rows.
+ */
+export async function rawQuery<T = any>(text: string, values: any[] = []): Promise<T[]> {
+  if (!pool) throw new Error('DATABASE_URL is not set in environment variables.');
+  const res = await pool.query(text, values);
+  return res.rows as T[];
+}
