@@ -21,6 +21,9 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
   const [avatar, setAvatar] = useState<string | null>(null)
   const [avatarDirty, setAvatarDirty] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [banner, setBanner] = useState<string | null>(null)
+  const [bannerDirty, setBannerDirty] = useState(false)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/shop")
@@ -33,6 +36,8 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
       setBio(json.profile?.bio || "")
       setAvatar(json.profile?.avatar_url || null)
       setAvatarDirty(false)
+      setBanner(json.profile?.banner_url || null)
+      setBannerDirty(false)
       setError(json.handleError)
     } catch (e: any) {
       setError(e.message)
@@ -50,12 +55,13 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
       const res = await fetch("/api/shop", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ published: nextPublished, display_name: displayName, bio, ...(avatarDirty ? { avatar_url: avatar ?? "" } : {}) }),
+        body: JSON.stringify({ published: nextPublished, display_name: displayName, bio, ...(avatarDirty ? { avatar_url: avatar ?? "" } : {}), ...(bannerDirty ? { banner_url: banner ?? "" } : {}) }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Could not save")
       setPublished(nextPublished)
       setAvatarDirty(false)
+      setBannerDirty(false)
       setUrl(json.url)
       setMsg(nextPublished ? "Saved. Your page is live." : "Saved. Your page is hidden.")
       onChanged?.()
@@ -87,6 +93,27 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
     }
   }
 
+  const pickBanner = async (file: File | undefined) => {
+    if (!file) return
+    setUploadingBanner(true)
+    setError(null)
+    try {
+      const blob = await compressImage(file, 1800)
+      const fd = new FormData()
+      fd.append("file", blob, "banner")
+      const res = await fetch("/api/shop/upload", { method: "POST", body: fd })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Upload failed")
+      setBanner(json.url)
+      setBannerDirty(true)
+      setMsg("Banner added. Press Save to apply it.")
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setUploadingBanner(false)
+    }
+  }
+
   if (loading) return <Card className="p-4"><Loader2 className="w-4 h-4 animate-spin" /></Card>
 
   return (
@@ -95,6 +122,29 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
       <p className="text-xs text-muted-foreground">
         A public page with only the links you tick below. It is hidden until you publish it, and it is not listed on search engines.
       </p>
+      <div className="space-y-1.5">
+        <div className="overflow-hidden rounded-xl border border-dashed border-border bg-muted aspect-[4.6/1]">
+          {banner ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={banner} alt="Banner" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">No banner yet</div>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 font-semibold">
+            {uploadingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+            {banner ? "Change banner" : "Add banner image"}
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={uploadingBanner} onChange={(e) => { pickBanner(e.target.files?.[0]); e.target.value = "" }} />
+          </label>
+          {banner && (
+            <button type="button" onClick={() => { setBanner(null); setBannerDirty(true) }} className="inline-flex items-center gap-1 text-muted-foreground underline">
+              <X className="w-3 h-3" /> Remove
+            </button>
+          )}
+          <span className="text-muted-foreground">Wide image works best, about 1800 x 400 pixels. Shown across the top of your page.</span>
+        </div>
+      </div>
       <div className="flex items-center gap-3">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
           {avatar ? (
