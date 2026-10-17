@@ -1,6 +1,6 @@
 import { watchUrl } from "@/lib/shop/video"
 import type { PublicPost } from "@/lib/shop/posts-store"
-import { initialOf } from "@/lib/shop/core"
+import { discountPct, formatINR, initialOf } from "@/lib/shop/core"
 import PostCarousel from "@/components/shop/PostCarousel"
 import ReelPlayer from "@/components/shop/ReelPlayer"
 import ReportButton from "@/components/shop/ReportButton"
@@ -46,26 +46,36 @@ export default function PostCard({ post, handle, permalink }: { post: PublicPost
         {post.caption && <Caption text={post.caption} />}
 
         {post.products.length > 0 && (
-          <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {post.products.map((p) => (
-              <li key={p.slug} className="flex w-56 shrink-0 items-center gap-1 rounded-2xl bg-muted/70 p-1.5">
-                <a href={`/l/${p.slug}?s=p:${post.id}`} target="_blank" rel="nofollow noopener noreferrer sponsored" className="flex min-w-0 flex-1 items-center gap-2.5">
-                  <span className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-background">
-                    {p.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.image_url} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="grid h-full w-full place-items-center text-lg font-black text-muted-foreground/60">{initialOf(p.title)}</span>
-                    )}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-[13px] font-semibold">{p.title}</span>
-                    <span className="text-[12px] font-bold text-primary">Shop now</span>
-                  </span>
-                </a>
-                <ReportButton slug={p.slug} />
-              </li>
-            ))}
+          <ul className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {post.products.map((p) => {
+              const off = discountPct(p.price_inr, p.mrp_inr)
+              return (
+                <li key={p.slug} className="relative w-[17rem] shrink-0 rounded-2xl bg-muted/60 ring-1 ring-border">
+                  <a href={`/l/${p.slug}?s=p:${post.id}`} target="_blank" rel="nofollow noopener noreferrer sponsored" className="flex items-center gap-3 p-2 pr-3">
+                    <span className="h-[4.5rem] w-14 shrink-0 overflow-hidden rounded-xl bg-background">
+                      {p.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.image_url} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="grid h-full w-full place-items-center text-lg font-black text-muted-foreground/60">{initialOf(p.title)}</span>
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-semibold">{p.title}</span>
+                      {p.price_inr ? (
+                        <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5">
+                          <span className="text-[15px] font-bold">{formatINR(p.price_inr)}</span>
+                          {p.mrp_inr && p.mrp_inr > p.price_inr && <span className="text-xs text-muted-foreground line-through">{formatINR(p.mrp_inr)}</span>}
+                          {off && <span className="text-xs font-bold text-emerald-600">{off}% off</span>}
+                        </span>
+                      ) : null}
+                      <span className="mt-1.5 inline-block rounded-full bg-foreground px-3 py-1 text-[12px] font-bold text-background">Shop now</span>
+                    </span>
+                  </a>
+                  <span className="absolute right-0.5 top-0.5"><ReportButton slug={p.slug} /></span>
+                </li>
+              )
+            })}
           </ul>
         )}
 
