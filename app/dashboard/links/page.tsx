@@ -5,6 +5,7 @@ import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import ShopSettings from "@/components/dashboard/ShopSettings"
 import { Link2, Loader2, Copy, Trash2, MousePointerClick, Check } from "lucide-react"
 
 type LinkRow = {
@@ -15,6 +16,7 @@ type LinkRow = {
   network: string | null
   disclose: boolean
   disabled: boolean
+  shop_visible: boolean
   clicks_total: number
   clicks_7d: number
   visitors_7d: number
@@ -128,6 +130,8 @@ export default function LinksPage() {
         </p>
       </div>
 
+      <ShopSettings />
+
       <Card className="p-4 space-y-3 border-border bg-card/90">
         <h2 className="text-sm font-black">Add a link</h2>
         <div className="grid gap-2 md:grid-cols-[1fr_2fr_auto]">
@@ -180,6 +184,10 @@ export default function LinksPage() {
                     {copied === `t${l.id}` ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {token}
                   </button>
                   <span className="flex-1" />
+                  <label className="inline-flex items-center gap-1.5 text-muted-foreground">
+                    <input type="checkbox" checked={!!l.shop_visible} onChange={(e) => patch(l.id, { shop_visible: e.target.checked })} />
+                    On shop page
+                  </label>
                   <button onClick={() => patch(l.id, { disclose: !l.disclose })} className="text-muted-foreground underline">
                     Affiliate note: {l.disclose ? "on" : "off"}
                   </button>
