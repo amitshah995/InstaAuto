@@ -26,7 +26,7 @@ export async function getPublicShop(rawHandle: string): Promise<PublicShop | nul
   const profile = profiles[0]
   if (!profile) return null
   const links = await rawQuery<ShopLink>(
-    `SELECT slug, title, network, disclose FROM links
+    `SELECT slug, title, network, disclose, image_url FROM links
       WHERE user_id = $1 AND disabled = FALSE AND shop_visible = TRUE
       ORDER BY created_at DESC LIMIT 100`,
     [profile.user_id],

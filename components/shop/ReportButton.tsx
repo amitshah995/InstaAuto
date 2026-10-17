@@ -18,7 +18,7 @@ export default function ReportButton({ slug }: { slug: string }) {
     setDone(true)
   }
   return (
-    <button onClick={report} className="text-[10px] text-muted-foreground underline shrink-0" aria-label="Report this link">
+    <button onClick={report} className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] text-muted-foreground backdrop-blur" aria-label="Report this link">
       {done ? "Reported" : "Report"}
     </button>
   )
