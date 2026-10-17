@@ -5,6 +5,7 @@ import { getSessionUserId } from "@/lib/auth"
 import { siteBase } from "@/lib/links/core"
 import { cleanText, normalizeHandle, shopUrl } from "@/lib/shop/core"
 import { MAX_CAPTION, MAX_IMAGES_PER_POST, MAX_POSTS_PER_USER, MAX_PRODUCTS_PER_POST, userMediaPrefix } from "@/lib/shop/media"
+import { hasIgMediaColumn } from "@/lib/shop/schema"
 import { fetchOwnMedia } from "@/lib/shop/ig-media"
 import { parseInstagramUrl } from "@/lib/shop/video"
 
@@ -22,8 +23,9 @@ export async function GET(request: NextRequest) {
   const userId = getSessionUserId(request)
   if (!userId) return unauthorized()
   try {
+    const igCol = (await hasIgMediaColumn()) ? "ig_media_id" : "NULL::text AS ig_media_id"
     const posts = await rawQuery(
-      `SELECT id, kind, caption, images, reel_kind, reel_code, ig_media_id, link_ids, created_at
+      `SELECT id, kind, caption, images, reel_kind, reel_code, ${igCol}, link_ids, created_at
          FROM shop_posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
       [userId, MAX_POSTS_PER_USER],
     )
@@ -70,6 +72,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Images must be uploaded through the Studio" }, { status: 400 })
     }
   } else if (d.ig_media_id) {
+    if (!(await hasIgMediaColumn())) {
+      return NextResponse.json({ error: "Reels need one more setup step: run migration 20 in Supabase." }, { status: 500 })
+    }
     // Fetching it with the owner's own token proves the reel belongs to them.
     igMediaId = d.ig_media_id
     const media = await fetchOwnMedia(userId, igMediaId)
