@@ -49,6 +49,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
   // Step 3: Settings
   const [name, setName] = useState(d?.name ?? "")
   const [checkFollow, setCheckFollow] = useState(d?.checkFollow ?? false)
+  const [oncePerPerson, setOncePerPerson] = useState(false)
 
   // Media
   const [reels, setReels] = useState<any[]>([])
@@ -164,6 +165,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
     }
 
     const content: any = { check_follow: checkFollow }
+    if (triggerSource === 'comment' && oncePerPerson) content.once_per_person = true
     if (type === "leadgen") {
       content.questions = questions
         .filter((q) => q.field.trim() && q.prompt.trim())
@@ -235,6 +237,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
         setType("text")
         setSelectedReel(null)
         setCheckFollow(false)
+        setOncePerPerson(false)
         onSuccess()
       } else {
         toast.error("Failed", { description: "Please try again." })
@@ -815,6 +818,23 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
           {checkFollow && <Check className="w-3 h-3 text-white m-auto mt-0.5" />}
         </div>
       </button>
+
+      {triggerSource === 'comment' && (
+        <label className="w-full p-4 rounded-xl border border-border hover:border-muted-foreground/30 hover:bg-secondary transition-all flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={oncePerPerson}
+            onChange={(e) => setOncePerPerson(e.target.checked)}
+            className="mt-1 h-4 w-4 accent-primary cursor-pointer"
+          />
+          <div className="text-left flex-1">
+            <p className="text-sm font-bold text-foreground">Once per person per post</p>
+            <p className="text-[11px] text-muted-foreground">
+              Repeat comments from the same person on the same post won't get another reply or DM
+            </p>
+          </div>
+        </label>
+      )}
 
       {/* Summary card */}
       <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3">
