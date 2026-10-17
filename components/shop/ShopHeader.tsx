@@ -1,12 +1,15 @@
 import { initialOf } from "@/lib/shop/core"
 
 /** Creator identity at the top of every public page: colourful band, story-ring avatar (or brand logo), name, handle, bio. */
-export default function ShopHeader({ handle, displayName, bio, avatarUrl }: { handle: string; displayName: string | null; bio: string | null; avatarUrl?: string | null }) {
+export default function ShopHeader({ handle, displayName, bio, avatarUrl, bannerUrl }: { handle: string; displayName: string | null; bio: string | null; avatarUrl?: string | null; bannerUrl?: string | null }) {
   const name = displayName || `@${handle}`
   return (
     <header className="text-center">
-      <div className="shop-band h-28 md:h-36" aria-hidden />
-      <div className="-mt-14 px-4 md:-mt-16">
+      {bannerUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={bannerUrl} alt="" referrerPolicy="no-referrer" className="block aspect-[4.6/1] max-h-80 w-full object-cover" />
+      )}
+      <div className={`px-4 ${bannerUrl ? "-mt-10 sm:-mt-14 md:-mt-16" : "pt-8"}`}>
         <div className="shop-story mx-auto h-28 w-28 md:h-32 md:w-32">
           <div className="h-full w-full overflow-hidden rounded-full bg-white p-[3px]">
             {avatarUrl ? (
