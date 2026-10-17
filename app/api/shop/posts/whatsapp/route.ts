@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   const row = rows[0]
   const h = normalizeHandle(row?.username ?? "")
   if (!row || !h.ok) return NextResponse.json({ error: "Post not found" }, { status: 404 })
-  const out = await sendPostToWhatsApp({ userId, postUrl: `${siteBase()}/@${h.handle}/p/${id}`, caption: row.caption })
+  const out = await sendPostToWhatsApp({ userId, postUrl: `${siteBase()}/@${h.handle}/studio/${id}`, caption: row.caption })
   if (out.ok) return NextResponse.json(out)
   return NextResponse.json({ error: out.error }, { status: out.notConfigured ? 501 : 502 })
 }
