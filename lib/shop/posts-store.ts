@@ -1,4 +1,5 @@
 import { rawQuery } from "@/lib/supabase-server"
+import { hasIgMediaColumn } from "@/lib/shop/schema"
 import { fetchOwnMedia } from "@/lib/shop/ig-media"
 import { normalizeHandle, type ShopLink } from "@/lib/shop/core"
 
@@ -37,13 +38,21 @@ async function attachProducts(userId: string, rows: PostRow[]): Promise<PublicPo
   }))
 }
 
-const COLS = `id::text AS id, kind, caption, images, reel_kind, reel_code, link_ids::text[] AS link_ids, ig_media_id, created_at`
+const COLS_BASE = `id::text AS id, kind, caption, images, reel_kind, reel_code, link_ids::text[] AS link_ids, created_at`
+
+/** Before migration 20 the column does not exist: photo posts must keep working, reel posts stay hidden. */
+async function cols(): Promise<{ select: string; visible: string }> {
+  return (await hasIgMediaColumn())
+    ? { select: `${COLS_BASE}, ig_media_id`, visible: `(kind = 'images' OR ig_media_id IS NOT NULL)` }
+    : { select: `${COLS_BASE}, NULL::text AS ig_media_id`, visible: `kind = 'images'` }
+}
 
 /** Published posts of one owner, newest first. Never throws: the shop works without the posts table. */
 export async function getPostsForUser(userId: string, limit = 20): Promise<PublicPost[]> {
   try {
+    const c = await cols()
     const rows = await rawQuery<PostRow>(
-      `SELECT ${COLS} FROM shop_posts WHERE user_id = $1 AND published = TRUE AND (kind = 'images' OR ig_media_id IS NOT NULL) ORDER BY created_at DESC LIMIT $2`,
+      `SELECT ${c.select} FROM shop_posts WHERE user_id = $1 AND published = TRUE AND ${c.visible} ORDER BY created_at DESC LIMIT $2`,
       [userId, limit],
     )
     return await attachProducts(userId, rows)
@@ -61,8 +70,9 @@ export async function getPublicPost(rawHandle: string, id: string): Promise<{ ha
     [h.handle],
   )
   if (!prof[0]) return null
+  const c = await cols()
   const rows = await rawQuery<PostRow>(
-    `SELECT ${COLS} FROM shop_posts WHERE id = $1 AND user_id = $2 AND published = TRUE AND (kind = 'images' OR ig_media_id IS NOT NULL) LIMIT 1`,
+    `SELECT ${c.select} FROM shop_posts WHERE id = $1 AND user_id = $2 AND published = TRUE AND ${c.visible} LIMIT 1`,
     [id, prof[0].user_id],
   )
   if (!rows[0]) return null
