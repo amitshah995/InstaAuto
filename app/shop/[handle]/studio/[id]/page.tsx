@@ -34,8 +34,8 @@ export default async function PostPage({ params }: { params: Params }) {
   try { found = await getPublicPost(decodeURIComponent(handle), id) } catch (e) { console.error("[shop] post page error:", (e as Error)?.message) }
   if (!found) notFound()
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <ShopHeader handle={found.handle} displayName={found.displayName} bio={null} />
+    <main className="min-h-screen text-foreground">
+      <ShopHeader handle={found.handle} displayName={found.displayName} bio={null} avatarUrl={found.avatarUrl} />
       <div className="mx-auto max-w-xl px-4 pb-16">
         <ShopTabs handle={found.handle} active="studio" />
         <PostCard post={found.post} handle={found.handle} permalink />
