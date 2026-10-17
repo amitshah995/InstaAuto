@@ -1,4 +1,5 @@
 import { rawQuery } from "@/lib/supabase-server"
+import { getPostsForUser, type PublicPost } from "@/lib/shop/posts-store"
 import { normalizeHandle, type ShopLink } from "@/lib/shop/core"
 
 export type ShopProfile = {
@@ -10,7 +11,7 @@ export type ShopProfile = {
 }
 
 export type ShopVideo = { kind: string; shortcode: string; title: string | null }
-export type PublicShop = { profile: ShopProfile; links: ShopLink[]; videos: ShopVideo[] }
+export type PublicShop = { profile: ShopProfile; links: ShopLink[]; videos: ShopVideo[]; posts: PublicPost[] }
 
 /**
  * Public read for /@handle. Returns null unless the shop is published, so an unpublished or
@@ -41,5 +42,6 @@ export async function getPublicShop(rawHandle: string): Promise<PublicShop | nul
   } catch {
     /* migration 18 not run yet: the page still works without videos */
   }
-  return { profile, links, videos }
+  const posts = await getPostsForUser(profile.user_id)
+  return { profile, links, videos, posts }
 }
