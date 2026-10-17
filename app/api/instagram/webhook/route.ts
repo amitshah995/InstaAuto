@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server"
 import crypto from "crypto"
 import { sendSteps } from "@/lib/messaging/send-steps"
 import { runFlow } from "@/lib/messaging/flow-runner"
+import { isOncePerPerson, onceKey } from "@/lib/automations/once"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || "your_verify_token"
 
@@ -317,6 +318,27 @@ export async function POST(request: NextRequest) {
 
             console.log(`[v0] ✅ Comment Match: "${match.name}" (ID: ${match.id})`)
             const content = match.response_content
+
+            // "Once per person per post": claim (rule, person, post) atomically. A repeat comment
+            // gets neither the public reply nor the DM.
+            let onceClaimKey: string | null = null
+            if (isOncePerPerson(content)) {
+              onceClaimKey = onceKey(String(match.id), String(senderId), String(mediaId))
+              if (await isDuplicateEvent(supabase, onceClaimKey, "once")) {
+                console.log(`[v0] ⏭️ Skipped: ${senderId} already got "${match.name}" on this post`)
+                await logRun(supabase, {
+                  userId: user.id,
+                  automationId: match.id,
+                  eventType: "comment",
+                  triggerText: commentText,
+                  matched: true,
+                  actionStatus: "skipped",
+                  errorMessage: "Already sent once to this person on this post",
+                })
+                continue
+              }
+            }
+
             const replies = ["Check your DMs! 📥", "Sent! 🔥", "Check inbox! ✨"]
             const randomReply = replies[Math.floor(Math.random() * replies.length)]
 
@@ -356,6 +378,14 @@ export async function POST(request: NextRequest) {
             if (!dmOk) {
               const lastError = dmResults[dmResults.length - 1]?.error
               console.error("[v0] 🔴 Private DM Failed:", lastError)
+              // Nothing reached the person, so release the once-per-person claim — they can comment again.
+              if (onceClaimKey) {
+                try {
+                  await supabase.from("processed_events").delete().eq("event_id", onceClaimKey)
+                } catch (e) {
+                  console.error("[v0] ⚠️ Could not release once-per-person claim:", e)
+                }
+              }
               await logRun(supabase, {
                 userId: user.id,
                 automationId: match.id,
