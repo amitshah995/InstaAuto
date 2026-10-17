@@ -15,6 +15,7 @@ const PatchSchema = z.object({
   title: z.string().trim().min(1).max(80).optional(),
   disabled: z.boolean().optional(),
   disclose: z.boolean().optional(),
+  shop_visible: z.boolean().optional(),
 })
 
 const unauthorized = () => NextResponse.json({ error: "Not authenticated" }, { status: 401 })
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
   if (!userId) return unauthorized()
   try {
     const rows = await rawQuery(
-      `SELECT l.id, l.slug, l.title, l.url, l.network, l.disclose, l.disabled, l.created_at,
+      `SELECT l.id, l.slug, l.title, l.url, l.network, l.disclose, l.disabled, l.shop_visible, l.created_at,
               COUNT(c.id) FILTER (WHERE c.is_bot = FALSE)::int AS clicks_total,
               COUNT(c.id) FILTER (WHERE c.is_bot = FALSE AND c.clicked_at > now() - interval '7 days')::int AS clicks_7d,
               COUNT(DISTINCT c.visitor_hash) FILTER (WHERE c.is_bot = FALSE AND c.clicked_at > now() - interval '7 days')::int AS visitors_7d
@@ -76,12 +77,13 @@ export async function PATCH(request: NextRequest) {
   if (!userId) return unauthorized()
   const parsed = PatchSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 })
-  const { id, title, disabled, disclose } = parsed.data
+  const { id, title, disabled, disclose, shop_visible } = parsed.data
   try {
     const rows = await rawQuery(
-      `UPDATE links SET title = COALESCE($3, title), disabled = COALESCE($4, disabled), disclose = COALESCE($5, disclose)
+      `UPDATE links SET title = COALESCE($3, title), disabled = COALESCE($4, disabled), disclose = COALESCE($5, disclose),
+           shop_visible = COALESCE($6, shop_visible)
        WHERE id = $1 AND user_id = $2 RETURNING id`,
-      [id, userId, title ?? null, disabled ?? null, disclose ?? null],
+      [id, userId, title ?? null, disabled ?? null, disclose ?? null, shop_visible ?? null],
     )
     if (rows.length === 0) return NextResponse.json({ error: "Link not found" }, { status: 404 })
     return NextResponse.json({ ok: true })
