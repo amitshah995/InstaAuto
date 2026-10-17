@@ -127,6 +127,14 @@ export function Sidebar({ className, username = "Demo User", profilePictureUrl, 
           onClick={onNavigate}
           isCollapsed={isCollapsed}
         />
+        <NavItem
+          href="/dashboard/studio"
+          icon={<Clapperboard className="w-4 h-4" />}
+          label="Studio"
+          active={isActive("/dashboard/studio")}
+          onClick={onNavigate}
+          isCollapsed={isCollapsed}
+        />
         {/* Publisher & Ice Breakers hidden during App Review — restore after approval */}
         <NavItem
           href="/dashboard/analytics"

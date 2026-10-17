@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { getPublicShop } from "@/lib/shop/store"
 import { initialOf, needsDisclosure } from "@/lib/shop/core"
 import { embedUrl, watchUrl } from "@/lib/shop/video"
+import PostCard from "@/components/shop/PostCard"
 import ReportButton from "@/components/shop/ReportButton"
 
 export const dynamic = "force-dynamic"
@@ -21,7 +22,7 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
     console.error("[shop] page error:", (e as Error)?.message)
   }
   if (!shop) notFound()
-  const { profile, links, videos } = shop
+  const { profile, links, videos, posts } = shop
   const name = profile.display_name || `@${profile.handle}`
 
   return (
@@ -77,6 +78,15 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
               </li>
             ))}
           </ul>
+        )}
+
+        {posts.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-lg font-black">Latest posts</h2>
+            <div className="mx-auto max-w-md space-y-5">
+              {posts.map((p) => <PostCard key={p.id} post={p} handle={profile.handle} />)}
+            </div>
+          </section>
         )}
 
         {videos.length > 0 && (

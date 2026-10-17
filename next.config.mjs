@@ -8,7 +8,10 @@ const nextConfig = {
   },
   async rewrites() {
     // Public creator shop: /@handle is served by app/shop/[handle]
-    return [{ source: "/@:handle", destination: "/shop/:handle" }]
+    return [
+      { source: "/@:handle", destination: "/shop/:handle" },
+      { source: "/@:handle/p/:id", destination: "/shop/:handle/p/:id" },
+    ]
   },
 }
 
