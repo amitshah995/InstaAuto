@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { compressImage } from "@/lib/shop/compress"
 import { Clapperboard, Loader2, Trash2, Copy, Check, ArrowLeft, ArrowRight, X, ImagePlus, MessageCircle } from "lucide-react"
 
-type Post = { id: string; kind: "images" | "reel"; caption: string | null; images: string[]; reel_code: string | null; link_ids: string[]; clicks: number; created_at: string }
+type Post = { id: string; kind: "images" | "reel"; caption: string | null; images: string[]; reel_code: string | null; ig_media_id?: string | null; link_ids: string[]; clicks: number; created_at: string }
 type LinkRow = { id: string; title: string; image_url: string | null; disabled: boolean }
 
 const MAX_IMAGES = 10
@@ -28,7 +28,9 @@ export default function StudioPage() {
 
   const [mode, setMode] = useState<"images" | "reel">("images")
   const [images, setImages] = useState<string[]>([])
-  const [reelUrl, setReelUrl] = useState("")
+  const [reels, setReels] = useState<{ id: string; thumb: string | null; caption: string | null }[]>([])
+  const [reelsLoaded, setReelsLoaded] = useState(false)
+  const [reelId, setReelId] = useState<string | null>(null)
   const [caption, setCaption] = useState("")
   const [picked, setPicked] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
@@ -53,6 +55,26 @@ export default function StudioPage() {
     }
   }, [])
   useEffect(() => { if (userId) load() }, [userId, load])
+
+  useEffect(() => {
+    if (mode !== "reel" || reelsLoaded) return
+    ;(async () => {
+      try {
+        const res = await fetch("/api/instagram/media")
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || "Could not load your reels")
+        setReels(
+          (json.data || [])
+            .filter((m: any) => m.media_type === "VIDEO")
+            .map((m: any) => ({ id: m.id, thumb: m.thumbnail_url || null, caption: m.caption || null })),
+        )
+      } catch (e: any) {
+        setError(e.message)
+      } finally {
+        setReelsLoaded(true)
+      }
+    })()
+  }, [mode, reelsLoaded])
 
   const addFiles = async (files: FileList | null) => {
     if (!files) return
@@ -94,12 +116,12 @@ export default function StudioPage() {
       const res = await fetch("/api/shop/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: mode, caption, images: mode === "images" ? images : undefined, reel_url: mode === "reel" ? reelUrl : undefined, link_ids: picked }),
+        body: JSON.stringify({ kind: mode, caption, images: mode === "images" ? images : undefined, ig_media_id: mode === "reel" ? reelId : undefined, link_ids: picked }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Could not publish")
       setImages([])
-      setReelUrl("")
+      setReelId(null)
       setCaption("")
       setPicked([])
       await load()
@@ -130,14 +152,20 @@ export default function StudioPage() {
     return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
   }
 
-  const canPublish = !saving && !uploading && (mode === "images" ? images.length > 0 : reelUrl.trim().length > 0)
-  const postUrl = (id: string) => `${base}/@${handle}/p/${id}`
+  const canPublish = !saving && !uploading && (mode === "images" ? images.length > 0 : !!reelId)
+  const postUrl = (id: string) => `${base}/@${handle}/studio/${id}`
+  const studioUrl = handle ? `${base}/@${handle}/studio` : null
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8">
       <div className="space-y-1 border-b border-border/80 pb-6">
         <h1 className="flex items-center gap-2.5 text-2xl font-black tracking-tight md:text-3xl"><Clapperboard className="h-6 w-6 text-primary" /> Studio</h1>
         <p className="text-sm text-muted-foreground">Post photos, carousels or an Instagram reel with your products tagged. Each post gets its own link you can send in DMs or WhatsApp.</p>
+        {studioUrl && (
+          <button onClick={() => copy("studio", studioUrl)} className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 font-mono text-xs">
+            {copied === "studio" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {studioUrl.replace("https://", "")}
+          </button>
+        )}
         {!published && <p className="text-xs font-semibold text-destructive">Your shop page is hidden. Publish it from the Links page so these posts can be opened.</p>}
       </div>
 
@@ -175,9 +203,22 @@ export default function StudioPage() {
             <p className="text-xs text-muted-foreground">Up to {MAX_IMAGES} photos. They are shrunk in your browser before upload. The first photo is the cover.</p>
           </div>
         ) : (
-          <div className="space-y-1">
-            <Input value={reelUrl} onChange={(e) => setReelUrl(e.target.value)} placeholder="https://www.instagram.com/reel/..." className="rounded-xl" />
-            <p className="text-xs text-muted-foreground">The reel keeps playing from Instagram, nothing is uploaded here. It must be public and your own content.</p>
+          <div className="space-y-2">
+            {!reelsLoaded ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : reels.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No reels found on your connected Instagram account.</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-6">
+                {reels.map((r) => (
+                  <button key={r.id} onClick={() => setReelId(r.id)} className={`relative aspect-[9/16] overflow-hidden rounded-lg border-2 bg-muted ${reelId === r.id ? "border-primary" : "border-transparent"}`} title={r.caption || ""}>
+                    {r.thumb && /* eslint-disable-next-line @next/next/no-img-element */ <img src={r.thumb} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />}
+                    {reelId === r.id && <Check className="absolute right-1 top-1 h-4 w-4 rounded-full bg-primary p-0.5 text-primary-foreground" />}
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Pick one of your own reels. It plays right on your Studio page, so visitors do not have to leave. Nothing is uploaded here.</p>
           </div>
         )}
 
@@ -227,6 +268,7 @@ export default function StudioPage() {
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 text-sm font-bold">{p.caption || (p.kind === "reel" ? "Instagram reel" : `${p.images.length} photo post`)}</p>
                     <p className="text-xs text-muted-foreground">{p.kind === "images" ? `${p.images.length} photo(s)` : "Reel"} · {p.link_ids.length} product(s) · <b>{p.clicks}</b> product clicks</p>
+                    {p.kind === "reel" && !p.ig_media_id && <p className="text-xs font-semibold text-destructive">This reel was added by link and is not shown publicly. Delete it and add it again by picking it from your reels.</p>}
                   </div>
                   <button onClick={() => remove(p.id)} aria-label="Delete post" className="text-destructive"><Trash2 className="h-4 w-4" /></button>
                 </div>
