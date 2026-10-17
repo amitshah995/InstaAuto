@@ -35,7 +35,7 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
 
   return (
     <main className="min-h-screen text-foreground">
-      <ShopHeader handle={profile.handle} displayName={profile.display_name} bio={profile.bio} avatarUrl={profile.avatar_url} />
+      <ShopHeader handle={profile.handle} displayName={profile.display_name} bio={profile.bio} avatarUrl={profile.avatar_url} bannerUrl={profile.banner_url} />
       <div className="mx-auto max-w-6xl px-4 pb-16">
         {hasStudio ? <ShopTabs handle={profile.handle} active="shop" /> : <div className="h-6" />}
 
