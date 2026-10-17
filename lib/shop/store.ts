@@ -9,6 +9,7 @@ export type ShopProfile = {
   display_name: string | null
   bio: string | null
   avatar_url: string | null
+  banner_url: string | null
   published: boolean
 }
 

@@ -17,8 +17,6 @@ const css = `
 .shop-bg i:nth-child(3){width:22rem;height:22rem;left:30%;bottom:-8rem;background:#ffb347;animation-delay:-11s}
 .shop-bg b{position:absolute;inset:0;background-image:radial-gradient(#fff 1.2px,transparent 1.6px),radial-gradient(#fff 1px,transparent 1.4px);background-size:90px 90px,140px 140px;background-position:0 0,45px 60px;opacity:.9;animation:shop-twinkle 5s ease-in-out infinite}
 .shop-bg u{position:absolute;inset:-20%;background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.55) 50%,transparent 58%);transform:translateX(-60%);animation:shop-sweep 9s ease-in-out infinite}
-.shop-band{background:var(--ig);background-size:300% 100%;animation:shop-flow 12s ease-in-out infinite;position:relative;overflow:hidden}
-.shop-band::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.5) 50%,transparent 60%);transform:translateX(-100%);animation:shop-sweep 6s ease-in-out infinite}
 .shop-story{background:conic-gradient(from 210deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75);padding:4px;border-radius:9999px;animation:shop-spin 14s linear infinite}
 .shop-story>*{animation:shop-spin 14s linear infinite reverse}
 .shop-name{background:var(--ig);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shop-flow 12s ease-in-out infinite}
@@ -33,7 +31,7 @@ const css = `
 @keyframes shop-twinkle{0%,100%{opacity:.35}50%{opacity:.85}}
 @keyframes shop-sweep{0%{transform:translateX(-120%)}55%,100%{transform:translateX(120%)}}
 @keyframes shop-spin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.shop-bg i,.shop-bg b,.shop-bg u,.shop-band,.shop-band::after,.shop-story,.shop-story>*,.shop-name,.shop-pill,.shop-btn,.shop-btn::after{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.shop-bg i,.shop-bg b,.shop-bg u,.shop-story,.shop-story>*,.shop-name,.shop-pill,.shop-btn,.shop-btn::after{animation:none!important}}
 `
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
