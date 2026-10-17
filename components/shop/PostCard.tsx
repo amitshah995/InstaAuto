@@ -9,11 +9,20 @@ import ReportButton from "@/components/shop/ReportButton"
 function Caption({ text }: { text: string }) {
   const parts = text.split(/(#[\p{L}\p{N}_]+)/u)
   return (
-    <p className="whitespace-pre-line text-[15px] leading-relaxed">
-      {parts.map((p, i) => (p.startsWith("#") ? <span key={i} className="text-primary">{p}</span> : p))}
+    <p className="whitespace-pre-line text-[15px] font-medium leading-relaxed">
+      {parts.map((p, i) => (p.startsWith("#") ? <span key={i} className="shop-tag">{p}</span> : p))}
     </p>
   )
 }
+
+/** Soft pastel backgrounds that rotate through the product cards so the strip looks lively. */
+const TINTS = [
+  "linear-gradient(135deg,#ffe3f1,#ffd1e8)",
+  "linear-gradient(135deg,#e6e0ff,#d5ccff)",
+  "linear-gradient(135deg,#ffeccc,#ffdca0)",
+  "linear-gradient(135deg,#d9f3ff,#bfe6ff)",
+  "linear-gradient(135deg,#dcf8e6,#c2f0d3)",
+]
 
 const day = (iso: string) => {
   try {
@@ -26,7 +35,8 @@ const day = (iso: string) => {
 /** One Studio post: swipe carousel or the creator's own reel, caption, tagged products. The visitor never has to leave. */
 export default function PostCard({ post, handle, permalink }: { post: PublicPost; handle: string; permalink?: boolean }) {
   return (
-    <article className="overflow-hidden rounded-[1.75rem] bg-card ring-1 ring-border">
+    <article className="shop-ring rounded-[1.75rem]">
+    <div className="overflow-hidden rounded-[calc(1.75rem-2px)] bg-card">
       {post.kind === "images" ? (
         <PostCarousel images={post.images} alt={post.caption?.slice(0, 80) || `Post by @${handle}`} />
       ) : post.video_url ? (
@@ -47,10 +57,10 @@ export default function PostCard({ post, handle, permalink }: { post: PublicPost
 
         {post.products.length > 0 && (
           <ul className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {post.products.map((p) => {
+            {post.products.map((p, idx) => {
               const off = discountPct(p.price_inr, p.mrp_inr)
               return (
-                <li key={p.slug} className="relative w-[17rem] shrink-0 rounded-2xl bg-muted/60 ring-1 ring-border">
+                <li key={p.slug} className="relative w-[17rem] shrink-0 rounded-2xl ring-1 ring-white/70 shadow-sm" style={{ background: TINTS[idx % TINTS.length] }}>
                   <a href={`/l/${p.slug}?s=p:${post.id}`} target="_blank" rel="nofollow noopener noreferrer sponsored" className="flex items-center gap-3 p-2 pr-3">
                     <span className="h-[4.5rem] w-14 shrink-0 overflow-hidden rounded-xl bg-background">
                       {p.image_url ? (
@@ -61,15 +71,15 @@ export default function PostCard({ post, handle, permalink }: { post: PublicPost
                       )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-semibold">{p.title}</span>
+                      <span className="block truncate text-[13px] font-bold text-foreground">{p.title}</span>
                       {p.price_inr ? (
                         <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5">
-                          <span className="text-[15px] font-bold">{formatINR(p.price_inr)}</span>
-                          {p.mrp_inr && p.mrp_inr > p.price_inr && <span className="text-xs text-muted-foreground line-through">{formatINR(p.mrp_inr)}</span>}
-                          {off && <span className="text-xs font-bold text-emerald-600">{off}% off</span>}
+                          <span className="shop-price text-[17px] font-extrabold">{formatINR(p.price_inr)}</span>
+                          {p.mrp_inr && p.mrp_inr > p.price_inr && <span className="text-xs text-foreground/50 line-through">{formatINR(p.mrp_inr)}</span>}
+                          {off && <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[11px] font-bold text-white">{off}% off</span>}
                         </span>
                       ) : null}
-                      <span className="mt-1.5 inline-block rounded-full bg-foreground px-3 py-1 text-[12px] font-bold text-background">Shop now</span>
+                      <span className="shop-btn mt-1.5 inline-block rounded-full px-4 py-1.5 text-[12px] font-bold shadow">Shop now</span>
                     </span>
                   </a>
                   <span className="absolute right-0.5 top-0.5"><ReportButton slug={p.slug} /></span>
@@ -88,6 +98,7 @@ export default function PostCard({ post, handle, permalink }: { post: PublicPost
           {!permalink && <a href={`/@${handle}/studio/${post.id}`} className="font-semibold hover:text-foreground">Open post</a>}
         </div>
       </div>
+    </div>
     </article>
   )
 }
