@@ -40,7 +40,26 @@ export function shopUrl(base: string, handle: string): string {
   return `${base.replace(/\/+$/, "")}/@${handle}`
 }
 
-export type ShopLink = { slug: string; title: string; network: string | null; disclose: boolean; image_url: string | null }
+export type ShopLink = {
+  slug: string
+  title: string
+  network: string | null
+  disclose: boolean
+  image_url: string | null
+  price_inr?: number | null
+  mrp_inr?: number | null
+}
+
+/** Whole-number percent off, only when the seller entered both a price and a higher MRP. Otherwise null (nothing is invented). */
+export function discountPct(price?: number | null, mrp?: number | null): number | null {
+  if (!price || !mrp || mrp <= price) return null
+  const pct = Math.round(((mrp - price) / mrp) * 100)
+  return pct >= 1 ? pct : null
+}
+
+export function formatINR(n: number): string {
+  return "\u20B9" + n.toLocaleString("en-IN")
+}
 
 /** True when at least one visible link carries the affiliate note, so the page shows its disclosure. */
 export function needsDisclosure(links: ShopLink[]): boolean {
