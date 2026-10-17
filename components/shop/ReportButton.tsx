@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Check, Flag } from "lucide-react"
 
 export default function ReportButton({ slug }: { slug: string }) {
   const [done, setDone] = useState(false)
@@ -18,8 +19,13 @@ export default function ReportButton({ slug }: { slug: string }) {
     setDone(true)
   }
   return (
-    <button onClick={report} className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] text-muted-foreground backdrop-blur" aria-label="Report this link">
-      {done ? "Reported" : "Report"}
+    <button
+      onClick={report}
+      aria-label={done ? "Reported" : "Report this link"}
+      title={done ? "Reported" : "Report this link"}
+      className="grid h-7 w-7 place-items-center rounded-full bg-background/85 text-muted-foreground shadow-sm backdrop-blur hover:text-foreground"
+    >
+      {done ? <Check className="h-3.5 w-3.5" /> : <Flag className="h-3.5 w-3.5" />}
     </button>
   )
 }

@@ -5,13 +5,14 @@ import { getSessionUserId } from "@/lib/auth"
 import { siteBase } from "@/lib/links/core"
 import { cleanText, normalizeHandle, shopUrl } from "@/lib/shop/core"
 import { MAX_CAPTION, MAX_IMAGES_PER_POST, MAX_POSTS_PER_USER, MAX_PRODUCTS_PER_POST, userMediaPrefix } from "@/lib/shop/media"
+import { fetchOwnMedia } from "@/lib/shop/ig-media"
 import { parseInstagramUrl } from "@/lib/shop/video"
 
 const PostSchema = z.object({
   kind: z.enum(["images", "reel"]),
   caption: z.string().max(5000).optional().nullable(),
   images: z.array(z.string().max(1000)).max(MAX_IMAGES_PER_POST).optional(),
-  reel_url: z.string().max(500).optional().nullable(),
+  ig_media_id: z.string().max(30).optional().nullable(), // a reel picked from the owner's own account
   link_ids: z.array(z.string().uuid()).max(MAX_PRODUCTS_PER_POST).optional(),
 })
 
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
   if (!userId) return unauthorized()
   try {
     const posts = await rawQuery(
-      `SELECT id, kind, caption, images, reel_kind, reel_code, link_ids, created_at
+      `SELECT id, kind, caption, images, reel_kind, reel_code, ig_media_id, link_ids, created_at
          FROM shop_posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
       [userId, MAX_POSTS_PER_USER],
     )
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
   let images: string[] = []
   let reelKind: string | null = null
   let reelCode: string | null = null
+  let igMediaId: string | null = null
   if (d.kind === "images") {
     images = d.images ?? []
     if (images.length === 0) return NextResponse.json({ error: "Add at least one image" }, { status: 400 })
@@ -67,11 +69,20 @@ export async function POST(request: NextRequest) {
     if (!prefix || images.some((u) => !u.startsWith(prefix) || u.includes(".."))) {
       return NextResponse.json({ error: "Images must be uploaded through the Studio" }, { status: 400 })
     }
+  } else if (d.ig_media_id) {
+    // Fetching it with the owner's own token proves the reel belongs to them.
+    igMediaId = d.ig_media_id
+    const media = await fetchOwnMedia(userId, igMediaId)
+    if (!media || media.mediaType !== "VIDEO") {
+      return NextResponse.json({ error: "Could not read that reel from your Instagram account. Reconnect Instagram and try again." }, { status: 400 })
+    }
+    const ig = parseInstagramUrl(media.permalink)
+    if (ig.ok) {
+      reelKind = ig.media.kind
+      reelCode = ig.media.shortcode
+    }
   } else {
-    const ig = parseInstagramUrl(d.reel_url)
-    if (!ig.ok) return NextResponse.json({ error: ig.error }, { status: 400 })
-    reelKind = ig.media.kind
-    reelCode = ig.media.shortcode
+    return NextResponse.json({ error: "Pick one of your own reels" }, { status: 400 })
   }
 
   try {
@@ -87,9 +98,9 @@ export async function POST(request: NextRequest) {
       linkIds = wanted.filter((id) => ok.has(id))
     }
     const rows = await rawQuery<{ id: string }>(
-      `INSERT INTO shop_posts (user_id, kind, caption, images, reel_kind, reel_code, link_ids)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
-      [userId, d.kind, caption, images, reelKind, reelCode, linkIds],
+      `INSERT INTO shop_posts (user_id, kind, caption, images, reel_kind, reel_code, link_ids, ig_media_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+      [userId, d.kind, caption, images, reelKind, reelCode, linkIds, igMediaId],
     )
     return NextResponse.json({ ok: true, id: rows[0].id })
   } catch (e) {
