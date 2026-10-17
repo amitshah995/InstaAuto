@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getPublicShop } from "@/lib/shop/store"
 import { initialOf, needsDisclosure } from "@/lib/shop/core"
+import { embedUrl, watchUrl } from "@/lib/shop/video"
 import ReportButton from "@/components/shop/ReportButton"
 
 export const dynamic = "force-dynamic"
@@ -20,12 +21,12 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
     console.error("[shop] page error:", (e as Error)?.message)
   }
   if (!shop) notFound()
-  const { profile, links } = shop
+  const { profile, links, videos } = shop
   const name = profile.display_name || `@${profile.handle}`
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-2xl px-4 py-10 space-y-6">
+      <div className="mx-auto max-w-6xl px-4 py-10 space-y-6">
         <div className="text-center space-y-2">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-black text-primary">
             {initialOf(name)}
@@ -38,7 +39,7 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
         {links.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">Nothing here yet.</p>
         ) : (
-          <ul className="grid grid-cols-2 gap-3">
+          <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
             {links.map((l) => (
               <li key={l.slug} className="relative overflow-hidden rounded-2xl border border-border bg-card">
                 <a
@@ -76,6 +77,34 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
               </li>
             ))}
           </ul>
+        )}
+
+        {videos.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-lg font-black">Videos</h2>
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+              {videos.map((v) => (
+                <li key={v.shortcode} className="space-y-1.5">
+                  <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                    <iframe
+                      src={embedUrl(v.kind, v.shortcode)}
+                      title={v.title || "Instagram video"}
+                      loading="lazy"
+                      allow="encrypted-media; picture-in-picture"
+                      allowFullScreen
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation"
+                      className="block h-[560px] w-full"
+                    />
+                  </div>
+                  {v.title && <p className="text-sm font-bold leading-snug">{v.title}</p>}
+                  <a href={watchUrl(v.kind, v.shortcode)} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground underline">
+                    Watch on Instagram
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {needsDisclosure(links) && (

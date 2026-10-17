@@ -9,7 +9,8 @@ export type ShopProfile = {
   published: boolean
 }
 
-export type PublicShop = { profile: ShopProfile; links: ShopLink[] }
+export type ShopVideo = { kind: string; shortcode: string; title: string | null }
+export type PublicShop = { profile: ShopProfile; links: ShopLink[]; videos: ShopVideo[] }
 
 /**
  * Public read for /@handle. Returns null unless the shop is published, so an unpublished or
@@ -31,5 +32,14 @@ export async function getPublicShop(rawHandle: string): Promise<PublicShop | nul
       ORDER BY created_at DESC LIMIT 100`,
     [profile.user_id],
   )
-  return { profile, links }
+  let videos: ShopVideo[] = []
+  try {
+    videos = await rawQuery<ShopVideo>(
+      `SELECT kind, shortcode, title FROM shop_videos WHERE user_id = $1 ORDER BY created_at DESC LIMIT 12`,
+      [profile.user_id],
+    )
+  } catch {
+    /* migration 18 not run yet: the page still works without videos */
+  }
+  return { profile, links, videos }
 }
