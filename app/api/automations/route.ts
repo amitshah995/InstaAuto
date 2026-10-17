@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { snapshotAutomation } from "@/lib/flows/versions"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { authorizeUser, isEnforced } from "@/lib/auth"
 
@@ -129,6 +130,8 @@ export async function PUT(request: NextRequest) {
     if (trigger_source) {
       updateData.trigger_source = trigger_source
     }
+
+    await snapshotAutomation(id, ownerId)
 
     let query = supabase.from("automations").update(updateData).eq("id", id)
     if (ownerId) query = query.eq("user_id", ownerId)
