@@ -17,6 +17,7 @@ type LinkRow = {
   disclose: boolean
   disabled: boolean
   shop_visible: boolean
+  image_url: string | null
   clicks_total: number
   clicks_7d: number
   visitors_7d: number
@@ -87,8 +88,19 @@ export default function LinksPage() {
   }
 
   const patch = async (id: string, body: object) => {
-    await fetch("/api/links", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...body }) })
+    const res = await fetch("/api/links", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...body }) })
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      setError(j.error || "Update failed")
+    } else {
+      setError(null)
+    }
     load()
+  }
+
+  const pasteImage = (l: LinkRow) => {
+    const v = window.prompt("Paste an image address (https://...). Leave empty to remove the image.", l.image_url || "")
+    if (v !== null) patch(l.id, { image_url: v.trim() })
   }
 
   const remove = async (id: string) => {
@@ -146,7 +158,7 @@ export default function LinksPage() {
           Add "This is an affiliate link" note to messages that use it (recommended)
         </label>
         <p className="text-xs text-muted-foreground">
-          Check your affiliate network's rules before using redirected links. Some networks (Amazon Associates for example) limit how links may be shared. Only https links are accepted.
+          Check your affiliate network's rules before using redirected links. Some networks (Amazon Associates for example) limit how links may be shared. Only https links are accepted. We try to pick up the product's picture automatically for your shop page; if a site hides it, use "Paste image URL" on the link.
         </p>
         {error && <p className="text-xs text-destructive font-semibold">{error}</p>}
         <Button disabled={saving || !title.trim() || !url.trim()} onClick={add} className="rounded-xl font-bold">
@@ -166,7 +178,11 @@ export default function LinksPage() {
             return (
               <Card key={l.id} className={`p-4 border-border bg-card/90 space-y-2 ${l.disabled ? "opacity-60" : ""}`}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
+                  {l.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={l.image_url} alt="" referrerPolicy="no-referrer" className="h-14 w-14 rounded-lg object-cover border border-border" />
+                  )}
+                  <div className="min-w-0 flex-1">
                     <p className="font-bold truncate">{l.title} {l.disabled && <span className="text-xs text-destructive">(disabled)</span>}</p>
                     <p className="text-xs text-muted-foreground truncate">{l.network ? `${l.network} · ` : ""}{hostOf(l.url)}</p>
                   </div>
@@ -188,6 +204,12 @@ export default function LinksPage() {
                     <input type="checkbox" checked={!!l.shop_visible} onChange={(e) => patch(l.id, { shop_visible: e.target.checked })} />
                     On shop page
                   </label>
+                  <button onClick={() => patch(l.id, { refresh_image: true })} className="text-muted-foreground underline">
+                    Fetch image
+                  </button>
+                  <button onClick={() => pasteImage(l)} className="text-muted-foreground underline">
+                    Paste image URL
+                  </button>
                   <button onClick={() => patch(l.id, { disclose: !l.disclose })} className="text-muted-foreground underline">
                     Affiliate note: {l.disclose ? "on" : "off"}
                   </button>
