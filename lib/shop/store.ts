@@ -1,6 +1,6 @@
 import { rawQuery } from "@/lib/supabase-server"
 import { hasPosts } from "@/lib/shop/posts-store"
-import { priceSelect } from "@/lib/shop/schema"
+import { avatarSelect, priceSelect } from "@/lib/shop/schema"
 import { normalizeHandle, type ShopLink } from "@/lib/shop/core"
 
 export type ShopProfile = {
@@ -8,6 +8,7 @@ export type ShopProfile = {
   handle: string
   display_name: string | null
   bio: string | null
+  avatar_url: string | null
   published: boolean
 }
 
@@ -20,8 +21,9 @@ export type PublicShop = { profile: ShopProfile; links: ShopLink[]; hasStudio: b
 export async function getPublicShop(rawHandle: string): Promise<PublicShop | null> {
   const h = normalizeHandle(rawHandle)
   if (!h.ok) return null
+  const av = await avatarSelect()
   const profiles = await rawQuery<ShopProfile>(
-    `SELECT user_id::text AS user_id, handle, display_name, bio, published
+    `SELECT user_id::text AS user_id, handle, display_name, bio, ${av}, published
        FROM shop_profiles WHERE lower(handle) = $1 AND published = TRUE LIMIT 1`,
     [h.handle],
   )

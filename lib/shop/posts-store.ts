@@ -1,5 +1,5 @@
 import { rawQuery } from "@/lib/supabase-server"
-import { hasIgMediaColumn, priceSelect } from "@/lib/shop/schema"
+import { avatarSelect, hasIgMediaColumn, priceSelect } from "@/lib/shop/schema"
 import { fetchOwnMedia } from "@/lib/shop/ig-media"
 import { normalizeHandle, type ShopLink } from "@/lib/shop/core"
 
@@ -63,11 +63,12 @@ export async function getPostsForUser(userId: string, limit = 20): Promise<Publi
 }
 
 /** One post, only when the owner's shop is published. */
-export async function getPublicPost(rawHandle: string, id: string): Promise<{ handle: string; displayName: string | null; post: PublicPost } | null> {
+export async function getPublicPost(rawHandle: string, id: string): Promise<{ handle: string; displayName: string | null; avatarUrl: string | null; post: PublicPost } | null> {
   const h = normalizeHandle(rawHandle)
   if (!h.ok || !/^[0-9a-f-]{36}$/i.test(id)) return null
-  const prof = await rawQuery<{ user_id: string; handle: string; display_name: string | null }>(
-    `SELECT user_id::text AS user_id, handle, display_name FROM shop_profiles WHERE lower(handle) = $1 AND published = TRUE LIMIT 1`,
+  const av = await avatarSelect()
+  const prof = await rawQuery<{ user_id: string; handle: string; display_name: string | null; avatar_url: string | null }>(
+    `SELECT user_id::text AS user_id, handle, display_name, ${av} FROM shop_profiles WHERE lower(handle) = $1 AND published = TRUE LIMIT 1`,
     [h.handle],
   )
   if (!prof[0]) return null
@@ -78,7 +79,7 @@ export async function getPublicPost(rawHandle: string, id: string): Promise<{ ha
   )
   if (!rows[0]) return null
   const [post] = await attachProducts(prof[0].user_id, rows)
-  return { handle: prof[0].handle, displayName: prof[0].display_name, post }
+  return { handle: prof[0].handle, displayName: prof[0].display_name, avatarUrl: prof[0].avatar_url, post }
 }
 
 /** Cheap check used by the shop page to decide whether to show the Studio tab. */
@@ -92,14 +93,15 @@ export async function hasPosts(userId: string): Promise<boolean> {
 }
 
 /** Studio feed page: the owner's public profile plus their posts, only when the shop is published. */
-export async function getPublicStudio(rawHandle: string): Promise<{ handle: string; displayName: string | null; bio: string | null; posts: PublicPost[] } | null> {
+export async function getPublicStudio(rawHandle: string): Promise<{ handle: string; displayName: string | null; bio: string | null; avatarUrl: string | null; posts: PublicPost[] } | null> {
   const h = normalizeHandle(rawHandle)
   if (!h.ok) return null
-  const prof = await rawQuery<{ user_id: string; handle: string; display_name: string | null; bio: string | null }>(
-    `SELECT user_id::text AS user_id, handle, display_name, bio FROM shop_profiles WHERE lower(handle) = $1 AND published = TRUE LIMIT 1`,
+  const av = await avatarSelect()
+  const prof = await rawQuery<{ user_id: string; handle: string; display_name: string | null; bio: string | null; avatar_url: string | null }>(
+    `SELECT user_id::text AS user_id, handle, display_name, bio, ${av} FROM shop_profiles WHERE lower(handle) = $1 AND published = TRUE LIMIT 1`,
     [h.handle],
   )
   if (!prof[0]) return null
   const posts = await getPostsForUser(prof[0].user_id, 30)
-  return { handle: prof[0].handle, displayName: prof[0].display_name, bio: prof[0].bio, posts }
+  return { handle: prof[0].handle, displayName: prof[0].display_name, bio: prof[0].bio, avatarUrl: prof[0].avatar_url, posts }
 }

@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2, Copy, Check, Store } from "lucide-react"
+import { compressImage } from "@/lib/shop/compress"
+import { Loader2, Copy, Check, Store, Camera, X } from "lucide-react"
 
 export default function ShopSettings({ onChanged }: { onChanged?: () => void }) {
   const [loading, setLoading] = useState(true)
@@ -17,6 +18,9 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
   const [displayName, setDisplayName] = useState("")
   const [bio, setBio] = useState("")
   const [copied, setCopied] = useState(false)
+  const [avatar, setAvatar] = useState<string | null>(null)
+  const [avatarDirty, setAvatarDirty] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/shop")
@@ -27,6 +31,8 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
       setPublished(!!json.profile?.published)
       setDisplayName(json.profile?.display_name || "")
       setBio(json.profile?.bio || "")
+      setAvatar(json.profile?.avatar_url || null)
+      setAvatarDirty(false)
       setError(json.handleError)
     } catch (e: any) {
       setError(e.message)
@@ -44,11 +50,12 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
       const res = await fetch("/api/shop", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ published: nextPublished, display_name: displayName, bio }),
+        body: JSON.stringify({ published: nextPublished, display_name: displayName, bio, ...(avatarDirty ? { avatar_url: avatar ?? "" } : {}) }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Could not save")
       setPublished(nextPublished)
+      setAvatarDirty(false)
       setUrl(json.url)
       setMsg(nextPublished ? "Saved. Your page is live." : "Saved. Your page is hidden.")
       onChanged?.()
@@ -56,6 +63,27 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
       setError(e.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const pickAvatar = async (file: File | undefined) => {
+    if (!file) return
+    setUploading(true)
+    setError(null)
+    try {
+      const blob = await compressImage(file, 600)
+      const fd = new FormData()
+      fd.append("file", blob, "logo")
+      const res = await fetch("/api/shop/upload", { method: "POST", body: fd })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Upload failed")
+      setAvatar(json.url)
+      setAvatarDirty(true)
+      setMsg("Picture added. Press Save to apply it.")
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -67,6 +95,29 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
       <p className="text-xs text-muted-foreground">
         A public page with only the links you tick below. It is hidden until you publish it, and it is not listed on search engines.
       </p>
+      <div className="flex items-center gap-3">
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
+          {avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatar} alt="Profile picture" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full w-full place-items-center text-muted-foreground"><Camera className="w-5 h-5" /></div>
+          )}
+        </div>
+        <div className="space-y-1 text-xs">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 font-semibold">
+            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+            {avatar ? "Change picture" : "Add profile picture or brand logo"}
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={uploading} onChange={(e) => { pickAvatar(e.target.files?.[0]); e.target.value = "" }} />
+          </label>
+          {avatar && (
+            <button type="button" onClick={() => { setAvatar(null); setAvatarDirty(true) }} className="ml-2 inline-flex items-center gap-1 text-muted-foreground underline">
+              <X className="w-3 h-3" /> Remove
+            </button>
+          )}
+          <p className="text-muted-foreground">Shown in a round frame on your shop page. JPG, PNG or WebP.</p>
+        </div>
+      </div>
       <div className="grid gap-2 md:grid-cols-2">
         <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={handle ? `@${handle}` : "Display name"} maxLength={60} className="rounded-xl" />
         <Input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Short bio (optional)" maxLength={160} className="rounded-xl" />
