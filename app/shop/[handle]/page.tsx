@@ -25,7 +25,7 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-md px-4 py-10 space-y-6">
+      <div className="mx-auto max-w-2xl px-4 py-10 space-y-6">
         <div className="text-center space-y-2">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-black text-primary">
             {initialOf(name)}
@@ -38,17 +38,41 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
         {links.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">Nothing here yet.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="grid grid-cols-2 gap-3">
             {links.map((l) => (
-              <li key={l.slug} className="flex items-center gap-2">
+              <li key={l.slug} className="relative overflow-hidden rounded-2xl border border-border bg-card">
                 <a
                   href={`/l/${l.slug}?s=shop`}
-                  rel="nofollow noopener sponsored"
-                  className="flex-1 rounded-2xl border border-border bg-card px-4 py-3 text-center text-sm font-bold hover:bg-accent"
+                  target="_blank"
+                  rel="nofollow noopener noreferrer sponsored"
+                  className="block"
                 >
-                  {l.title}
+                  <div className="aspect-[3/4] w-full bg-muted">
+                    {l.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={l.image_url}
+                        alt={l.title}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-3xl font-black text-muted-foreground/50">
+                        {initialOf(l.title)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-2.5">
+                    <p className="line-clamp-2 text-sm font-bold leading-snug">{l.title}</p>
+                    <span className="mt-2 inline-block rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+                      Shop now
+                    </span>
+                  </div>
                 </a>
-                <ReportButton slug={l.slug} />
+                <div className="absolute right-1.5 top-1.5">
+                  <ReportButton slug={l.slug} />
+                </div>
               </li>
             ))}
           </ul>
