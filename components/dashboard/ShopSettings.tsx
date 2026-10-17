@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2, Copy, Check, Store, Trash2, Video } from "lucide-react"
+import { Loader2, Copy, Check, Store } from "lucide-react"
 
 export default function ShopSettings({ onChanged }: { onChanged?: () => void }) {
   const [loading, setLoading] = useState(true)
@@ -17,50 +17,6 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
   const [displayName, setDisplayName] = useState("")
   const [bio, setBio] = useState("")
   const [copied, setCopied] = useState(false)
-  const [videos, setVideos] = useState<{ id: string; title: string | null; url: string }[]>([])
-  const [vUrl, setVUrl] = useState("")
-  const [vTitle, setVTitle] = useState("")
-  const [vBusy, setVBusy] = useState(false)
-  const [vError, setVError] = useState<string | null>(null)
-
-  const loadVideos = useCallback(async () => {
-    try {
-      const res = await fetch("/api/shop/videos")
-      const json = await res.json()
-      if (res.ok) setVideos(json.videos)
-      else setVError(json.error || null)
-    } catch {
-      /* ignore */
-    }
-  }, [])
-  useEffect(() => { loadVideos() }, [loadVideos])
-
-  const addVideo = async () => {
-    setVBusy(true)
-    setVError(null)
-    try {
-      const res = await fetch("/api/shop/videos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: vUrl, title: vTitle }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || "Could not add")
-      setVUrl("")
-      setVTitle("")
-      await loadVideos()
-    } catch (e: any) {
-      setVError(e.message)
-    } finally {
-      setVBusy(false)
-    }
-  }
-
-  const removeVideo = async (id: string) => {
-    await fetch(`/api/shop/videos?id=${id}`, { method: "DELETE" })
-    loadVideos()
-  }
-
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/shop")
@@ -135,32 +91,6 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
         </Button>
         {published && (
           <Button disabled={saving} variant="outline" onClick={() => save(false)} className="rounded-xl font-bold">Hide page</Button>
-        )}
-      </div>
-
-      <div className="border-t border-border pt-3 space-y-2">
-        <h3 className="text-sm font-black flex items-center gap-2"><Video className="w-4 h-4 text-primary" /> Videos on your shop</h3>
-        <p className="text-xs text-muted-foreground">
-          Paste the link of your Instagram reel or post. It plays on your shop page through Instagram's own player (the reel must be public).
-        </p>
-        <div className="grid gap-2 md:grid-cols-[2fr_1fr_auto]">
-          <Input value={vUrl} onChange={(e) => setVUrl(e.target.value)} placeholder="https://www.instagram.com/reel/..." className="rounded-xl" />
-          <Input value={vTitle} onChange={(e) => setVTitle(e.target.value)} placeholder="Caption (optional)" maxLength={80} className="rounded-xl" />
-          <Button disabled={vBusy || !vUrl.trim()} onClick={addVideo} className="rounded-xl font-bold">
-            {vBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add video"}
-          </Button>
-        </div>
-        {vError && <p className="text-xs text-destructive font-semibold">{vError}</p>}
-        {videos.length > 0 && (
-          <ul className="space-y-1">
-            {videos.map((v) => (
-              <li key={v.id} className="flex items-center gap-2 text-xs">
-                <a href={v.url} target="_blank" rel="noreferrer" className="truncate underline">{v.title || v.url.replace("https://www.", "")}</a>
-                <span className="flex-1" />
-                <button onClick={() => removeVideo(v.id)} aria-label="Remove video" className="text-destructive"><Trash2 className="w-4 h-4" /></button>
-              </li>
-            ))}
-          </ul>
         )}
       </div>
     </Card>
