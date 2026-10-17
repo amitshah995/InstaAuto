@@ -18,6 +18,8 @@ type LinkRow = {
   disabled: boolean
   shop_visible: boolean
   image_url: string | null
+  price_inr?: number | null
+  mrp_inr?: number | null
   clicks_total: number
   clicks_7d: number
   visitors_7d: number
@@ -101,6 +103,20 @@ export default function LinksPage() {
   const pasteImage = (l: LinkRow) => {
     const v = window.prompt("Paste an image address (https://...). Leave empty to remove the image.", l.image_url || "")
     if (v !== null) patch(l.id, { image_url: v.trim() })
+  }
+
+  const setPrice = (l: LinkRow) => {
+    const num = (v: string | null) => {
+      if (v === null) return undefined // cancelled
+      const t = v.replace(/[^0-9]/g, "")
+      return t ? Number(t) : null // empty clears
+    }
+    const price = num(window.prompt("Selling price in rupees (e.g. 1765). Leave empty to remove the price.", l.price_inr ? String(l.price_inr) : ""))
+    if (price === undefined) return
+    if (price === null) return patch(l.id, { price_inr: null, mrp_inr: null })
+    const mrp = num(window.prompt("Original price / MRP in rupees (e.g. 4999), so the page can show the discount. Leave empty to skip.", l.mrp_inr ? String(l.mrp_inr) : ""))
+    if (mrp === undefined) return
+    patch(l.id, { price_inr: price, mrp_inr: mrp })
   }
 
   const remove = async (id: string) => {
@@ -206,6 +222,9 @@ export default function LinksPage() {
                   </label>
                   <button onClick={() => patch(l.id, { refresh_image: true })} className="text-muted-foreground underline">
                     Fetch image
+                  </button>
+                  <button onClick={() => setPrice(l)} className="text-muted-foreground underline">
+                    {l.price_inr ? `Price: \u20B9${l.price_inr}${l.mrp_inr ? ` (MRP \u20B9${l.mrp_inr})` : ""}` : "Set price"}
                   </button>
                   <button onClick={() => pasteImage(l)} className="text-muted-foreground underline">
                     Paste image URL
