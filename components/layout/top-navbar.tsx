@@ -15,7 +15,7 @@ import {
   Compass,
   Instagram,
   Users,
-  Link2,
+  Link2, Clapperboard,
   ClipboardCheck,
   Wrench,
 } from "lucide-react"
@@ -37,6 +37,7 @@ const navItems = [
   { href: "/dashboard/inbox", icon: <MessageSquare className="w-4 h-4" />, label: "Inbox" },
   { href: "/dashboard/contacts", icon: <Users className="w-4 h-4" />, label: "Contacts" },
   { href: "/dashboard/links", icon: <Link2 className="w-4 h-4" />, label: "Links" },
+  { href: "/dashboard/studio", icon: <Clapperboard className="w-4 h-4" />, label: "Studio" },
   { href: "/dashboard/analytics", icon: <BarChart3 className="w-4 h-4" />, label: "Analytics" },
   { href: "/instagram-audit", icon: <ClipboardCheck className="w-4 h-4" />, label: "Audit", also: ["/audit"] },
   { href: "/tools", icon: <Wrench className="w-4 h-4" />, label: "Tools" },
