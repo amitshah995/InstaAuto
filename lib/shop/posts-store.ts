@@ -1,5 +1,5 @@
 import { rawQuery } from "@/lib/supabase-server"
-import { hasIgMediaColumn } from "@/lib/shop/schema"
+import { hasIgMediaColumn, priceSelect } from "@/lib/shop/schema"
 import { fetchOwnMedia } from "@/lib/shop/ig-media"
 import { normalizeHandle, type ShopLink } from "@/lib/shop/core"
 
@@ -22,8 +22,9 @@ async function attachProducts(userId: string, rows: PostRow[]): Promise<PublicPo
   const ids = [...new Set(rows.flatMap((r) => r.link_ids))]
   const byId = new Map<string, ShopLink>()
   if (ids.length) {
+    const pc = await priceSelect()
     const links = await rawQuery<ShopLink & { id: string }>(
-      `SELECT id, slug, title, network, disclose, image_url FROM links
+      `SELECT id, slug, title, network, disclose, image_url, ${pc} FROM links
         WHERE user_id = $1 AND disabled = FALSE AND id = ANY($2::uuid[])`,
       [userId, ids],
     )
