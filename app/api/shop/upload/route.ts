@@ -1,17 +1,30 @@
-/**
- * Slot for the owner's WhatsApp SaaS API. Nothing is sent until these env vars are filled:
- *   WHATSAPP_SAAS_API_BASE   e.g. https://api.your-whatsapp-app.com
- *   WHATSAPP_SAAS_API_KEY    server-side only, never exposed to the browser
- * Fill in `sendPostToWhatsApp` once the API (auth, template endpoint, contact endpoint) is known.
- */
-export function whatsappConfigured(): boolean {
-  return !!process.env.WHATSAPP_SAAS_API_BASE && !!process.env.WHATSAPP_SAAS_API_KEY
+import { type NextRequest, NextResponse } from "next/server"
+import { getSessionUserId } from "@/lib/auth"
+import { MAX_IMAGE_BYTES, sniffImage, uploadToStorage } from "@/lib/shop/media"
+
+// One already-compressed image per request (the browser shrinks it first), so it stays under the host's body limit.
+const recent = new Map<string, number[]>()
+function limited(key: string) {
+  const now = Date.now()
+  const hits = (recent.get(key) || []).filter((t) => now - t < 600_000)
+  if (hits.length >= 60) return true
+  hits.push(now)
+  recent.set(key, hits)
+  return false
 }
 
-export type WhatsappSendResult = { ok: true; queued: number } | { ok: false; error: string; notConfigured?: boolean }
-
-export async function sendPostToWhatsApp(_input: { userId: string; postUrl: string; caption?: string | null }): Promise<WhatsappSendResult> {
-  if (!whatsappConfigured()) return { ok: false, error: "WhatsApp is not connected yet", notConfigured: true }
-  // TODO(api): call the WhatsApp SaaS here (template message with the post URL as a variable, opt-in contacts only).
-  return { ok: false, error: "WhatsApp sending is not implemented yet", notConfigured: true }
+export async function POST(request: NextRequest) {
+  const userId = getSessionUserId(request)
+  if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+  if (limited(userId)) return NextResponse.json({ error: "Too many uploads, try again in a few minutes" }, { status: 429 })
+  const form = await request.formData().catch(() => null)
+  const file = form?.get("file")
+  if (!file || typeof file === "string") return NextResponse.json({ error: "Missing image" }, { status: 400 })
+  if (file.size > MAX_IMAGE_BYTES) return NextResponse.json({ error: "Image is too large" }, { status: 413 })
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const type = sniffImage(bytes)
+  if (!type) return NextResponse.json({ error: "Only JPG, PNG or WebP images are allowed" }, { status: 400 })
+  const out = await uploadToStorage(userId, bytes, type)
+  if (!out.ok) return NextResponse.json({ error: out.error }, { status: 500 })
+  return NextResponse.json({ url: out.url })
 }
