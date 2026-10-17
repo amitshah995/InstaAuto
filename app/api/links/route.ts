@@ -3,6 +3,7 @@ import { z } from "zod"
 import { rawQuery } from "@/lib/supabase-server"
 import { getSessionUserId } from "@/lib/auth"
 import { cleanImageUrl, fetchProductImage } from "@/lib/links/image"
+import { hasPriceColumns, priceSelect } from "@/lib/shop/schema"
 import { MAX_LINKS_PER_USER, makeSlug, siteBase, validateDestination } from "@/lib/links/core"
 
 const CreateSchema = z.object({
@@ -20,6 +21,8 @@ const PatchSchema = z.object({
   shop_visible: z.boolean().optional(),
   image_url: z.string().max(1000).optional().nullable(), // "" clears it
   refresh_image: z.boolean().optional(),
+  price_inr: z.number().int().min(1).max(10_000_000).nullable().optional(), // null clears
+  mrp_inr: z.number().int().min(1).max(10_000_000).nullable().optional(),
 })
 
 const unauthorized = () => NextResponse.json({ error: "Not authenticated" }, { status: 401 })
@@ -28,8 +31,9 @@ export async function GET(request: NextRequest) {
   const userId = getSessionUserId(request)
   if (!userId) return unauthorized()
   try {
+    const pc = await priceSelect("l")
     const rows = await rawQuery(
-      `SELECT l.id, l.slug, l.title, l.url, l.network, l.disclose, l.disabled, l.shop_visible, l.image_url, l.created_at,
+      `SELECT l.id, l.slug, l.title, l.url, l.network, l.disclose, l.disabled, l.shop_visible, l.image_url, ${pc}, l.created_at,
               COUNT(c.id) FILTER (WHERE c.is_bot = FALSE)::int AS clicks_total,
               COUNT(c.id) FILTER (WHERE c.is_bot = FALSE AND c.clicked_at > now() - interval '7 days')::int AS clicks_7d,
               COUNT(DISTINCT c.visitor_hash) FILTER (WHERE c.is_bot = FALSE AND c.clicked_at > now() - interval '7 days')::int AS visitors_7d
@@ -83,7 +87,7 @@ export async function PATCH(request: NextRequest) {
   if (!userId) return unauthorized()
   const parsed = PatchSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 })
-  const { id, title, disabled, disclose, shop_visible, image_url, refresh_image } = parsed.data
+  const { id, title, disabled, disclose, shop_visible, image_url, refresh_image, price_inr, mrp_inr } = parsed.data
   try {
     // image: "" clears, a URL sets it, refresh_image re-fetches from the product page
     let setImage = false
@@ -98,6 +102,18 @@ export async function PATCH(request: NextRequest) {
       image = image_url ? cleanImageUrl(image_url) : null
       if (image_url && !image) return NextResponse.json({ error: "Image address must be a normal https link" }, { status: 400 })
       setImage = true
+    }
+    if (price_inr !== undefined || mrp_inr !== undefined) {
+      if (!(await hasPriceColumns())) return NextResponse.json({ error: "Prices are not set up yet (run migration 21)." }, { status: 500 })
+      const p = price_inr ?? null
+      const m = mrp_inr ?? null
+      if (p && m && m < p) return NextResponse.json({ error: "MRP must be higher than the price" }, { status: 400 })
+      const upd = await rawQuery(
+        `UPDATE links SET price_inr = CASE WHEN $3 THEN $4::int ELSE price_inr END, mrp_inr = CASE WHEN $5 THEN $6::int ELSE mrp_inr END
+          WHERE id = $1 AND user_id = $2 RETURNING id`,
+        [id, userId, price_inr !== undefined, p, mrp_inr !== undefined, m],
+      )
+      if (upd.length === 0) return NextResponse.json({ error: "Link not found" }, { status: 404 })
     }
     const rows = await rawQuery(
       `UPDATE links SET title = COALESCE($3, title), disabled = COALESCE($4, disabled), disclose = COALESCE($5, disclose),

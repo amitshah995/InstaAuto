@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { ArrowUpRight } from "lucide-react"
 import { getPublicShop } from "@/lib/shop/store"
-import { initialOf, needsDisclosure } from "@/lib/shop/core"
+import { discountPct, formatINR, initialOf, needsDisclosure } from "@/lib/shop/core"
 import ShopHeader from "@/components/shop/ShopHeader"
 import ShopTabs from "@/components/shop/ShopTabs"
 import ReportButton from "@/components/shop/ReportButton"
@@ -56,7 +56,15 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
                     </span>
                   </div>
                   <p className="mt-2.5 line-clamp-2 text-[15px] font-semibold leading-snug">{l.title}</p>
-                  {l.network && <p className="mt-0.5 text-xs text-muted-foreground">{l.network}</p>}
+                  {l.price_inr ? (
+                    <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
+                      <span className="text-[15px] font-bold">{formatINR(l.price_inr)}</span>
+                      {l.mrp_inr && l.mrp_inr > l.price_inr && <span className="text-xs text-muted-foreground line-through">{formatINR(l.mrp_inr)}</span>}
+                      {discountPct(l.price_inr, l.mrp_inr) && <span className="text-xs font-bold text-emerald-600">{discountPct(l.price_inr, l.mrp_inr)}% off</span>}
+                    </p>
+                  ) : (
+                    l.network && <p className="mt-0.5 text-xs text-muted-foreground">{l.network}</p>
+                  )}
                 </a>
                 <div className="absolute left-2 top-2">
                   <ReportButton slug={l.slug} />

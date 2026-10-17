@@ -36,7 +36,7 @@ export default function ReelPlayer({ src, poster, watchHref }: { src: string; po
       preload="metadata"
       controlsList="nodownload"
       onError={() => setFailed(true)}
-      className="block aspect-[9/16] max-h-[640px] w-full bg-black object-contain"
+      className="block aspect-[9/16] max-h-[640px] w-full bg-black object-cover"
     />
   )
 }

@@ -6,11 +6,12 @@ export type ShopSchemaStatus = {
   links_image_url: boolean // migration 17
   shop_posts: boolean // migration 19
   shop_posts_ig_media_id: boolean // migration 20
+  links_price: boolean // migration 21
 }
 
 /** Which of the shop migrations have been run. Never throws. */
 export async function shopSchemaStatus(): Promise<ShopSchemaStatus> {
-  const out: ShopSchemaStatus = { shop_profiles: false, links_shop_visible: false, links_image_url: false, shop_posts: false, shop_posts_ig_media_id: false }
+  const out: ShopSchemaStatus = { shop_profiles: false, links_shop_visible: false, links_image_url: false, shop_posts: false, shop_posts_ig_media_id: false, links_price: false }
   try {
     const rows = await rawQuery<{ table_name: string; column_name: string }>(
       `SELECT table_name, column_name FROM information_schema.columns
@@ -22,6 +23,7 @@ export async function shopSchemaStatus(): Promise<ShopSchemaStatus> {
     out.links_image_url = has("links", "image_url")
     out.shop_posts = has("shop_posts")
     out.shop_posts_ig_media_id = has("shop_posts", "ig_media_id")
+    out.links_price = has("links", "price_inr") && has("links", "mrp_inr")
   } catch {
     /* leave everything false */
   }
@@ -38,12 +40,29 @@ export async function hasIgMediaColumn(): Promise<boolean> {
   return value
 }
 
+let priceCol: { at: number; value: boolean } | null = null
+
+/** True once migration 21 has been run (same caching as above). */
+export async function hasPriceColumns(): Promise<boolean> {
+  if (priceCol && (priceCol.value || Date.now() - priceCol.at < 30_000)) return priceCol.value
+  const value = (await shopSchemaStatus()).links_price
+  priceCol = { at: Date.now(), value }
+  return value
+}
+
+/** SELECT fragment for the price columns, or NULLs before migration 21. `alias` is the links table alias, if any. */
+export async function priceSelect(alias = ""): Promise<string> {
+  const a = alias ? `${alias}.` : ""
+  return (await hasPriceColumns()) ? `${a}price_inr, ${a}mrp_inr` : `NULL::int AS price_inr, NULL::int AS mrp_inr`
+}
+
 const LABELS: [keyof ShopSchemaStatus, string][] = [
   ["shop_profiles", "migration 16 (shop pages)"],
   ["links_shop_visible", "migration 16 (shop pages)"],
   ["links_image_url", "migration 17 (link images)"],
   ["shop_posts", "migration 19 (Studio posts)"],
   ["shop_posts_ig_media_id", "migration 20 (reels from Instagram)"],
+  ["links_price", "migration 21 (product prices)"],
 ]
 
 export function missingMigrations(s: ShopSchemaStatus): string[] {
