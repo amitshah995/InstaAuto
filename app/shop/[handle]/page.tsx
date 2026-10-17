@@ -1,16 +1,17 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { ArrowUpRight } from "lucide-react"
 import { getPublicShop } from "@/lib/shop/store"
 import { initialOf, needsDisclosure } from "@/lib/shop/core"
-import { embedUrl, watchUrl } from "@/lib/shop/video"
-import PostCard from "@/components/shop/PostCard"
+import ShopHeader from "@/components/shop/ShopHeader"
+import ShopTabs from "@/components/shop/ShopTabs"
 import ReportButton from "@/components/shop/ReportButton"
 
 export const dynamic = "force-dynamic"
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
   const { handle } = await params
-  return { title: `@${handle.replace(/^@|^%40/, "")} - links`, robots: { index: false, follow: false } }
+  return { title: `@${handle.replace(/^@|^%40/, "")} - Shop`, robots: { index: false, follow: false } }
 }
 
 export default async function ShopPage({ params }: { params: Promise<{ handle: string }> }) {
@@ -22,34 +23,22 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
     console.error("[shop] page error:", (e as Error)?.message)
   }
   if (!shop) notFound()
-  const { profile, links, videos, posts } = shop
-  const name = profile.display_name || `@${profile.handle}`
+  const { profile, links, hasStudio } = shop
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-6xl px-4 py-10 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-black text-primary">
-            {initialOf(name)}
-          </div>
-          <h1 className="text-xl font-black">{name}</h1>
-          <p className="text-xs text-muted-foreground">@{profile.handle}</p>
-          {profile.bio && <p className="text-sm text-muted-foreground whitespace-pre-line">{profile.bio}</p>}
-        </div>
+      <ShopHeader handle={profile.handle} displayName={profile.display_name} bio={profile.bio} />
+      <div className="mx-auto max-w-6xl px-4 pb-16">
+        {hasStudio ? <ShopTabs handle={profile.handle} active="shop" /> : <div className="h-6" />}
 
         {links.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground">Nothing here yet.</p>
+          <p className="py-16 text-center text-sm text-muted-foreground">Nothing here yet. Check back soon.</p>
         ) : (
-          <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+          <ul className="grid grid-cols-2 gap-x-3 gap-y-7 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
             {links.map((l) => (
-              <li key={l.slug} className="relative overflow-hidden rounded-2xl border border-border bg-card">
-                <a
-                  href={`/l/${l.slug}?s=shop`}
-                  target="_blank"
-                  rel="nofollow noopener noreferrer sponsored"
-                  className="block"
-                >
-                  <div className="aspect-[3/4] w-full bg-muted">
+              <li key={l.slug} className="group relative">
+                <a href={`/l/${l.slug}?s=shop`} target="_blank" rel="nofollow noopener noreferrer sponsored" className="block">
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-muted">
                     {l.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -57,22 +46,19 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
                         alt={l.title}
                         loading="lazy"
                         referrerPolicy="no-referrer"
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-3xl font-black text-muted-foreground/50">
-                        {initialOf(l.title)}
-                      </div>
+                      <div className="grid h-full w-full place-items-center text-5xl font-black text-muted-foreground/40">{initialOf(l.title)}</div>
                     )}
-                  </div>
-                  <div className="p-2.5">
-                    <p className="line-clamp-2 text-sm font-bold leading-snug">{l.title}</p>
-                    <span className="mt-2 inline-block rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
-                      Shop now
+                    <span className="absolute bottom-2.5 right-2.5 grid h-9 w-9 place-items-center rounded-full bg-background/90 text-foreground shadow-sm">
+                      <ArrowUpRight className="h-4 w-4" aria-hidden />
                     </span>
                   </div>
+                  <p className="mt-2.5 line-clamp-2 text-[15px] font-semibold leading-snug">{l.title}</p>
+                  {l.network && <p className="mt-0.5 text-xs text-muted-foreground">{l.network}</p>}
                 </a>
-                <div className="absolute right-1.5 top-1.5">
+                <div className="absolute left-2 top-2">
                   <ReportButton slug={l.slug} />
                 </div>
               </li>
@@ -80,45 +66,8 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
           </ul>
         )}
 
-        {posts.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="text-lg font-black">Latest posts</h2>
-            <div className="mx-auto max-w-md space-y-5">
-              {posts.map((p) => <PostCard key={p.id} post={p} handle={profile.handle} />)}
-            </div>
-          </section>
-        )}
-
-        {videos.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="text-lg font-black">Videos</h2>
-            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
-              {videos.map((v) => (
-                <li key={v.shortcode} className="space-y-1.5">
-                  <div className="overflow-hidden rounded-2xl border border-border bg-card">
-                    <iframe
-                      src={embedUrl(v.kind, v.shortcode)}
-                      title={v.title || "Instagram video"}
-                      loading="lazy"
-                      allow="encrypted-media; picture-in-picture"
-                      allowFullScreen
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation"
-                      className="block h-[560px] w-full"
-                    />
-                  </div>
-                  {v.title && <p className="text-sm font-bold leading-snug">{v.title}</p>}
-                  <a href={watchUrl(v.kind, v.shortcode)} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground underline">
-                    Watch on Instagram
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
         {needsDisclosure(links) && (
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="mx-auto mt-12 max-w-md text-center text-xs leading-relaxed text-muted-foreground">
             Some of these are affiliate links. The creator may earn a commission if you buy, at no extra cost to you.
           </p>
         )}
