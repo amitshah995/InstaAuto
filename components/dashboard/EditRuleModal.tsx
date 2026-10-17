@@ -30,6 +30,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
   const [cardButtonTitle, setCardButtonTitle] = useState("")
   const [cardButtonUrl, setCardButtonUrl] = useState("")
   const [saving, setSaving] = useState(false)
+  const [oncePerPerson, setOncePerPerson] = useState(false)
 
   useEffect(() => {
     if (!rule) return
@@ -38,6 +39,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
     setKeywordsInput(rule.trigger_value || "")
 
     const content = rule.response_content || {}
+    setOncePerPerson(content.once_per_person === true)
     if (Array.isArray(content.steps) && content.steps.length > 0) {
       setContentType("sequence")
       setIsCard(false)
@@ -98,6 +100,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
     const updatedContent: any = {
       ...(rule.response_content || {}),
     }
+    if (rule.trigger_source === "comment") updatedContent.once_per_person = oncePerPerson
 
     if (contentType === "card") {
       const updatedButtons = []
@@ -343,6 +346,24 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
                 </div>
               </div>
             </div>
+          )}
+
+          {/* 5. Once per person per post — comment rules only */}
+          {rule.trigger_source === "comment" && (
+            <label className="flex items-start gap-3 p-3.5 rounded-xl border border-border bg-secondary/30 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={oncePerPerson}
+                onChange={(e) => setOncePerPerson(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-primary cursor-pointer"
+              />
+              <span className="space-y-0.5">
+                <span className="block text-xs font-bold text-foreground">Send only once per person per post</span>
+                <span className="block text-[11px] text-muted-foreground leading-relaxed">
+                  If the same person comments again on the same post, they won't get another reply or DM.
+                </span>
+              </span>
+            </label>
           )}
 
         </div>
