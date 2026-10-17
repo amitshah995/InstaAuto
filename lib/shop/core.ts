@@ -40,7 +40,7 @@ export function shopUrl(base: string, handle: string): string {
   return `${base.replace(/\/+$/, "")}/@${handle}`
 }
 
-export type ShopLink = { slug: string; title: string; network: string | null; disclose: boolean }
+export type ShopLink = { slug: string; title: string; network: string | null; disclose: boolean; image_url: string | null }
 
 /** True when at least one visible link carries the affiliate note, so the page shows its disclosure. */
 export function needsDisclosure(links: ShopLink[]): boolean {
