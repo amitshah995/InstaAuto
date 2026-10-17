@@ -22,6 +22,7 @@ export default function StudioPage() {
   const [handle, setHandle] = useState<string | null>(null)
   const [published, setPublished] = useState(true)
   const [waConfigured, setWaConfigured] = useState(false)
+  const [setupIssues, setSetupIssues] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
@@ -38,7 +39,7 @@ export default function StudioPage() {
 
   const load = useCallback(async () => {
     try {
-      const [p, l, s, w] = await Promise.all([fetch("/api/shop/posts"), fetch("/api/links"), fetch("/api/shop"), fetch("/api/shop/posts/whatsapp")])
+      const [p, l, s, w, h] = await Promise.all([fetch("/api/shop/posts"), fetch("/api/links"), fetch("/api/shop"), fetch("/api/shop/posts/whatsapp"), fetch("/api/shop/health")])
       const pj = await p.json()
       if (!p.ok) throw new Error(pj.error || "Could not load posts")
       setPosts(pj.posts)
@@ -47,6 +48,10 @@ export default function StudioPage() {
       if (l.ok) setLinks((await l.json()).links.filter((x: LinkRow) => !x.disabled))
       if (s.ok) setPublished(!!(await s.json()).profile?.published)
       if (w.ok) setWaConfigured(!!(await w.json()).configured)
+      if (h.ok) {
+        const hj = await h.json()
+        setSetupIssues([...(hj.missingMigrations || []), ...(hj.imageStorageConfigured ? [] : ["image storage (bucket shop-media and Supabase keys in Vercel)"])])
+      }
       setError(null)
     } catch (e: any) {
       setError(e.message)
@@ -166,6 +171,7 @@ export default function StudioPage() {
             {copied === "studio" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {studioUrl.replace("https://", "")}
           </button>
         )}
+        {setupIssues.length > 0 && <p className="text-xs font-semibold text-destructive">Setup still needed: {setupIssues.join(", ")}.</p>}
         {!published && <p className="text-xs font-semibold text-destructive">Your shop page is hidden. Publish it from the Links page so these posts can be opened.</p>}
       </div>
 
