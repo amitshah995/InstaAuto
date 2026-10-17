@@ -35,7 +35,7 @@ export default async function PostPage({ params }: { params: Params }) {
   if (!found) notFound()
   return (
     <main className="min-h-screen text-foreground">
-      <ShopHeader handle={found.handle} displayName={found.displayName} bio={null} avatarUrl={found.avatarUrl} />
+      <ShopHeader handle={found.handle} displayName={found.displayName} bio={null} avatarUrl={found.avatarUrl} bannerUrl={found.bannerUrl} />
       <div className="mx-auto max-w-xl px-4 pb-16">
         <ShopTabs handle={found.handle} active="studio" />
         <PostCard post={found.post} handle={found.handle} permalink />
