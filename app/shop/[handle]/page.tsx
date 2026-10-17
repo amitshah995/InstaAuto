@@ -7,6 +7,14 @@ import ShopHeader from "@/components/shop/ShopHeader"
 import ShopTabs from "@/components/shop/ShopTabs"
 import ReportButton from "@/components/shop/ReportButton"
 
+const TINTS = [
+  "linear-gradient(135deg,#ffe3f1,#ffd1e8)",
+  "linear-gradient(135deg,#e6e0ff,#d5ccff)",
+  "linear-gradient(135deg,#ffeccc,#ffdca0)",
+  "linear-gradient(135deg,#d9f3ff,#bfe6ff)",
+  "linear-gradient(135deg,#dcf8e6,#c2f0d3)",
+]
+
 export const dynamic = "force-dynamic"
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
@@ -26,8 +34,8 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
   const { profile, links, hasStudio } = shop
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <ShopHeader handle={profile.handle} displayName={profile.display_name} bio={profile.bio} />
+    <main className="min-h-screen text-foreground">
+      <ShopHeader handle={profile.handle} displayName={profile.display_name} bio={profile.bio} avatarUrl={profile.avatar_url} />
       <div className="mx-auto max-w-6xl px-4 pb-16">
         {hasStudio ? <ShopTabs handle={profile.handle} active="shop" /> : <div className="h-6" />}
 
@@ -35,10 +43,11 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
           <p className="py-16 text-center text-sm text-muted-foreground">Nothing here yet. Check back soon.</p>
         ) : (
           <ul className="grid grid-cols-2 gap-x-3 gap-y-7 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
-            {links.map((l) => (
+            {links.map((l, idx) => (
               <li key={l.slug} className="group relative">
                 <a href={`/l/${l.slug}?s=shop`} target="_blank" rel="nofollow noopener noreferrer sponsored" className="block">
-                  <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-muted">
+                  <div className="shop-ring rounded-[1.4rem]">
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-[calc(1.4rem-2px)]" style={{ background: TINTS[idx % TINTS.length] }}>
                     {l.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -55,12 +64,13 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
                       <ArrowUpRight className="h-4 w-4" aria-hidden />
                     </span>
                   </div>
-                  <p className="mt-2.5 line-clamp-2 text-[15px] font-semibold leading-snug">{l.title}</p>
+                  </div>
+                  <p className="mt-2.5 line-clamp-2 text-[15px] font-bold leading-snug">{l.title}</p>
                   {l.price_inr ? (
                     <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
-                      <span className="text-[15px] font-bold">{formatINR(l.price_inr)}</span>
-                      {l.mrp_inr && l.mrp_inr > l.price_inr && <span className="text-xs text-muted-foreground line-through">{formatINR(l.mrp_inr)}</span>}
-                      {discountPct(l.price_inr, l.mrp_inr) && <span className="text-xs font-bold text-emerald-600">{discountPct(l.price_inr, l.mrp_inr)}% off</span>}
+                      <span className="shop-price text-[17px] font-extrabold">{formatINR(l.price_inr)}</span>
+                      {l.mrp_inr && l.mrp_inr > l.price_inr && <span className="text-xs text-foreground/50 line-through">{formatINR(l.mrp_inr)}</span>}
+                      {discountPct(l.price_inr, l.mrp_inr) && <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[11px] font-bold text-white">{discountPct(l.price_inr, l.mrp_inr)}% off</span>}
                     </p>
                   ) : (
                     l.network && <p className="mt-0.5 text-xs text-muted-foreground">{l.network}</p>
