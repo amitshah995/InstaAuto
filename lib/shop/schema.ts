@@ -8,11 +8,12 @@ export type ShopSchemaStatus = {
   shop_posts_ig_media_id: boolean // migration 20
   links_price: boolean // migration 21
   shop_avatar: boolean // migration 22
+  shop_banner: boolean // migration 23
 }
 
 /** Which of the shop migrations have been run. Never throws. */
 export async function shopSchemaStatus(): Promise<ShopSchemaStatus> {
-  const out: ShopSchemaStatus = { shop_profiles: false, links_shop_visible: false, links_image_url: false, shop_posts: false, shop_posts_ig_media_id: false, links_price: false, shop_avatar: false }
+  const out: ShopSchemaStatus = { shop_profiles: false, links_shop_visible: false, links_image_url: false, shop_posts: false, shop_posts_ig_media_id: false, links_price: false, shop_avatar: false, shop_banner: false }
   try {
     const rows = await rawQuery<{ table_name: string; column_name: string }>(
       `SELECT table_name, column_name FROM information_schema.columns
@@ -25,6 +26,7 @@ export async function shopSchemaStatus(): Promise<ShopSchemaStatus> {
     out.shop_posts = has("shop_posts")
     out.shop_posts_ig_media_id = has("shop_posts", "ig_media_id")
     out.shop_avatar = has("shop_profiles", "avatar_url")
+    out.shop_banner = has("shop_profiles", "banner_url")
     out.links_price = has("links", "price_inr") && has("links", "mrp_inr")
   } catch {
     /* leave everything false */
@@ -68,9 +70,21 @@ export async function hasAvatarColumn(): Promise<boolean> {
   return value
 }
 
-/** SELECT fragment for the profile picture, or NULL before migration 22. */
+let bannerCol: { at: number; value: boolean } | null = null
+
+/** True once migration 23 has been run (same caching as above). */
+export async function hasBannerColumn(): Promise<boolean> {
+  if (bannerCol && (bannerCol.value || Date.now() - bannerCol.at < 30_000)) return bannerCol.value
+  const value = (await shopSchemaStatus()).shop_banner
+  bannerCol = { at: Date.now(), value }
+  return value
+}
+
+/** SELECT fragment for the profile picture and banner; each one is NULL until its migration (22, 23) has been run. */
 export async function avatarSelect(): Promise<string> {
-  return (await hasAvatarColumn()) ? "avatar_url" : "NULL::text AS avatar_url"
+  const a = (await hasAvatarColumn()) ? "avatar_url" : "NULL::text AS avatar_url"
+  const b = (await hasBannerColumn()) ? "banner_url" : "NULL::text AS banner_url"
+  return `${a}, ${b}`
 }
 
 const LABELS: [keyof ShopSchemaStatus, string][] = [
@@ -81,6 +95,7 @@ const LABELS: [keyof ShopSchemaStatus, string][] = [
   ["shop_posts_ig_media_id", "migration 20 (reels from Instagram)"],
   ["links_price", "migration 21 (product prices)"],
   ["shop_avatar", "migration 22 (shop profile picture)"],
+  ["shop_banner", "migration 23 (shop banner)"],
 ]
 
 export function missingMigrations(s: ShopSchemaStatus): string[] {
