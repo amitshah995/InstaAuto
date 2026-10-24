@@ -6,6 +6,7 @@ import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { WelcomeScreen } from "@/components/ui/welcome-screen"
 import { Loader2, Compass, Copy, Check, MoreVertical, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { ActingBanner } from "@/components/team/ActingBanner"
 
 export default function DashboardLayout({
     children,
@@ -92,6 +93,7 @@ export default function DashboardLayout({
 
     return (
         <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-300 relative">
+            <ActingBanner />
             {/* Google-style Top Navigation Bar */}
             <TopNavbar
                 username={username || "User"}
