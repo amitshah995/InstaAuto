@@ -42,6 +42,7 @@ import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { TeamPanel } from "@/components/team/TeamPanel"
 
 export default function SettingsPage() {
   const { username, userId, logout, isLoading: sessionLoading } = useInstagramSession()
@@ -276,6 +277,8 @@ export default function SettingsPage() {
           {/* Left Column: Account Profile & Security Info (lg:col-span-6) */}
           <div className="lg:col-span-6 space-y-6">
             
+            <TeamPanel />
+
             {/* Instagram Account Identity Card */}
             <Card className={`border-border bg-card/90 backdrop-blur-md shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '150ms' : '0ms', transitionDuration: '700ms' }}>
               

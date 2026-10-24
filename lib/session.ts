@@ -18,6 +18,8 @@ const VERSION = "v1"
 export interface SessionPayload {
   uid: string
   u?: string
+  /** Set when a teammate is working inside someone else's account: the teammate's OWN user id. */
+  mb?: string
   exp: number
 }
 
@@ -38,7 +40,8 @@ function sign(data: string, secret: Buffer): string {
 export function createSessionToken(
   userId: string,
   username: string | undefined,
-  maxAgeSeconds: number
+  maxAgeSeconds: number,
+  memberId?: string,
 ): string {
   const secret = getSecret()
   if (!secret) {
@@ -47,6 +50,7 @@ export function createSessionToken(
   const payload: SessionPayload = {
     uid: String(userId),
     u: username,
+    ...(memberId ? { mb: String(memberId) } : {}),
     exp: Math.floor(Date.now() / 1000) + maxAgeSeconds,
   }
   const body = b64url(JSON.stringify(payload))

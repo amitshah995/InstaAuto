@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server"
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/session"
+import { SESSION_COOKIE, verifySessionToken, type SessionPayload } from "@/lib/session"
 
 /**
  * Rollout flags (all read at request time):
@@ -99,4 +99,15 @@ export function authorizeUser(request: NextRequest, claimedUserId?: string | nul
     return { ok: true, userId: claimed }
   }
   return { ok: false, status: 401, error: "Missing userId" }
+}
+
+/** Signed session payload only (no legacy cookie). `mb` is set while a teammate is inside someone else's account. */
+export function getVerifiedSessionPayload(request: NextRequest): SessionPayload | null {
+  const authHeader = request.headers.get("authorization")
+  if (authHeader?.startsWith("Bearer ")) {
+    const payload = verifySessionToken(authHeader.slice(7).trim())
+    if (payload) return payload
+  }
+  const raw = request.cookies.get(SESSION_COOKIE)?.value
+  return raw ? verifySessionToken(raw) : null
 }
