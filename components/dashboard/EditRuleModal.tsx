@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Pencil, X, Loader2, MessageCircle, Send, Tag, Check, Sparkles, AlertCircle, ListOrdered, ListChecks, Compass } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
+import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
 import type { Automation } from "@/lib/types"
 
 interface EditRuleModalProps {
@@ -27,8 +28,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
   const [cardTitle, setCardTitle] = useState("")
   const [cardSubtitle, setCardSubtitle] = useState("")
   const [cardImageUrl, setCardImageUrl] = useState("")
-  const [cardButtonTitle, setCardButtonTitle] = useState("")
-  const [cardButtonUrl, setCardButtonUrl] = useState("")
+  const [cardButtons, setCardButtons] = useState<{ type: string; title: string; url: string; payload?: string }[]>([])
   const [saving, setSaving] = useState(false)
   const [oncePerPerson, setOncePerPerson] = useState(false)
 
@@ -52,9 +52,14 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
       setCardTitle(content.card.title || "")
       setCardSubtitle(content.card.subtitle || "")
       setCardImageUrl(content.card.image_url || "")
-      const firstBtn = content.card.buttons?.[0]
-      setCardButtonTitle(firstBtn?.title || "")
-      setCardButtonUrl(firstBtn?.url || "")
+      setCardButtons(
+        (content.card.buttons || []).slice(0, 3).map((b: any) => ({
+          type: b.type || "web_url",
+          title: b.title || "",
+          url: b.url || "",
+          payload: b.payload,
+        })),
+      )
       setMessageText(content.message || "")
     } else {
       setContentType("text")
@@ -103,18 +108,14 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
     if (rule.trigger_source === "comment") updatedContent.once_per_person = oncePerPerson
 
     if (contentType === "card") {
-      const updatedButtons = []
-      if (cardButtonTitle.trim()) {
-        let cleanUrl = cardButtonUrl.trim()
-        if (cleanUrl && !cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
-          cleanUrl = `https://${cleanUrl}`
-        }
-        updatedButtons.push({
-          type: "web_url",
-          title: cardButtonTitle.trim(),
-          url: cleanUrl || undefined,
+      const updatedButtons = cardButtons
+        .filter((b) => b.title.trim())
+        .map((b) => {
+          if (b.type === "postback") return { type: "postback", title: b.title.trim(), payload: b.payload || b.url }
+          let cleanUrl = b.url.trim()
+          if (cleanUrl && !cleanUrl.startsWith("{link:") && !/^https?:\/\//i.test(cleanUrl)) cleanUrl = `https://${cleanUrl}`
+          return { type: "web_url", title: b.title.trim(), url: cleanUrl || undefined }
         })
-      }
 
       updatedContent.card = {
         title: cardTitle.trim(),
@@ -325,25 +326,55 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">Button Text</Label>
-                  <Input
-                    value={cardButtonTitle}
-                    onChange={(e) => setCardButtonTitle(e.target.value)}
-                    placeholder="e.g. Visit Website"
-                    className="bg-background text-xs rounded-lg"
-                  />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] text-muted-foreground">Buttons ({cardButtons.length}/3)</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[11px]"
+                    disabled={cardButtons.length >= 3}
+                    onClick={() => setCardButtons([...cardButtons, { type: "web_url", title: "", url: "" }])}
+                  >
+                    + Add button
+                  </Button>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">Button URL</Label>
-                  <Input
-                    value={cardButtonUrl}
-                    onChange={(e) => setCardButtonUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="bg-background text-xs rounded-lg font-mono"
-                  />
-                </div>
+                {cardButtons.map((b, i) => (
+                  <div key={i} className="space-y-1.5 rounded-lg border border-border bg-background/50 p-2">
+                    <div className="grid grid-cols-[1fr_1.4fr_auto] gap-2">
+                      <Input
+                        value={b.title}
+                        onChange={(e) => setCardButtons(cardButtons.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+                        placeholder="Button text"
+                        className="bg-background text-xs rounded-lg"
+                      />
+                      <Input
+                        value={b.type === "postback" ? b.payload || "" : b.url}
+                        disabled={b.type === "postback"}
+                        onChange={(e) => setCardButtons(cardButtons.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
+                        placeholder={b.type === "postback" ? "Opens a flow" : "https://... or {link:slug}"}
+                        className="bg-background text-xs rounded-lg font-mono"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-red-500"
+                        onClick={() => setCardButtons(cardButtons.filter((_, j) => j !== i))}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    {b.type !== "postback" && (
+                      <TrackedLinkPicker
+                        url={b.url}
+                        label={b.title}
+                        onChange={(v) => setCardButtons(cardButtons.map((x, j) => (j === i ? { ...x, url: v } : x)))}
+                      />
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}
