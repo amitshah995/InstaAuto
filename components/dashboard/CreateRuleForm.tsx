@@ -12,6 +12,7 @@ import { TagInput } from "@/components/ui/tag-input"
 import type { ProButton } from "@/lib/types"
 import type { AutomationTemplate } from "@/lib/automation-templates"
 import { toast } from "sonner"
+import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
 
 interface CreateRuleFormProps {
   userId: string
@@ -741,7 +742,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
               </Button>
             </div>
             {buttons.map((btn) => (
-              <div key={btn.id} className="flex gap-2 items-center bg-secondary/40 p-2 rounded-lg border border-border animate-in fade-in">
+              <div key={btn.id} className="space-y-1.5 bg-secondary/40 p-2 rounded-lg border border-border animate-in fade-in">
+                <div className="flex gap-2 items-center">
                 <Input
                   value={btn.title}
                   onChange={(e) => updateButton(btn.id, "title", e.target.value)}
@@ -766,6 +768,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
                 <Button size="icon" variant="ghost" onClick={() => removeButton(btn.id)} className="h-6 w-6 text-red-500 hover:bg-red-500/10">
                   <Trash2 className="w-3 h-3" />
                 </Button>
+                </div>
+                {btn.type === "web_url" && (
+                  <TrackedLinkPicker url={btn.url || ""} label={btn.title} onChange={(v) => updateButton(btn.id, "url", v)} />
+                )}
               </div>
             ))}
           </div>
