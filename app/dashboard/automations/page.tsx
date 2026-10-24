@@ -6,6 +6,7 @@ import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { AutomationList } from "@/components/dashboard/AutomationList"
 import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
 import { MessageCircle, Send, Sparkles, Zap, Plus, Loader2, X, RefreshCw, Eye, Flame, Inbox, Heart, MessageSquare, Radio, LayoutTemplate, ArrowRight } from "lucide-react"
+import { AutomationTransfer } from "@/components/dashboard/AutomationTransfer"
 import { IceBreakersManager } from "@/components/dashboard/IceBreakersManager"
 import type { Automation } from "@/lib/types"
 import { AUTOMATION_TEMPLATES, TEMPLATE_GOALS, type AutomationTemplate } from "@/lib/automation-templates"
@@ -166,6 +167,7 @@ export default function AutomationsPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
+                        <AutomationTransfer userId={userId} automations={automations} onImported={fetchAutomations} />
                         <button
                             onClick={() => setShowTemplates(true)}
                             className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all active:scale-95 cursor-pointer justify-center shadow-xs bg-secondary text-foreground hover:bg-muted border border-border"
