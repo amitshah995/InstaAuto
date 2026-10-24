@@ -150,7 +150,7 @@ export default function AutomationsPage() {
 
     return (
         <div className="min-h-screen bg-background p-4 md:p-8 text-foreground transition-colors duration-300 pb-20 md:pb-8">
-            <div className="max-w-3xl mx-auto space-y-4 md:space-y-6">
+            <div className={`${showCreateForm ? "max-w-5xl" : "max-w-3xl"} mx-auto space-y-4 md:space-y-6 transition-[max-width] duration-300`}>
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
                     <div>
