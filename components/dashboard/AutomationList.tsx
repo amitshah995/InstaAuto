@@ -1,109 +1,243 @@
 "use client"
 
-import { useRef, useState } from "react"
-import { Download, Upload, Loader2 } from "lucide-react"
-import { toast } from "sonner"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Trash2, Globe, Instagram, Zap, ArrowRight, Lock, MessageCircle, Send, Compass, Eye, Pencil } from "lucide-react"
+import { useRouter } from "next/navigation"
 import type { Automation } from "@/lib/types"
+import { EditRuleModal } from "@/components/dashboard/EditRuleModal"
 
-const FORMAT = "dmspark-automations"
-const MAX_IMPORT = 50
-
-/** Export all rules to a JSON file, or import such a file (also works to copy rules to another account). */
-export function AutomationTransfer({
-  userId,
-  automations,
-  onImported,
-}: {
-  userId: string | number | null
+interface AutomationListProps {
   automations: Automation[]
-  onImported: () => void
-}) {
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [busy, setBusy] = useState(false)
+  onDelete: (id: string) => void
+  onUpdate?: () => void
+  userId: string
+  onPreview?: (rule: Automation) => void
+}
 
-  const exportAll = () => {
-    if (!automations.length) return toast.error("Nothing to export yet")
-    const payload = {
-      format: FORMAT,
-      version: 1,
-      exported_at: new Date().toISOString(),
-      automations: automations.map((a: any) => ({
-        name: a.name,
-        trigger_source: a.trigger_source,
-        trigger_type: a.trigger_type,
-        // postback rules get a fresh internal payload on import
-        trigger_value: a.trigger_type === "postback" ? "" : a.trigger_value,
-        content: a.response_content,
-      })),
+export function AutomationList({ automations, onDelete, onUpdate, userId, onPreview }: AutomationListProps) {
+  const [mediaMap, setMediaMap] = useState<Record<string, string>>({})
+  const [editingRule, setEditingRule] = useState<Automation | null>(null)
+  const router = useRouter()
+
+  const globalRules = automations.filter((rule) => !rule.specific_media_id)
+  const postSpecificRules = automations.filter((rule) => rule.specific_media_id)
+
+  useEffect(() => {
+    if (!userId || postSpecificRules.length === 0) return
+    const fetchMedia = async () => {
+      try {
+        const res = await fetch(`/api/instagram/media?userId=${userId}`)
+        const data = await res.json()
+        if (data.data && Array.isArray(data.data)) {
+          const map: Record<string, string> = {}
+          data.data.forEach((item: any) => { map[item.id] = item.thumbnail_url || item.media_url })
+          setMediaMap(map)
+        }
+      } catch (e) { console.error("Failed to load thumbnails", e) }
     }
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `dmspark-automations-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+    fetchMedia()
+  }, [userId, automations.length])
 
-  const importFile = async (file: File) => {
-    if (!userId) return
-    setBusy(true)
-    try {
-      const data = JSON.parse(await file.text())
-      if (data?.format !== FORMAT || !Array.isArray(data.automations)) throw new Error("This is not a DMSpark automations file.")
-      const list = data.automations.slice(0, MAX_IMPORT)
-      let ok = 0
-      let linkRules = 0
-      for (const r of list) {
-        if (!r?.name || !r?.trigger_source || !r?.content) continue
-        if (JSON.stringify(r.content).includes("{link:")) linkRules++
-        const res = await fetch("/api/automations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId,
-            name: String(r.name).slice(0, 120),
-            trigger_source: r.trigger_source,
-            trigger_type: r.trigger_type || "keyword",
-            trigger_value: r.trigger_value || "x",
-            content: r.content,
-          }),
-        })
-        if (res.ok) ok++
-      }
-      toast.success(`Imported ${ok} of ${list.length} automations`, {
-        description:
-          linkRules > 0
-            ? `${linkRules} use tracked links ({link:...}) from the old account — re-pick them under Links. Rules were imported without a specific post.`
-            : "Rules were imported without a specific post — pick the post on each rule.",
-      })
-      onImported()
-    } catch (e: any) {
-      toast.error("Import failed", { description: e?.message || "Invalid file" })
-    } finally {
-      setBusy(false)
-      if (fileRef.current) fileRef.current.value = ""
-    }
+  if (automations.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card/40 p-12 text-center shadow-sm">
+        <div className="w-16 h-16 mx-auto mb-4 bg-secondary rounded-2xl flex items-center justify-center border border-border">
+          <Zap className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <h3 className="text-base font-bold text-foreground mb-1">No automations yet</h3>
+        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          Create your first automation above — it just takes 30 seconds.
+        </p>
+      </div>
+    )
   }
-
-  const btn =
-    "flex items-center gap-2 px-3.5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all active:scale-95 cursor-pointer justify-center shadow-xs bg-secondary text-foreground hover:bg-muted border border-border disabled:opacity-60"
 
   return (
-    <>
-      <button onClick={exportAll} className={btn} title="Download all rules as a file">
-        <Download className="w-4 h-4" /> <span className="hidden sm:inline">Export</span>
-      </button>
-      <button onClick={() => fileRef.current?.click()} disabled={busy} className={btn} title="Import rules from a file">
-        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} <span className="hidden sm:inline">Import</span>
-      </button>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="application/json,.json"
-        className="hidden"
-        onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])}
-      />
-    </>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
+          Active Rules
+          <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px]">{automations.length}</span>
+        </h2>
+      </div>
+
+      <div className="space-y-4">
+        {/* Global rules */}
+        {globalRules.length > 0 && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground ml-1">
+              <Globe className="w-3.5 h-3.5 text-blue-500" />
+              <span>Global Keyword Rules</span>
+              <span className="text-[11px] font-normal text-muted-foreground">({globalRules.length})</span>
+            </div>
+            {globalRules.map((rule, idx) => (
+              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={(r) => setEditingRule(r)} index={idx} router={router} onPreview={onPreview} />
+            ))}
+          </div>
+        )}
+
+        {/* Post-specific rules */}
+        {postSpecificRules.length > 0 && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground ml-1">
+              <Instagram className="w-3.5 h-3.5 text-pink-500" />
+              <span>Post-Specific Automations</span>
+              <span className="text-[11px] font-normal text-muted-foreground">({postSpecificRules.length})</span>
+            </div>
+            {postSpecificRules.map((rule, idx) => (
+              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={(r) => setEditingRule(r)} index={idx} mediaUrl={mediaMap[rule.specific_media_id || ""]} isSpecific router={router} onPreview={onPreview} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick Edit Automation Modal */}
+      {editingRule && (
+        <EditRuleModal
+          rule={editingRule}
+          userId={userId}
+          onClose={() => setEditingRule(null)}
+          onSuccess={() => {
+            setEditingRule(null)
+            onUpdate?.()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router, onPreview }: {
+  rule: Automation
+  onDelete: (id: string) => void
+  onEdit?: (rule: Automation) => void
+  index: number
+  isSpecific?: boolean
+  mediaUrl?: string
+  router: any
+  onPreview?: (rule: Automation) => void
+}) {
+  const [confirming, setConfirming] = useState(false)
+  const keywords = rule.trigger_value.split(",").map(k => k.trim()).filter(Boolean)
+  const isCard = !!rule.response_content?.card
+  const responsePreview = isCard
+    ? rule.response_content.card.title
+    : rule.response_content?.message?.slice(0, 50) + (rule.response_content?.message?.length > 50 ? "..." : "")
+
+  return (
+    <div
+      className="group p-4 rounded-2xl border border-border/70 bg-card hover:bg-card/90 hover:border-border hover:shadow-xs transition-all duration-200"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <div className="flex items-start gap-3.5">
+        {/* Left icon */}
+        {isSpecific ? (
+          <div className="w-10 h-10 rounded-xl overflow-hidden bg-secondary shrink-0 border border-border/60">
+            {mediaUrl ? (
+              <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Instagram className="w-4 h-4 text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
+            <Globe className="w-4 h-4 text-blue-500" />
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-foreground truncate">{rule.name}</h4>
+            {confirming ? (
+              <div className="flex items-center gap-1 animate-in fade-in">
+                <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} className="h-7 text-xs text-muted-foreground hover:bg-secondary">Cancel</Button>
+                <Button size="sm" onClick={() => onDelete(rule.id)} className="h-7 text-xs bg-red-500/15 text-red-600 hover:bg-red-500/25 border border-red-500/20">Delete</Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-all duration-200">
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit(rule)}
+                    className="h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-secondary rounded-full transition-colors cursor-pointer"
+                    title="Edit Keywords & Message"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+                {onPreview && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onPreview(rule)}
+                    className="h-8 w-8 text-muted-foreground hover:text-emerald-500 hover:bg-secondary rounded-full transition-colors cursor-pointer"
+                    title="Live Preview Flow"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push(`/dashboard/flow-builder?id=${rule.id}`)}
+                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-secondary rounded-full transition-colors cursor-pointer"
+                  title="Edit Flow in Builder"
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setConfirming(true)}
+                  className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-secondary rounded-full transition-colors cursor-pointer"
+                  title="Delete"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Trigger → Response flow */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Keywords */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {keywords.slice(0, 3).map((kw, i) => (
+                <span key={i} className="bg-secondary text-foreground border border-border/50 text-[11px] font-mono px-2 py-0.5 rounded-md">
+                  {kw}
+                </span>
+              ))}
+              {keywords.length > 3 && (
+                <span className="text-[10px] text-muted-foreground">+{keywords.length - 3}</span>
+              )}
+            </div>
+
+            <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+
+            {/* Response type */}
+            <div className="flex items-center gap-1.5">
+              {isCard ? (
+                <Send className="w-3 h-3 text-blue-500" />
+              ) : (
+                <MessageCircle className="w-3 h-3 text-emerald-500" />
+              )}
+              <span className="text-[11px] text-muted-foreground truncate max-w-[150px]">{responsePreview}</span>
+            </div>
+
+            {rule.response_content?.check_follow && (
+              <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] px-1.5 py-0">
+                <Lock className="w-2.5 h-2.5 mr-0.5" /> Follow
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
