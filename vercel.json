@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/refresh-tokens",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/reconcile-comments",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/snapshot-followers",
+      "schedule": "30 3 * * *"
     }
   ]
 }
