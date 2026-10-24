@@ -39,6 +39,7 @@ const navItems = [
   { href: "/dashboard/links", icon: <Link2 className="w-4 h-4" />, label: "Links" },
   { href: "/dashboard/studio", icon: <Clapperboard className="w-4 h-4" />, label: "Studio" },
   { href: "/dashboard/analytics", icon: <BarChart3 className="w-4 h-4" />, label: "Analytics" },
+  { href: "/dashboard/reports", icon: <BarChart3 className="w-4 h-4" />, label: "Reports" },
   { href: "/instagram-audit", icon: <ClipboardCheck className="w-4 h-4" />, label: "Audit", also: ["/audit"] },
   { href: "/tools", icon: <Wrench className="w-4 h-4" />, label: "Tools" },
   { href: "/dashboard/settings", icon: <Settings className="w-4 h-4" />, label: "Settings" },
