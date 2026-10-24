@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { encryptPlaintextTokens } from "@/lib/token-sweep"
 
 /**
  * Token Refresh Cron Job
@@ -34,6 +35,13 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await getSupabaseServerClient()
+
+    // Once TOKEN_ENCRYPTION_KEY is set, quietly encrypt any token still stored as plaintext.
+    const sweep = await encryptPlaintextTokens().catch((e) => {
+      console.error("[token-sweep] failed:", e?.message)
+      return null
+    })
+    if (sweep?.encrypted) console.log(`[DMSpark] 🔐 Encrypted ${sweep.encrypted} stored token(s)`)
 
     // Find tokens expiring within the next 7 days
     const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
