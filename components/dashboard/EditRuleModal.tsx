@@ -10,6 +10,7 @@ import { Pencil, X, Loader2, MessageCircle, Send, Tag, Check, Sparkles, AlertCir
 import Link from "next/link"
 import { toast } from "sonner"
 import { PhonePreview } from "@/components/dashboard/PhonePreview"
+import { CardImageField } from "@/components/dashboard/CardImageField"
 import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
 import type { Automation } from "@/lib/types"
 
@@ -325,6 +326,15 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
                   onChange={(e) => setCardSubtitle(e.target.value)}
                   placeholder="Optional subtitle"
                   className="bg-background text-xs rounded-lg"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">Card Image</Label>
+                <CardImageField
+                  value={cardImageUrl}
+                  onChange={setCardImageUrl}
+                  linkUrl={cardButtons.find((b) => b.type === "web_url" && b.url?.trim())?.url || ""}
                 />
               </div>
 

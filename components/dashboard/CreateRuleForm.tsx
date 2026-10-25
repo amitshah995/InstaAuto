@@ -13,6 +13,7 @@ import type { ProButton } from "@/lib/types"
 import type { AutomationTemplate } from "@/lib/automation-templates"
 import { toast } from "sonner"
 import { PhonePreview } from "@/components/dashboard/PhonePreview"
+import { CardImageField } from "@/components/dashboard/CardImageField"
 import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
 
 interface CreateRuleFormProps {
@@ -683,11 +684,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
               className="bg-background border-border text-sm text-foreground"
               placeholder="Subtitle (Optional)"
             />
-            <Input
+            <CardImageField
               value={cardImage}
-              onChange={(e) => setCardImage(e.target.value)}
-              className="bg-background border-border text-xs text-foreground"
-              placeholder="Image URL (https://...)"
+              onChange={setCardImage}
+              linkUrl={buttons.find((b) => b.type === "web_url" && b.url?.trim())?.url || ""}
             />
           </div>
 
