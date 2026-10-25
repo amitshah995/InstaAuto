@@ -12,6 +12,8 @@ import { TagInput } from "@/components/ui/tag-input"
 import type { ProButton } from "@/lib/types"
 import type { AutomationTemplate } from "@/lib/automation-templates"
 import { toast } from "sonner"
+import { PhonePreview } from "@/components/dashboard/PhonePreview"
+import { CardImageField } from "@/components/dashboard/CardImageField"
 import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
 
 interface CreateRuleFormProps {
@@ -333,50 +335,6 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
   }
 
   // DM Preview Bubble
-  const DMPreview = () => {
-    if (type === "sequence") {
-      const filledSteps = steps.filter((s) => s.text.trim())
-      if (filledSteps.length === 0) return null
-      return (
-        <div className="mt-4 flex flex-col items-end gap-2">
-          {filledSteps.map((s, i) => (
-            <div key={s.id} className="max-w-[260px] animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-sm shadow-lg shadow-blue-500/20">
-                <p className="leading-relaxed">{s.text.slice(0, 120)}{s.text.length > 120 && "..."}</p>
-              </div>
-              {i > 0 && <p className="text-[10px] text-muted-foreground mt-0.5 text-right">after {s.delay_seconds}s</p>}
-            </div>
-          ))}
-          <p className="text-[10px] text-muted-foreground mt-1">Preview — this is how the sequence will look</p>
-        </div>
-      )
-    }
-
-    const previewText = type === "text" ? messageText : cardTitle
-    if (!previewText) return null
-
-    return (
-      <div className="mt-4 flex justify-end">
-        <div className="max-w-[260px] animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-sm shadow-lg shadow-blue-500/20">
-            {type === "text" ? (
-              <p className="leading-relaxed">{messageText.slice(0, 120)}{messageText.length > 120 && "..."}</p>
-            ) : (
-              <div className="space-y-1">
-                <p className="font-bold text-xs">{cardTitle}</p>
-                {cardSubtitle && <p className="text-[11px] opacity-80">{cardSubtitle}</p>}
-                {buttons.filter(b => b.title).map((b, i) => (
-                  <div key={i} className="bg-white/20 rounded px-2 py-1 text-[10px] text-center mt-1">{b.title}</div>
-                ))}
-              </div>
-            )}
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-1 text-right">Preview — this is how the DM will look</p>
-        </div>
-      </div>
-    )
-  }
-
   // --- STEP RENDERS ---
 
   const renderStep1 = () => (
@@ -726,11 +684,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
               className="bg-background border-border text-sm text-foreground"
               placeholder="Subtitle (Optional)"
             />
-            <Input
+            <CardImageField
               value={cardImage}
-              onChange={(e) => setCardImage(e.target.value)}
-              className="bg-background border-border text-xs text-foreground"
-              placeholder="Image URL (https://...)"
+              onChange={setCardImage}
+              linkUrl={buttons.find((b) => b.type === "web_url" && b.url?.trim())?.url || ""}
             />
           </div>
 
@@ -778,7 +735,6 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
         </div>
       )}
 
-      <DMPreview />
     </div>
   )
 
@@ -877,7 +833,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
 
   // --- MAIN RENDER ---
   return (
-    <div className="space-y-6">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div className="min-w-0 space-y-6">
       <StepIndicator />
 
       {step === 1 && renderStep1()}
@@ -916,6 +873,26 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
           </Button>
         )}
       </div>
+    </div>
+    <div className="lg:sticky lg:top-4 lg:self-start">
+      <PhonePreview
+        userId={userId}
+        autoTab={step === 1 ? (triggerSource === "story" ? "story" : triggerSource === "dm" ? "dm" : "post") : "dm"}
+        data={{
+          triggerSource,
+          storyTriggerType,
+          replyToAll,
+          keywords: triggers,
+          media: selectedReel ? { thumb: selectedReel.thumbnail_url || selectedReel.media_url, caption: selectedReel.caption } : null,
+          type,
+          text: messageText,
+          card: { title: cardTitle, subtitle: cardSubtitle, image: cardImage, buttons: buttons.map((b) => ({ title: b.title })) },
+          steps: steps.map((x) => ({ text: x.text, delay_seconds: x.delay_seconds })),
+          questions: questions.map((q) => ({ prompt: q.prompt })),
+          closing: closingMessage,
+        }}
+      />
+    </div>
     </div>
   )
 }
