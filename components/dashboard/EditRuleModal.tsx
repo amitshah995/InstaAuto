@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Pencil, X, Loader2, MessageCircle, Send, Tag, Check, Sparkles, AlertCircle, ListOrdered, ListChecks, Compass } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
+import { PhonePreview } from "@/components/dashboard/PhonePreview"
+import { CardImageField } from "@/components/dashboard/CardImageField"
 import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
 import type { Automation } from "@/lib/types"
 
@@ -169,7 +171,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
       {/* Click outside backdrop */}
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-lg bg-card border border-border/80 rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg lg:max-w-4xl bg-card border border-border/80 rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="px-6 py-4.5 border-b border-border/70 flex items-center justify-between bg-secondary/20">
@@ -193,6 +195,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
           </button>
         </div>
 
+        <div className="flex min-h-0 flex-1">
         {/* Scrollable Form Body */}
         <div className="p-6 overflow-y-auto space-y-5 flex-1 hover-scrollbar">
           
@@ -326,6 +329,15 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
                 />
               </div>
 
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">Card Image</Label>
+                <CardImageField
+                  value={cardImageUrl}
+                  onChange={setCardImageUrl}
+                  linkUrl={cardButtons.find((b) => b.type === "web_url" && b.url?.trim())?.url || ""}
+                />
+              </div>
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-[11px] text-muted-foreground">Buttons ({cardButtons.length}/3)</Label>
@@ -398,6 +410,27 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
           )}
 
         </div>
+        <div className="hidden w-[310px] shrink-0 overflow-y-auto border-l border-border/70 bg-secondary/10 p-5 lg:block">
+          <PhonePreview
+            userId={userId}
+            autoTab="dm"
+            data={{
+              triggerSource: (rule.trigger_source as any) || "comment",
+              storyTriggerType: (String(rule.trigger_type) === "reaction" ? "reaction" : String(rule.trigger_type) === "reply" ? "reply" : "mention") as "mention" | "reaction" | "reply",
+              replyToAll: ["reply_all", "wildcard"].includes(String(rule.trigger_type)),
+              keywords: parsedKeywords,
+              media: null,
+              type: contentType,
+              text: messageText,
+              card: { title: cardTitle, subtitle: cardSubtitle, image: cardImageUrl, buttons: cardButtons.map((b) => ({ title: b.title })) },
+              steps: ((rule.response_content as any)?.steps || []).map((x: any) => ({ text: x.text || "", delay_seconds: x.delay_seconds || 0 })),
+              questions: ((rule.response_content as any)?.questions || []).map((q: any) => ({ prompt: q.prompt || "" })),
+              closing: (rule.response_content as any)?.closing_message || "",
+            }}
+          />
+        </div>
+        </div>
+
 
         {/* Footer Actions */}
         <div className="px-6 py-4 border-t border-border/70 flex items-center justify-between bg-secondary/15">
