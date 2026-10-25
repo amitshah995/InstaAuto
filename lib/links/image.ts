@@ -92,3 +92,26 @@ export function cleanImageUrl(raw: string | null | undefined): string | null {
   const v = validateDestination(raw)
   return v.ok && v.url.length <= 1000 ? v.url : null
 }
+
+/** True only if the address really serves an image (checked through the same SSRF guard). */
+export async function imageIsReachable(url: string): Promise<boolean> {
+  try {
+    let current = await safeToFetch(url)
+    for (let hop = 0; current && hop <= MAX_HOPS; hop++) {
+      const res = await fetch(current.toString(), {
+        redirect: "manual",
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        headers: { "user-agent": UA, range: "bytes=0-1023" },
+      })
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("location")
+        if (!loc) return false
+        current = await safeToFetch(new URL(loc, current).toString())
+        continue
+      }
+      res.body?.cancel().catch(() => {})
+      return (res.ok || res.status === 206) && (res.headers.get("content-type") || "").toLowerCase().startsWith("image/")
+    }
+  } catch {}
+  return false
+}
