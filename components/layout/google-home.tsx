@@ -15,17 +15,17 @@ const focusRing =
 const steps = [
   {
     icon: Plug,
-    title: "Instagram connect karo",
+    title: "Connect Instagram",
     body: "Sign in with Instagram's own login. We never ask for your password.",
   },
   {
     icon: MessageSquareText,
-    title: "Reply likho",
+    title: "Write your reply",
     body: "Pick a reel, choose a word like “price”, and write the DM you want sent.",
   },
   {
     icon: MessagesSquare,
-    title: "Baaki Celra sambhaalega",
+    title: "Celra does the rest",
     body: "When someone comments that word, they get your DM. You can pause it any time.",
   },
 ]
@@ -183,9 +183,9 @@ export function GoogleSearchHome() {
             </p>
             <h1 className="mt-4 font-display text-[2.35rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl">
               <span className="sr-only">{BRAND_NAME}: </span>
-              Comment karo,
+              Turn every comment
               <br />
-              <span className="text-c-brand">DM aa jaayega.</span>
+              <span className="text-c-brand">into a DM.</span>
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base sm:text-lg leading-relaxed text-c-muted lg:mx-0">
               {BRAND_NAME} sends the price, link or details to anyone who comments on your reel, automatically, through the official Instagram API.
@@ -213,7 +213,7 @@ export function GoogleSearchHome() {
         {/* HOW IT WORKS */}
         <section id="how" className="scroll-mt-20 border-y border-c-line bg-c-soft">
           <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
-            <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Teen step mein shuru</h2>
+            <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Start in three steps</h2>
             <p className="mt-2 text-c-muted">Three steps, no technical setup.</p>
             <ol className="mt-8 grid gap-4 md:grid-cols-3">
               {steps.map((s, i) => (
@@ -234,7 +234,7 @@ export function GoogleSearchHome() {
 
         {/* TRUST */}
         <section aria-labelledby="trust-h" className="bg-c-cream"><div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
-          <h2 id="trust-h" className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Safe aur simple</h2>
+          <h2 id="trust-h" className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Safe and simple</h2>
           <ul className="mt-8 grid gap-6 md:grid-cols-3">
             {trust.map((t) => (
               <li key={t.title} className="flex gap-4">
@@ -257,7 +257,7 @@ export function GoogleSearchHome() {
               <div className="flex items-center gap-2 text-sm font-medium opacity-90">
                 <ClipboardCheck className="h-4 w-4" aria-hidden /> Free for Business and Creator accounts
               </div>
-              <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight sm:text-3xl">Pehle apna Instagram check karo</h2>
+              <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight sm:text-3xl">Check your Instagram first</h2>
               <p className="mt-2 leading-relaxed opacity-90">
                 Connect Instagram and get a score for your profile, posting and engagement, with clear fixes.
               </p>
@@ -273,7 +273,7 @@ export function GoogleSearchHome() {
 
         {/* FAQ */}
         <section id="faq" className="scroll-mt-20 bg-c-cream"><div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:py-20">
-          <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Aksar puchhe jaane wale sawaal</h2>
+          <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Frequently asked questions</h2>
           <div className="mt-6 divide-y divide-c-line border-y border-c-line">
             {faqs.map((f) => (
               <details key={f.q} className="group py-1">

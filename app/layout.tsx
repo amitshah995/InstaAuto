@@ -76,13 +76,13 @@ export const metadata: Metadata = {
     siteName: BRAND_NAME,
     title: `${BRAND_NAME}: Instagram comment to DM automation`,
     description:
-      "Comment karo, DM aa jaayega. Auto-reply to Instagram comments with a DM, using the official Instagram API.",
+      "Turn every comment into a DM. Celra sends the price, link or details to people who comment on your reel, using the official Instagram API.",
   },
   twitter: {
     card: "summary_large_image",
     title: `${BRAND_NAME}: Instagram comment to DM automation`,
     description:
-      "Comment karo, DM aa jaayega. Auto-reply to Instagram comments with a DM.",
+      "Turn every comment into a DM. Send the price, link or details automatically.",
   },
   robots: {
     index: true,
