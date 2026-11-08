@@ -63,6 +63,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   // Media
   const [reels, setReels] = useState<any[]>([])
   const [loadingReels, setLoadingReels] = useState(false)
+  // true when /api/instagram/media failed (expired login, rate limit) so strict mode can say so
+  const [reelsFailed, setReelsFailed] = useState(false)
 
   useEffect(() => {
     if (userId) loadReels()
@@ -82,10 +84,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
     try {
       setLoadingReels(true)
       const res = await fetch(`/api/instagram/media?userId=${userId}`)
+      if (!res.ok) setReelsFailed(true)
       const responseJson = await res.json()
       if (responseJson.data && Array.isArray(responseJson.data)) setReels(responseJson.data)
       else if (Array.isArray(responseJson)) setReels(responseJson)
     } catch (err) {
+      setReelsFailed(true)
       console.error("[v0] Failed to load reels:", err)
     } finally {
       setLoadingReels(false)
@@ -136,9 +140,13 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   // Validation per step
   const canProceedStep1 = () => {
     if (strict && !selectedReel) {
-      toast.error("Pick the post this applies to", {
-        description: "Audit suggestions work on one post at a time. If your posts don't load, reconnect Instagram and try again.",
-      })
+      if (reelsFailed) {
+        toast.error("Could not load your posts", { description: "Reconnect Instagram, then try again." })
+      } else if (!loadingReels && reels.length === 0) {
+        toast.error("No posts found", { description: "Publish a post that asks people to comment this keyword first, then come back." })
+      } else {
+        toast.error("Pick the post this applies to", { description: "Audit suggestions work on one post at a time." })
+      }
       return false
     }
     const isStoryMentionOrReaction = triggerSource === 'story' && (storyTriggerType === 'mention' || storyTriggerType === 'reaction')
@@ -473,7 +481,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       {(triggerSource === 'comment' || triggerSource === 'story') && (
         <div className="space-y-2">
           <Label className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider ml-1">
-            {replyToAll ? 'Select Post (Required)' :
+            {replyToAll || strict ? 'Select Post (Required)' :
               triggerSource === 'story' ? 'Story (Optional)' : 'Post/Reel (Optional)'}
           </Label>
           <div className="relative">
@@ -494,7 +502,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
                 </>
               ) : (
                 <span className="text-sm text-muted-foreground">
-                  {replyToAll ? '📌 Select a post...' : '📌 Optional — applies to any post (tap to pick)'}
+                  {replyToAll || strict ? '📌 Select a post...' : '📌 Optional — applies to any post (tap to pick)'}
                 </span>
               )}
             </button>

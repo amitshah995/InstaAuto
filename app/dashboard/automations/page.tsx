@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { isLang, isRecipeId, recipeToTemplate } from "@/lib/audit/recommendations"
+import { RECIPES, isLang, isRecipeId, recipeToTemplate, type Lang, type RecipeId } from "@/lib/audit/recommendations"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { AutomationList } from "@/components/dashboard/AutomationList"
 import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
@@ -27,6 +27,8 @@ export default function AutomationsPage() {
     const [showCreateForm, setShowCreateForm] = useState(false)
     const [showTemplates, setShowTemplates] = useState(false)
     const [selectedTemplate, setSelectedTemplate] = useState<AutomationTemplate | null>(null)
+    // Which audit recipe + language opened the form (used to show the caption line to paste on the post)
+    const [recipeInfo, setRecipeInfo] = useState<{ id: RecipeId; lang: Lang } | null>(null)
     const [creatingFlowTemplate, setCreatingFlowTemplate] = useState(false)
 
     const startFlowTemplate = async (t: AutomationTemplate) => {
@@ -96,6 +98,7 @@ export default function AutomationsPage() {
                 const lang = isLang(params.get("lang")) ? (params.get("lang") as "en" | "hi") : "en"
                 setActiveTab("comment")
                 setSelectedTemplate(recipeToTemplate(recipe, lang))
+                setRecipeInfo({ id: recipe, lang })
                 setShowCreateForm(true)
                 router.replace("/dashboard/automations") // clean the URL so a refresh doesn't re-open it
             }
@@ -262,6 +265,11 @@ export default function AutomationsPage() {
                                 <p className="text-muted-foreground">
                                     Pick the post this applies to and replace the [bracketed] parts with your real details. Nothing goes live until you press Create.
                                 </p>
+                                {recipeInfo && (
+                                    <p className="text-muted-foreground">
+                                        Caption line to add on your post: <span className="font-medium text-foreground">{RECIPES[recipeInfo.id].captionLine[recipeInfo.lang]}</span>
+                                    </p>
+                                )}
                                 {overlappingKeywords.length > 0 && (
                                     <p className="text-amber-700">
                                         You already have a comment rule using: {overlappingKeywords.join(", ")}. A new rule on a specific post is fine, but check you are not duplicating one.
@@ -270,7 +278,7 @@ export default function AutomationsPage() {
                             </div>
                         )}
                         <CreateRuleForm
-                            strict={isAuditRecipe}
+                            strict={isAuditRecipe && activeTab === "comment"}
                             key={selectedTemplate?.id || 'blank'}
                             userId={userId}
                             triggerSource={activeTab}

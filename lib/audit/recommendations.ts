@@ -80,7 +80,7 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   },
   price: {
     label: { en: "Price", hi: "Price" },
-    keywords: { en: ["price", "pricing", "cost"], hi: ["kitna", "kitne ka", "kimat", "daam"] },
+    keywords: { en: ["price", "pricing", "cost"], hi: ["kitna", "kitne ka", "kimat"] },
     dm: {
       en: "Hi! Thanks for asking. [Product] starts at Rs [your price]. Reply here for size, colour or delivery and we'll answer personally. (Automatic reply from [your brand])",
       hi: "Hi! Poochne ke liye thanks. [Product] Rs [your price] se shuru hota hai. Size, colour ya delivery ke liye yahin reply karo, hum khud jawab denge. ([your brand] ka automatic reply)",
@@ -107,13 +107,14 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   },
 }
 
-export const isRecipeId = (v: unknown): v is RecipeId => typeof v === "string" && v in RECIPES
+// hasOwnProperty, not `in`: "?recipe=constructor" or "toString" must NOT count as a recipe (would crash the dashboard).
+export const isRecipeId = (v: unknown): v is RecipeId => typeof v === "string" && Object.prototype.hasOwnProperty.call(RECIPES, v)
 export const isLang = (v: unknown): v is Lang => v === "en" || v === "hi"
 
 /** Stable key of a finding (new reports: its id; old reports: via title). null = unknown, so no chips. */
 export function keyOf(f: Pick<Finding, "id" | "title">): FindingKey | null {
   if ((FINDING_KEYS as readonly string[]).includes(f.id)) return f.id as FindingKey
-  return TITLE_TO_KEY[f.title] ?? null
+  return Object.prototype.hasOwnProperty.call(TITLE_TO_KEY, f.title) ? TITLE_TO_KEY[f.title] : null
 }
 
 export const recipesFor = (f: Pick<Finding, "id" | "title">): RecipeId[] => {
