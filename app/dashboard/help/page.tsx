@@ -525,7 +525,7 @@ export default function HowToUsePage() {
             <div>
               <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider">Setup audit or customization?</h4>
               <p className="text-[11px] text-muted-foreground mt-1 font-semibold leading-relaxed">
-                Connect with our automation engineers at virtualrevolution02@gmail.com for custom webhook configurations, CRM pipelines, or advanced interactive triggers.
+                Need help with custom webhook configurations, CRM pipelines, or advanced interactive triggers? Contact us using the support email on the Privacy Policy page.
               </p>
             </div>
           </Card>
