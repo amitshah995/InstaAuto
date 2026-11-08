@@ -429,3 +429,18 @@
 @media (prefers-reduced-motion: reduce) {
   .ig-gradient:hover { filter: none; }
 }
+
+/* ---------------------------------------------------- */
+/* CELRA MARKETING SITE: marquee, drawer, modal motion   */
+/* ---------------------------------------------------- */
+@keyframes celra-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes celra-drawer-in { from { transform: translateX(100%); } to { transform: none; } }
+.celra-marquee { display: flex; width: max-content; animation: celra-marquee var(--dur, 40s) linear infinite; }
+.celra-marquee-rev { animation-direction: reverse; }
+.celra-marquee-wrap:hover .celra-marquee, .celra-marquee-wrap:focus-within .celra-marquee { animation-play-state: paused; }
+.celra-drawer { animation: celra-drawer-in .25s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .celra-marquee { animation: none; flex-wrap: wrap; width: auto; justify-content: center; }
+  .celra-marquee-dup { display: none; }
+  .celra-drawer { animation: none; }
+}
