@@ -20,3 +20,9 @@ export function getSiteHost(): string {
     return "localhost"
   }
 }
+
+/**
+ * The ONE place for the public support / privacy contact.
+ * To switch to a domain address (for example support@yourdomain.com), change only this line and redeploy.
+ */
+export const SUPPORT_EMAIL = "virtualrevolution02@gmail.com"
