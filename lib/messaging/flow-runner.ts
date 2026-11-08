@@ -2,6 +2,7 @@ import { enqueueJob, INLINE_MAX_DELAY_S, schedulerEnabled, type SendCtx } from "
 import { advance, type FlowGraph } from "@/lib/flows/engine"
 import { addTagToContact } from "@/lib/contacts/tag-actions"
 import { generateFlowReply } from "@/lib/flows/ai-reply"
+import { releaseDm, reserveAiRun, reserveDm } from "@/lib/billing/usage"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { expandLinksForUser } from "@/lib/links/store"
 
@@ -41,6 +42,8 @@ export async function runFlow(
         const { data: u } = await supabase.from("users").select("ai_context").eq("id", opts.ctx.userId).single()
         businessInfo = u?.ai_context ?? null
       }
+      // Plan AI limit (daily). Over the limit: skip this AI step, the rest of the flow carries on.
+      if (opts.ctx && !(await reserveAiRun(opts.ctx.userId)).allowed) continue
       const reply = await generateFlowReply({ instruction: action.instruction, businessInfo, followerMessage: incomingText })
       if (!reply) continue // AI off or failed: skip this step, the rest of the flow carries on
       text = reply
@@ -59,6 +62,9 @@ export async function runFlow(
     }
     if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay * 1000))
 
+    // Plan DM limit: this direct send must be metered like sendSteps. Over the limit: skip the node.
+    if (opts.ctx && !(await reserveDm(opts.ctx.userId)).allowed) continue
+    let delivered = false
     try {
       const res = await fetch(
         `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(accessToken)}`,
@@ -69,10 +75,14 @@ export async function runFlow(
         },
       )
       const json = await res.json()
-      if (!json.error) sentTexts.push(text)
+      if (!json.error) {
+        sentTexts.push(text)
+        delivered = true
+      }
     } catch (e) {
       console.error("[v0] 🔴 Flow node send error:", e)
     }
+    if (!delivered && opts.ctx) await releaseDm(opts.ctx.userId) // failed sends are not billed
   }
 
   return { nodeId: stopNode, sentTexts }
