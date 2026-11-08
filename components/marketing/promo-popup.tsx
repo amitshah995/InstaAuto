@@ -10,6 +10,7 @@ import { btnPrimary, focusRing } from "./ui"
 
 const SEEN_KEY = "celra-promo-seen"
 const DEMO_EVENT = "celra:open-demo"
+const PROMO_EVENT = "celra:open-promo"
 
 const field = `h-11 w-full rounded-[5px] border border-c-line bg-c-bg px-3 text-[15px] text-c-ink placeholder:text-c-muted ${focusRing}`
 
@@ -17,6 +18,15 @@ const field = `h-11 w-full rounded-[5px] border border-c-line bg-c-bg px-3 text-
 export function DemoButton({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <button type="button" className={className} onClick={() => window.dispatchEvent(new Event(DEMO_EVENT))}>
+      {children}
+    </button>
+  )
+}
+
+/** Any button can open the early-access modal through this (it still counts as seen for this session). */
+export function PromoButton({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <button type="button" className={className} onClick={() => window.dispatchEvent(new Event(PROMO_EVENT))}>
       {children}
     </button>
   )
@@ -50,8 +60,14 @@ export function PromoPopup() {
 
   useEffect(() => {
     const open = () => { setPromo(false); setDemo(true) }
+    const openPromo = () => {
+      try { sessionStorage.setItem(SEEN_KEY, "1") } catch {}
+      setDemo(false)
+      setPromo(true)
+    }
     window.addEventListener(DEMO_EVENT, open)
-    return () => window.removeEventListener(DEMO_EVENT, open)
+    window.addEventListener(PROMO_EVENT, openPromo)
+    return () => { window.removeEventListener(DEMO_EVENT, open); window.removeEventListener(PROMO_EVENT, openPromo) }
   }, [])
 
   if (blocked) return null

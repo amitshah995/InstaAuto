@@ -113,8 +113,7 @@ export const MENUS: MenuDef[] = [
         page: p("Help center", "Step by step guides for setting up your first automation. We are writing them now.", ["Connect your account", "Set up your first keyword", "Fix common issues"], "Coming soon") },
       { title: "Tutorials", sub: "Learn by doing", icon: GraduationCap, href: "/resources/tutorials",
         page: p("Tutorials", "Short walkthroughs for flows, templates and reports.", ["Comment-to-DM in five minutes", "Build a lead magnet flow", "Read your funnel report"], "Coming soon") },
-      { title: "Blog", sub: "Ideas for Instagram growth", icon: Newspaper, href: "/resources/blog",
-        page: p("Blog", "Practical writing on getting more from your comments and DMs.", ["Playbooks you can copy", "Product updates", "No hype, just how-tos"], "Coming soon") },
+      { title: "Blog", sub: "Ideas for Instagram growth", icon: Newspaper, href: "/blog" },
       { title: "Flow templates", sub: "Ready-made DM flows", icon: LayoutTemplate, href: "/flow-templates" },
       { title: "Audit tool", sub: "Free profile check", icon: ClipboardCheck, href: "/instagram-audit" },
       { title: "Case studies", sub: "How others use Celra", icon: FileText, href: "/resources/case-studies",
@@ -169,6 +168,7 @@ export const FOOTER_COLUMNS: { title: string; links: { label: string; href: stri
   ] },
   { title: "Resources", links: [
     { label: "Help center", href: "/resources/help-center" },
+    { label: "Blog", href: "/blog" },
     { label: "Tutorials", href: "/resources/tutorials" },
     { label: "Flow templates", href: "/flow-templates" },
     { label: "Changelog", href: "/resources/changelog" },
