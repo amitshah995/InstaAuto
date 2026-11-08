@@ -75,7 +75,7 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
     window.addEventListener("resize", resize)
 
     const colors = [
-      "#4285F4", "#EA4335", "#FBBC05", "#34A853",
+      "#515BD4", "#DD2A7B", "#FEDA77", "#F58529",
       "#E1306C", "#833AB4", "#F77737", "#FFD700",
       "#00E5FF", "#A142F4",
     ]
@@ -219,7 +219,7 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
 
       {/* Subtle gradient background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1a73e8]/5 via-transparent to-[#34A853]/5" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#D62976]/5 via-transparent to-[#8134AF]/5" />
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl"
           style={{
@@ -248,7 +248,7 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
               <div
                 className="absolute -inset-2 rounded-full opacity-60"
                 style={{
-                  background: "linear-gradient(135deg, #1a73e8 0%, #34A853 50%, #FBBC05 100%)",
+                  background: "linear-gradient(135deg, #E8590C 0%, #D62976 50%, #8134AF 100%)",
                   animation: "spin 4s linear infinite",
                 }}
               />
@@ -269,7 +269,7 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
                 )}
               </div>
               {/* Verified badge */}
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#1a73e8] flex items-center justify-center border-[3px] border-background shadow-lg animate-in zoom-in-50 duration-500 delay-300">
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#D62976] flex items-center justify-center border-[3px] border-background shadow-lg animate-in zoom-in-50 duration-500 delay-300">
                 <Check className="w-4 h-4 text-white" />
               </div>
             </div>
@@ -309,7 +309,7 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
             <div className="w-full max-w-xs space-y-2 animate-in fade-in duration-700 delay-700">
               <div className="h-1 bg-secondary/80 rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#1a73e8] via-[#34A853] to-[#FBBC05]"
+                  className="h-full rounded-full bg-gradient-to-r from-[#E8590C] via-[#D62976] to-[#8134AF]"
                   style={{
                     width: `${progressWidth}%`,
                     transition: "width 3.5s cubic-bezier(0.4, 0, 0.2, 1)",
