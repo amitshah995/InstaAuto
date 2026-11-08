@@ -24,7 +24,7 @@ export default async function StudioPublicPage({ params }: { params: Params }) {
   }
   if (!studio) notFound()
   return (
-    <main className="min-h-screen text-foreground">
+    <div className="min-h-screen text-foreground">
       <ShopHeader handle={studio.handle} displayName={studio.displayName} bio={studio.bio} avatarUrl={studio.avatarUrl} bannerUrl={studio.bannerUrl} />
       <div className="mx-auto max-w-6xl px-4 pb-16">
         <ShopTabs handle={studio.handle} active="studio" />
@@ -36,6 +36,6 @@ export default async function StudioPublicPage({ params }: { params: Params }) {
           </div>
         )}
       </div>
-    </main>
+    </div>
   )
 }

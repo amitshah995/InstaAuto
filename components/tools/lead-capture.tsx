@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { BRAND_NAME } from "@/lib/site"
 import { CheckCircle2, Loader2, ClipboardCheck } from "lucide-react"
 
 /**
@@ -35,10 +36,10 @@ export function LeadCapture({ tool, context, headline, text, button }: { tool: s
   }
 
   return (
-    <section className="au-card" style={{ display: "grid", gap: 14, borderColor: "rgba(255,59,82,.28)", background: "linear-gradient(180deg, rgba(255,59,82,.07), var(--au-card) 60%)" }} aria-labelledby={`lead-${tool}`}>
+    <section className="au-card" style={{ display: "grid", gap: 14, borderColor: "color-mix(in srgb,var(--au-red) 28%,transparent)", background: "var(--au-tile)" }} aria-labelledby={`lead-${tool}`}>
       {state === "done" ? (
         <div style={{ display: "grid", gap: 12 }}>
-          <p style={{ display: "flex", alignItems: "center", gap: 8, color: "#3ddc6b", fontWeight: 600 }}><CheckCircle2 size={18} /> Thanks! We will reach out soon.</p>
+          <p style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--au-green)", fontWeight: 600 }}><CheckCircle2 size={18} /> Thanks! We will reach out soon.</p>
           <p className="au-muted" style={{ fontSize: 14 }}>While you wait, get your free Instagram audit. It takes about a minute.</p>
           <div><Link href="/instagram-audit" className="au-btn" style={{ padding: "11px 24px", fontSize: 15 }}><ClipboardCheck size={16} /> Run my free audit</Link></div>
         </div>
@@ -58,7 +59,7 @@ export function LeadCapture({ tool, context, headline, text, button }: { tool: s
             <input tabIndex={-1} autoComplete="off" aria-hidden="true" value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} name="website" />
             <label className="au-muted" style={{ display: "flex", gap: 8, fontSize: 12 }}>
               <input type="checkbox" checked={f.consent} onChange={(e) => setF({ ...f, consent: e.target.checked })} style={{ marginTop: 2 }} />
-              <span>I agree to be contacted by DMSpark about this and related services. See the <Link href="/privacy" className="au-link">privacy policy</Link>.</span>
+              <span>I agree to be contacted by {BRAND_NAME} about this and related services. See the <Link href="/privacy" className="au-link">privacy policy</Link>.</span>
             </label>
             {error && <p role="alert" className="au-err">{error}</p>}
             <div>

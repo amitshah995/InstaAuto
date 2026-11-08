@@ -173,7 +173,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">
                             <h3 className="font-bold text-foreground text-sm truncate">@{recipientName}</h3>
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-brand/10 border border-brand/20 text-brand">
                                 <UserCheck className="w-2.5 h-2.5" />
                                 Human Agent
                             </span>
@@ -192,7 +192,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                         className={cn(
                             "h-8 rounded-full text-[11px] font-bold gap-1.5 px-3",
                             humanHandled
-                                ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"
+                                ? "bg-primary hover:bg-primary/90 text-primary-foreground border-primary/40"
                                 : "text-muted-foreground border-border hover:bg-secondary"
                         )}
                         title={humanHandled ? "Bot is paused — click to resume automations" : "Pause automations and take over manually"}
@@ -254,7 +254,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                                 onClick={() => handleSendMessage(auto.response_content?.message || auto.name)}
                                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-secondary text-sm text-foreground transition-colors flex items-center gap-2 cursor-pointer font-medium"
                             >
-                                <Zap className="w-3 h-3 text-yellow-500" />
+                                <Zap className="w-3 h-3 text-warn" />
                                 <span className="truncate">{auto.name}</span>
                             </button>
                         ))}
@@ -270,11 +270,11 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                 {/* Human Support Desk Status Bar */}
                 <div className="flex items-center justify-between px-1 pb-2 text-[11px]">
                     <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
                         <span className="font-semibold text-foreground">Live Human Support Desk</span>
                         <span className="text-muted-foreground/70 hidden sm:inline">• Replying as @{currentUsername || "business"}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 font-medium">
+                    <div className="flex items-center gap-1 text-[10px] text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20 font-medium">
                         <UserCheck className="w-2.5 h-2.5" />
                         <span>Tag: HUMAN_AGENT (Extended 7-Day Window)</span>
                     </div>
@@ -285,7 +285,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                         size="icon"
                         variant="ghost"
                         onClick={() => setIsAutomationOpen(!isAutomationOpen)}
-                        className={cn("h-9 w-9 hover:bg-secondary text-muted-foreground hover:text-yellow-500 transition-colors shrink-0 cursor-pointer", isAutomationOpen && "text-yellow-500 bg-yellow-500/10")}
+                        className={cn("h-9 w-9 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer", isAutomationOpen && "text-warn bg-primary/10")}
                     >
                         <Zap className="w-5 h-5" />
                     </Button>

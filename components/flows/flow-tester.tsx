@@ -55,14 +55,14 @@ export function FlowTester({ graph, account = "your_brand" }: { graph: FlowGraph
                       <button
                         key={k}
                         onClick={() => send(k)}
-                        style={{ border: "1px solid #dbdbdb", borderRadius: 16, padding: "4px 11px", fontSize: 12, fontWeight: 600, color: "#3d7bf7", background: "#fff" }}
+                        style={{ border: "1px solid var(--border)", borderRadius: 16, padding: "4px 11px", fontSize: 12, fontWeight: 600, color: "var(--brand)", background: "var(--card)" }}
                       >
                         {k}
                       </button>
                     ))}
                   </div>
                 )}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #dbdbdb", borderRadius: 22, padding: "4px 6px 4px 14px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid var(--border)", borderRadius: 22, padding: "4px 6px 4px 14px" }}>
                   <input
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
@@ -75,7 +75,7 @@ export function FlowTester({ graph, account = "your_brand" }: { graph: FlowGraph
                     onClick={() => send()}
                     disabled={result.finished || !draft.trim()}
                     aria-label="Send"
-                    style={{ border: 0, background: "transparent", color: "#3d7bf7", opacity: result.finished || !draft.trim() ? 0.35 : 1, display: "grid", placeItems: "center", padding: 6 }}
+                    style={{ border: 0, background: "transparent", color: "var(--brand)", opacity: result.finished || !draft.trim() ? 0.35 : 1, display: "grid", placeItems: "center", padding: 6 }}
                   >
                     <Send size={16} />
                   </button>

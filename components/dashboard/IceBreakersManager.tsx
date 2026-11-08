@@ -77,7 +77,7 @@ export function IceBreakersManager() {
     }
 
     if (isLoading || (fetching && !breakers.length)) {
-        return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-purple-500" /></div>
+        return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-brand" /></div>
     }
 
     return (
@@ -89,7 +89,7 @@ export function IceBreakersManager() {
                         Questions people see when they start a chat with you.
                     </p>
                 </div>
-                <Button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700 text-white">
+                <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                     {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                     Save & Sync
                 </Button>
@@ -125,7 +125,7 @@ export function IceBreakersManager() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleRemove(idx)}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </Button>
@@ -146,7 +146,7 @@ export function IceBreakersManager() {
                 )}
             </div>
 
-            <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl flex gap-3 text-sm text-blue-200">
+            <div className="bg-brand/10 border border-brand/20 p-4 rounded-xl flex gap-3 text-sm text-brand">
                 <RefreshCw className="w-5 h-5 shrink-0" />
                 <p>
                     Changes made here are automatically synced to your Instagram Profile. It may take a few minutes for them to appear for all users.

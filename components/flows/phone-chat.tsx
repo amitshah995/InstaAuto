@@ -1,9 +1,9 @@
 import type { SimLine } from "@/lib/flows/engine"
 
 /**
- * Presentational Instagram-DM style phone preview. No hooks, so it works in both
+ * Presentational DM-style phone preview, drawn in Celra colours. No hooks, so it works in both
  * server pages (public templates) and the interactive builder test panel.
- * Visual approximation only: it is not Instagram's real UI.
+ * Visual approximation only: it is not any platform's real UI.
  */
 export function PhoneChat({
   lines,
@@ -25,44 +25,44 @@ export function PhoneChat({
         margin: "0 auto",
         borderRadius: 38,
         padding: 10,
-        background: "#111",
+        background: "var(--foreground)",
         boxShadow: "0 18px 50px rgba(0,0,0,.28)",
       }}
     >
-      <div style={{ borderRadius: 30, overflow: "hidden", background: "#fff", color: "#111", display: "flex", flexDirection: "column" }}>
+      <div style={{ borderRadius: 30, overflow: "hidden", background: "var(--card)", color: "var(--foreground)", display: "flex", flexDirection: "column" }}>
         {/* status notch */}
-        <div style={{ height: 22, display: "flex", justifyContent: "center", alignItems: "center", background: "#fff" }}>
-          <span style={{ width: 70, height: 6, borderRadius: 6, background: "#111" }} />
+        <div style={{ height: 22, display: "flex", justifyContent: "center", alignItems: "center", background: "var(--card)" }}>
+          <span style={{ width: 70, height: 6, borderRadius: 6, background: "var(--foreground)" }} />
         </div>
         {/* header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 14px 10px", borderBottom: "1px solid #eee" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 14px 10px", borderBottom: "1px solid var(--border)" }}>
           <span style={{ fontSize: 18, lineHeight: 1 }}>‹</span>
           <span
             style={{
               width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center",
-              color: "#fff", fontWeight: 800, fontSize: 14,
-              background: "linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7)",
+              color: "var(--brand-foreground)", fontWeight: 800, fontSize: 14,
+              background: "var(--brand)",
             }}
           >
             {initial}
           </span>
           <span style={{ display: "grid", lineHeight: 1.2 }}>
             <b style={{ fontSize: 13 }}>{account}</b>
-            <span style={{ fontSize: 11, color: "#8e8e8e" }}>Active now</span>
+            <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>Active now</span>
           </span>
         </div>
         {/* messages */}
-        <div style={{ height, overflowY: "auto", padding: "12px 12px 8px", display: "flex", flexDirection: "column", gap: 6, background: "#fff" }}>
+        <div style={{ height, overflowY: "auto", padding: "12px 12px 8px", display: "flex", flexDirection: "column", gap: 6, background: "var(--card)" }}>
           {lines.map((l, i) =>
             l.from === "system" ? (
-              <span key={i} style={{ alignSelf: "center", fontSize: 10.5, color: "#8e8e8e", margin: "2px 0" }}>{l.text}</span>
+              <span key={i} style={{ alignSelf: "center", fontSize: 10.5, color: "var(--muted-foreground)", margin: "2px 0" }}>{l.text}</span>
             ) : l.from === "user" ? (
               <span
                 key={i}
                 style={{
                   alignSelf: "flex-end", maxWidth: "78%", padding: "8px 13px", borderRadius: 20, borderBottomRightRadius: 6,
-                  fontSize: 13.5, color: "#fff", whiteSpace: "pre-wrap", wordBreak: "break-word",
-                  background: "linear-gradient(135deg,#7b3ff2,#3d7bf7)",
+                  fontSize: 13.5, color: "var(--brand-foreground)", whiteSpace: "pre-wrap", wordBreak: "break-word",
+                  background: "var(--brand)",
                 }}
               >
                 {l.text}
@@ -72,8 +72,8 @@ export function PhoneChat({
                 <span
                   style={{
                     width: 20, height: 20, flex: "none", borderRadius: "50%", display: "grid", placeItems: "center",
-                    color: "#fff", fontWeight: 800, fontSize: 9,
-                    background: "linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7)",
+                    color: "var(--brand-foreground)", fontWeight: 800, fontSize: 9,
+                    background: "var(--brand)",
                   }}
                 >
                   {initial}
@@ -81,7 +81,7 @@ export function PhoneChat({
                 <span
                   style={{
                     padding: "8px 13px", borderRadius: 20, borderBottomLeftRadius: 6, fontSize: 13.5,
-                    background: "#efefef", color: "#111", whiteSpace: "pre-wrap", wordBreak: "break-word",
+                    background: "var(--muted)", color: "var(--foreground)", whiteSpace: "pre-wrap", wordBreak: "break-word",
                   }}
                 >
                   {l.text}
@@ -90,7 +90,7 @@ export function PhoneChat({
             ),
           )}
         </div>
-        {footer && <div style={{ borderTop: "1px solid #eee", padding: "8px 10px 12px", background: "#fff" }}>{footer}</div>}
+        {footer && <div style={{ borderTop: "1px solid var(--border)", padding: "8px 10px 12px", background: "var(--card)" }}>{footer}</div>}
       </div>
     </div>
   )

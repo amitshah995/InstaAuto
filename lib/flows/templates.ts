@@ -13,8 +13,8 @@ export type FlowTemplate = {
 }
 
 const COMMON_FAQ: [string, string][] = [
-  ["Does this work on any Instagram account?", "It works on Instagram professional accounts (Business or Creator) connected to DMSpark through the official Instagram API."],
-  ["Can I change the messages?", "Yes. Open the flow in the DMSpark builder, edit any message, branch or tag, and test it before it goes live."],
+  ["Does this work on any Instagram account?", "It works on Instagram professional accounts (Business or Creator) connected to Celra through the official Instagram API."],
+  ["Can I change the messages?", "Yes. Open the flow in the Celra builder, edit any message, branch or tag, and test it before it goes live."],
 ]
 
 export const FLOW_TEMPLATES: FlowTemplate[] = [

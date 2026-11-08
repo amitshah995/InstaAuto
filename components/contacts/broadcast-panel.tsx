@@ -74,7 +74,7 @@ export function BroadcastPanel({ segment }: { segment: Segment }) {
           {counts.outsideWindow > 0 && <p className="text-muted-foreground">{counts.outsideWindow} skipped: last message was over 24 hours ago</p>}
           {counts.humanHandled > 0 && <p className="text-muted-foreground">{counts.humanHandled} skipped: handled by a person</p>}
           {counts.overCap > 0 && <p className="text-muted-foreground">{counts.overCap} more not included (100 per send)</p>}
-          {done && <p className="font-bold text-emerald-600">Sent {counts.sent}, failed {counts.failed}</p>}
+          {done && <p className="font-bold text-brand">Sent {counts.sent}, failed {counts.failed}</p>}
         </div>
       )}
       {error && <p className="text-xs text-destructive font-semibold">{error}</p>}

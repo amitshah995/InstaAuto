@@ -185,7 +185,7 @@ export default function ShopSettings({ onChanged }: { onChanged?: () => void }) 
         </div>
       )}
       {error && <p className="text-xs text-destructive font-semibold">{error}</p>}
-      {msg && <p className="text-xs text-green-600 font-semibold">{msg}</p>}
+      {msg && <p className="text-xs text-brand font-semibold">{msg}</p>}
       <div className="flex gap-2">
         <Button disabled={saving || !handle} onClick={() => save(true)} className="rounded-xl font-bold">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : published ? "Save" : "Publish"}

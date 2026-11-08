@@ -56,16 +56,9 @@ export function CelebrationAnimation({
     resize()
     window.addEventListener("resize", resize)
 
-    // Google palette colors + celebration golds & purples
+    // Celra palette
     const colors = [
-      "#515BD4", // Instagram indigo
-      "#DD2A7B", // Instagram pink
-      "#FEDA77", // Instagram yellow
-      "#F58529", // Instagram orange
-      "#FF6D00", // Vibrant Orange
-      "#A142F4", // Neon Purple
-      "#00E5FF", // Cyan Sparkle
-      "#FFD700", // Gold
+      "#0B5C6E", "#FF6F4D", "#46C8D0", "#FF8466", "#0E2A33", "#5FA3AF", "#B5D3D7", "#FFB4A1",
     ]
 
     const particles: Particle[] = []
@@ -211,12 +204,12 @@ export function CelebrationAnimation({
 
           {/* Glowing Animated Sparkle Badge */}
           <div className="relative inline-flex items-center justify-center">
-            <div className="w-18 h-18 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-500/15 animate-bounce">
-              <Sparkles className="w-9 h-9 text-emerald-500 animate-pulse" />
+            <div className="w-18 h-18 rounded-3xl bg-brand/10 border border-brand/30 flex items-center justify-center shadow-lg shadow-black/5 animate-bounce">
+              <Sparkles className="w-9 h-9 text-brand animate-pulse" />
             </div>
             <span className="absolute -top-1 -right-1 flex h-4 w-4">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75" />
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-brand" />
             </span>
           </div>
 
@@ -242,13 +235,13 @@ export function CelebrationAnimation({
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                    <Zap className="w-5 h-5 text-[#D62976]" />
+                    <Zap className="w-5 h-5 text-brand" />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-foreground truncate">{postTitle}</p>
-                  <p className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  <p className="text-[10px] text-brand font-semibold flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand animate-ping" />
                     Listening for comments
                   </p>
                 </div>
@@ -264,7 +257,7 @@ export function CelebrationAnimation({
                   {keywords.split(",").map((k, i) => (
                     <span
                       key={i}
-                      className="px-2 py-0.5 rounded-md bg-[#D62976]/10 text-[#D62976] text-xs font-bold"
+                      className="px-2 py-0.5 rounded-md bg-brand/10 text-brand text-xs font-bold"
                     >
                       {k.trim()}
                     </span>
@@ -288,7 +281,7 @@ export function CelebrationAnimation({
           {/* Action Button */}
           <button
             onClick={onClose}
-            className="w-full h-12 rounded-2xl bg-[#D62976] hover:bg-[#B8225F] text-white font-bold text-sm shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-none transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>Awesome, Got It!</span>
             <ArrowRight className="w-4 h-4" />

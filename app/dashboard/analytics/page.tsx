@@ -134,8 +134,8 @@ export default function AnalyticsPage() {
     }
 
     const pieData = [
-        { name: "Comments", value: commentsPercentage, color: "oklch(0.52 0.19 275)" },
-        { name: "Direct DMs", value: dmsPercentage, color: "oklch(0.68 0.18 280)" }
+        { name: "Comments", value: commentsPercentage, color: "var(--chart-1)" },
+        { name: "Direct DMs", value: dmsPercentage, color: "var(--chart-2)" }
     ]
 
     // 2. Top Trigger Keywords leaderboard in timeframe
@@ -326,25 +326,25 @@ export default function AnalyticsPage() {
                     title="Total Replies Sent" 
                     value={messagesSentVal.toString()} 
                     trend="+18.2% vs last week"
-                    icon={<MessageSquare className="w-5 h-5 text-indigo-500" />}
+                    icon={<MessageSquare className="w-5 h-5 text-brand" />}
                 />
                 <MiniMetricCard 
                     title="Audience Reached" 
                     value={audienceVal.toString()} 
                     trend="+12.4% new users"
-                    icon={<Users className="w-5 h-5 text-pink-500" />}
+                    icon={<Users className="w-5 h-5 text-brand" />}
                 />
                 <MiniMetricCard 
                     title="Active Automations" 
                     value={`${activeVal}/${automationsVal}`} 
                     trend="All systems nominal"
-                    icon={<Zap className="w-5 h-5 text-amber-500" />}
+                    icon={<Zap className="w-5 h-5 text-warn" />}
                 />
                 <MiniMetricCard 
                     title="Conversion Rate" 
                     value={triggerMessages.length > 0 ? Math.round((messagesSentVal / triggerMessages.length) * 100) + "%" : "0%"} 
                     trend="Highly optimized replies"
-                    icon={<TrendingUp className="w-5 h-5 text-green-500" />}
+                    icon={<TrendingUp className="w-5 h-5 text-brand" />}
                 />
             </div>
 
@@ -375,7 +375,7 @@ export default function AnalyticsPage() {
                                         </button>
                                     ))}
                                 </div>
-                                <span className="flex items-center gap-1 text-xs text-emerald-500 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-full shrink-0">
+                                <span className="flex items-center gap-1 text-xs text-brand font-semibold bg-brand/10 px-2.5 py-1 rounded-full shrink-0">
                                     <TrendingUp className="w-3.5 h-3.5" /> +15.4%
                                 </span>
                             </div>
@@ -383,14 +383,8 @@ export default function AnalyticsPage() {
                         <div className="h-72 w-full mt-4">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="colorMessages" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="oklch(0.52 0.19 275)" stopOpacity={0.4}/>
-                                            <stop offset="95%" stopColor="oklch(0.52 0.19 275)" stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <XAxis dataKey="name" stroke="oklch(0.65 0.01 260)" fontSize={11} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="oklch(0.65 0.01 260)" fontSize={11} tickLine={false} axisLine={false} />
+                                    <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                                     <Tooltip 
                                         contentStyle={{ 
                                             backgroundColor: "var(--card)", 
@@ -401,7 +395,7 @@ export default function AnalyticsPage() {
                                             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)"
                                         }} 
                                     />
-                                    <Area type="monotone" dataKey="messages" stroke="oklch(0.52 0.19 275)" strokeWidth={2.5} fillOpacity={1} fill="url(#colorMessages)" name="Automations" />
+                                    <Area type="monotone" dataKey="messages" stroke="var(--chart-1)" strokeWidth={2.5} fillOpacity={0.12} fill="var(--chart-1)" name="Automations" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
@@ -484,7 +478,7 @@ export default function AnalyticsPage() {
                                     </div>
                                     <div className="text-right">
                                         <span className="text-sm font-bold text-foreground block">{kw.count} hits</span>
-                                        <span className="text-[10px] text-emerald-500 font-semibold">{kw.rate} success</span>
+                                        <span className="text-[10px] text-brand font-semibold">{kw.rate} success</span>
                                     </div>
                                 </div>
                             ))}
@@ -536,16 +530,16 @@ export default function AnalyticsPage() {
 
                                     if (isComment) {
                                         badgeText = "Comment Trigger";
-                                        badgeStyle = "bg-pink-500/10 text-pink-500 border border-pink-500/20";
-                                        iconElement = <MessageSquare className="w-3.5 h-3.5 text-pink-500" />;
+                                        badgeStyle = "bg-brand/10 text-brand border border-brand/20";
+                                        iconElement = <MessageSquare className="w-3.5 h-3.5 text-brand" />;
                                     } else if (isDM) {
                                         badgeText = "DM Trigger";
-                                        badgeStyle = "bg-indigo-500/10 text-indigo-500 border border-indigo-500/20";
-                                        iconElement = <Zap className="w-3.5 h-3.5 text-indigo-500" />;
+                                        badgeStyle = "bg-brand/10 text-brand border border-brand/20";
+                                        iconElement = <Zap className="w-3.5 h-3.5 text-brand" />;
                                     } else {
                                         badgeText = "Auto-Reply";
-                                        badgeStyle = "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20";
-                                        iconElement = <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />;
+                                        badgeStyle = "bg-brand/10 text-brand border border-brand/20";
+                                        iconElement = <TrendingUp className="w-3.5 h-3.5 text-brand" />;
                                     }
 
                                     return (
@@ -555,8 +549,8 @@ export default function AnalyticsPage() {
                                         >
                                             <div className="flex items-center gap-3 min-w-0 flex-1">
                                                 <div className="relative">
-                                                    <span className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping opacity-75" style={{ animationDuration: '2s' }} />
-                                                    <span className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+                                                    <span className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 bg-brand rounded-full animate-ping opacity-75" style={{ animationDuration: '2s' }} />
+                                                    <span className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 bg-brand rounded-full" />
                                                 </div>
                                                 <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center border border-border/80 shrink-0">
                                                     {iconElement}
@@ -610,8 +604,8 @@ export default function AnalyticsPage() {
 function MiniMetricCard({ title, value, trend, icon }: { title: string, value: string, trend: string, icon: React.ReactNode }) {
     return (
         <Card className="group relative p-3 md:p-6 bg-card border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden gap-2 md:gap-4">
-            {/* Radial gradient glow on hover */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,oklch(0.52_0.19_275_/_0.08),transparent_70%)]" />
+            {/* Hover tint */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-brand/5" />
             <div className="relative space-y-1 md:space-y-2 flex-1 min-w-0">
                 <span className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider leading-tight block">{title}</span>
                 <h3 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">{value}</h3>
@@ -630,7 +624,7 @@ function PerformanceRow({ name, count, success }: { name: string, count: number,
             <span className="text-xs font-semibold text-foreground">{name}</span>
             <div className="flex gap-20 mr-6 text-xs">
                 <span className="font-bold text-foreground">{count}</span>
-                <span className="font-bold text-emerald-500">{success}</span>
+                <span className="font-bold text-brand">{success}</span>
             </div>
         </div>
     )

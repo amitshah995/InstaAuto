@@ -3,6 +3,7 @@ import Link from "next/link"
 import { AuditForm } from "@/components/audit/audit-form"
 import { AuditShell } from "@/components/audit/audit-theme"
 import { User, CalendarClock, Heart, LayoutGrid, Hash, MessageCircle } from "lucide-react"
+import { BRAND_NAME } from "@/lib/site"
 
 export const metadata: Metadata = {
   title: "Free Instagram Audit",
@@ -37,7 +38,7 @@ export default function InstagramAuditPage() {
         <p className="au-muted" style={{ fontSize: 12, margin: "18px auto 0", maxWidth: 620 }}>
           Switching to a Professional account is free. You sign in on Instagram, so we never see your password. The audit
           only reads your profile and recent posts; we do not post anything. Instagram will also list the permissions
-          DMSpark uses for comment and DM automation.
+          {" "}{BRAND_NAME} uses for comment and DM automation.
         </p>
       </section>
 
@@ -55,7 +56,7 @@ export default function InstagramAuditPage() {
           ))}
         </ul>
         <p className="au-muted" style={{ textAlign: "center", fontSize: 14, marginTop: 40 }}>
-          Built by <Link href="/" style={{ color: "#fff", textDecoration: "underline" }}>DMSpark</Link>, the Instagram automation
+          Built by <Link href="/" className="au-link">{BRAND_NAME}</Link>, the Instagram automation
           platform for comment and DM replies.
         </p>
       </section>

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { AuditShell } from "@/components/audit/audit-theme"
 import { FLOW_TEMPLATES } from "@/lib/flows/templates"
+import { BRAND_NAME } from "@/lib/site"
 
 export const metadata: Metadata = {
   title: "Instagram DM Automation Flow Templates",
@@ -16,7 +17,7 @@ export default function FlowTemplatesHub() {
         <header style={{ textAlign: "center", display: "grid", gap: 14, justifyItems: "center" }}>
           <span className="au-pill">{FLOW_TEMPLATES.length} flow templates</span>
           <h1 className="au-head" style={{ fontSize: "clamp(32px,6vw,52px)", lineHeight: 1.1, fontWeight: 800, maxWidth: 760 }}>Instagram DM flow templates</h1>
-          <p className="au-muted" style={{ fontSize: 18, maxWidth: 600 }}>Pick a flow, read the exact conversation, then use it in DMSpark and change the messages to fit your brand.</p>
+          <p className="au-muted" style={{ fontSize: 18, maxWidth: 600 }}>Pick a flow, read the exact conversation, then use it in {BRAND_NAME} and change the messages to fit your brand.</p>
         </header>
         <div className="au-grid3">
           {FLOW_TEMPLATES.map((t) => (

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       console.error("[token-sweep] failed:", e?.message)
       return null
     })
-    if (sweep?.encrypted) console.log(`[DMSpark] 🔐 Encrypted ${sweep.encrypted} stored token(s)`)
+    if (sweep?.encrypted) console.log(`[Celra] 🔐 Encrypted ${sweep.encrypted} stored token(s)`)
 
     // Find tokens expiring within the next 7 days
     const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -46,11 +46,11 @@ export async function GET(request: NextRequest) {
       .lte("token_expires_at", sevenDaysFromNow)
 
     if (!expiringUsers || expiringUsers.length === 0) {
-      console.log("[DMSpark] ✅ No tokens need refreshing")
+      console.log("[Celra] ✅ No tokens need refreshing")
       return NextResponse.json({ refreshed: 0, message: "No tokens expiring soon" })
     }
 
-    console.log(`[DMSpark] 🔄 Found ${expiringUsers.length} tokens to refresh`)
+    console.log(`[Celra] 🔄 Found ${expiringUsers.length} tokens to refresh`)
 
     let refreshed = 0
     let failed = 0
@@ -82,21 +82,21 @@ export async function GET(request: NextRequest) {
             .eq("id", user.id)
 
           refreshed++
-          console.log(`[DMSpark] ✅ Token refreshed for @${user.username}`)
+          console.log(`[Celra] ✅ Token refreshed for @${user.username}`)
           results.push({ user: user.username, status: "refreshed" })
         } else {
           failed++
-          console.error(`[DMSpark] ❌ Token refresh failed for @${user.username}:`, data.error || data)
+          console.error(`[Celra] ❌ Token refresh failed for @${user.username}:`, data.error || data)
           results.push({ user: user.username, status: "failed", error: data.error?.message || "Unknown error" })
         }
       } catch (err: any) {
         failed++
-        console.error(`[DMSpark] ❌ Network error refreshing @${user.username}:`, err.message)
+        console.error(`[Celra] ❌ Network error refreshing @${user.username}:`, err.message)
         results.push({ user: user.username, status: "error", error: err.message })
       }
     }
 
-    console.log(`[DMSpark] 🔄 Token refresh complete: ${refreshed} refreshed, ${failed} failed`)
+    console.log(`[Celra] 🔄 Token refresh complete: ${refreshed} refreshed, ${failed} failed`)
 
     return NextResponse.json({
       refreshed,
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
       results,
     })
   } catch (error: any) {
-    console.error("[DMSpark] ❌ Token refresh cron error:", error)
+    console.error("[Celra] ❌ Token refresh cron error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

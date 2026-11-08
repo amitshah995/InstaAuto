@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { rawQuery } from "@/lib/supabase-server"
 import { getFollowerSeries, getReportStats } from "@/lib/reports"
 import { FollowerChart } from "@/components/reports/FollowerChart"
+import { PageShell } from "@/components/marketing/page-shell"
 
 export const dynamic = "force-dynamic"
 export const metadata: Metadata = { title: "Instagram growth report", robots: { index: false, follow: false } }
@@ -34,21 +35,22 @@ export default async function PublicReport({ params }: { params: Promise<{ slug:
   ]
 
   return (
-    <main className="min-h-screen font-sans bg-gradient-to-br from-fuchsia-50 via-white to-orange-50 px-4 py-10 text-neutral-900">
+    <PageShell strip={false}>
+    <div className="text-c-ink px-4 py-10  min-h-[60vh]">
       <div className="mx-auto max-w-3xl space-y-6">
         <header>
-          <p className="text-xs font-semibold uppercase tracking-widest text-fuchsia-600">Last 30 days</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-c-brand">Last 30 days</p>
           <h1 className="text-2xl font-bold sm:text-3xl">{row.title || `Instagram report${row.username ? ` · @${row.username}` : ""}`}</h1>
         </header>
 
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-c-line bg-c-surface p-5 ">
           <div className="mb-3 flex items-end justify-between">
             <div>
-              <p className="text-sm text-neutral-500">Followers</p>
+              <p className="text-sm text-c-muted">Followers</p>
               <p className="text-3xl font-bold">{last !== undefined ? last.toLocaleString("en-IN") : "—"}</p>
             </div>
             {delta !== null && (
-              <p className={`text-sm font-semibold ${delta >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+              <p className={`text-sm font-semibold ${delta >= 0 ? "text-c-brand" : "text-destructive"}`}>
                 {delta >= 0 ? "+" : ""}
                 {delta.toLocaleString("en-IN")} in {series.length} days
               </p>
@@ -59,15 +61,16 @@ export default async function PublicReport({ params }: { params: Promise<{ slug:
 
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {tiles.map((t) => (
-            <div key={t.label} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+            <div key={t.label} className="rounded-xl border border-c-line bg-c-surface p-4 ">
               <p className="text-2xl font-bold">{t.value.toLocaleString("en-IN")}</p>
-              <p className="text-xs text-neutral-500">{t.label}</p>
+              <p className="text-xs text-c-muted">{t.label}</p>
             </div>
           ))}
         </section>
 
-        <p className="text-center text-xs text-neutral-400">Live numbers from the connected Instagram account. No personal data of followers is shown.</p>
+        <p className="text-center text-xs text-c-muted">Live numbers from the connected Instagram account. No personal data of followers is shown.</p>
       </div>
-    </main>
+    </div>
+    </PageShell>
   )
 }

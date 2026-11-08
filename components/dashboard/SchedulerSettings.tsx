@@ -146,13 +146,13 @@ export function SchedulerSettings({ userId }: SchedulerSettingsProps) {
             </div>
 
             {nextRun && (
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-start gap-3">
-                    <Clock className="w-5 h-5 text-blue-400 mt-0.5" />
+                <div className="bg-brand/10 border border-brand/20 rounded-lg p-3 flex items-start gap-3">
+                    <Clock className="w-5 h-5 text-brand mt-0.5" />
                     <div>
-                        <p className="text-sm text-blue-200 font-medium">
+                        <p className="text-sm text-brand font-medium">
                             Next scheduled run: {new Date(nextRun).toLocaleString()}
                         </p>
-                        <p className="text-xs text-blue-300/70">
+                        <p className="text-xs text-brand/70">
                             Next Clip Sequence: #{currentIndex}
                         </p>
                     </div>
@@ -165,9 +165,9 @@ export function SchedulerSettings({ userId }: SchedulerSettingsProps) {
                 </Button>
             </div>
 
-            <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-lg p-3 flex gap-3 items-center">
-                <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                <p className="text-xs text-yellow-200/80">
+            <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 flex gap-3 items-center">
+                <AlertTriangle className="w-5 h-5 text-warn" />
+                <p className="text-xs text-warn">
                     Note: This automation requires the application to remain active or a background cron job to be configured hitting <code>/api/scheduler</code>.
                 </p>
             </div>

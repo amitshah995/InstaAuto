@@ -11,16 +11,16 @@ const CSS = `
 .ht-grid{display:grid;gap:8px;grid-template-columns:1fr}
 @media(min-width:560px){.ht-grid{grid-template-columns:1fr 1fr}}
 @media(min-width:900px){.ht-grid{grid-template-columns:repeat(3,1fr)}}
-.ht-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:12px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid var(--au-line);cursor:pointer;min-height:46px}
-.ht-row:hover{border-color:rgba(255,59,82,.4)}
-.ht-row.on{background:rgba(255,59,82,.1);border-color:rgba(255,59,82,.5)}
+.ht-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:12px;padding:10px 12px;background:var(--au-tile);border:1px solid var(--au-line);cursor:pointer;min-height:46px}
+.ht-row:hover{border-color:color-mix(in srgb,var(--au-red) 40%,transparent)}
+.ht-row.on{background:color-mix(in srgb,var(--au-red) 10%,transparent);border-color:color-mix(in srgb,var(--au-red) 50%,transparent)}
 .ht-row.off{opacity:.45;cursor:not-allowed}
-.ht-tag{color:#ff8a99;font-weight:600;overflow-wrap:anywhere}
+.ht-tag{color:var(--au-brand);font-weight:600;overflow-wrap:anywhere}
 .ht-rank{font-size:12px;color:var(--au-muted);margin-left:auto}
-.ht-box{width:18px;height:18px;accent-color:#ff3b52;flex:none}
-.ht-tray{position:sticky;top:8px;z-index:5;background:#101016;border:1px solid rgba(255,59,82,.35);border-radius:18px;padding:14px 16px;display:grid;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.ht-box{width:18px;height:18px;accent-color:var(--au-red);flex:none}
+.ht-tray{position:sticky;top:8px;z-index:5;background:var(--au-card);border:1px solid color-mix(in srgb,var(--au-red) 35%,transparent);border-radius:18px;padding:14px 16px;display:grid;gap:10px;box-shadow:0 10px 30px var(--au-ink)}
 .ht-chips{display:flex;flex-wrap:wrap;gap:8px}
-.ht-x{border:0;background:rgba(0,0,0,.4);color:#fff;border-radius:99px;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.ht-x{border:0;background:var(--au-ink);color:var(--c-bg);border-radius:99px;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 `
 
 function useSelection() {

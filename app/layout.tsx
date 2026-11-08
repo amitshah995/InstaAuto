@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { getSiteUrl, BRAND_NAME } from "@/lib/site"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans", display: "swap" })
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" })
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: "swap" })
 
 export const metadata: Metadata = {
@@ -20,29 +20,6 @@ export const metadata: Metadata = {
   description:
     `${BRAND_NAME} sends the price, link or details to anyone who comments on your reel, automatically, through the official Instagram API. Includes a free Instagram audit.`,
   keywords: [
-    // Brand keywords — exact match variations
-    "DMSpark",
-    "dmspark",
-    "dmspark.in",
-    "dm spark",
-    "DM Spark",
-    "DMspark",
-    "DMSPARK",
-    "dmspark in",
-    "dmSpark",
-    // Brand + product keywords 
-    "dmspark instagram automation",
-    "dmspark auto reply",
-    "dmspark auto dm",
-    "dmspark bot", 
-    "dm spark instagram",
-    "dm spark auto reply",
-    "dm spark tool",
-    "dmspark app",
-    "dmspark free",
-    "dmspark login",
-    "dmspark connect instagram",
-    // Generic product keywords
     "Instagram automation",
     "Instagram auto reply",
     "Instagram DM automation",
@@ -104,7 +81,6 @@ export const metadata: Metadata = {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
       { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/logo.png", sizes: "192x192", type: "image/png" },
     ],
     apple: "/apple-icon.png",
   },
@@ -117,7 +93,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${_geist.className} ${outfit.variable} font-sans antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

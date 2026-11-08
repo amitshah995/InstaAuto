@@ -3,10 +3,14 @@
 import { useState, useEffect, useCallback } from "react"
 import { TopNavbar } from "@/components/layout/top-navbar"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
+import { CelraLogo } from "@/components/ui/celra-logo"
 import { WelcomeScreen } from "@/components/ui/welcome-screen"
 import { Loader2, Compass, Copy, Check, MoreVertical, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ActingBanner } from "@/components/team/ActingBanner"
+import { SendHealthBanner } from "@/components/dashboard/SendHealthBanner"
+import { UsageBanner } from "@/components/billing/UsageBanner"
+import { BRAND_NAME } from "@/lib/site"
 
 export default function DashboardLayout({
     children,
@@ -23,14 +27,14 @@ export default function DashboardLayout({
     // Show welcome screen for first-time connections
     useEffect(() => {
         if (!userId || !username) return
-        const welcomed = sessionStorage.getItem("dmspark_welcomed")
+        const welcomed = sessionStorage.getItem("celra_welcomed")
         if (!welcomed) {
             setShowWelcome(true)
         }
     }, [userId, username])
 
     const handleWelcomeComplete = useCallback(() => {
-        sessionStorage.setItem("dmspark_welcomed", "true")
+        sessionStorage.setItem("celra_welcomed", "true")
         setShowWelcome(false)
     }, [])
 
@@ -75,12 +79,12 @@ export default function DashboardLayout({
     if (isLoading) {
         return (
             <div className="flex h-screen items-center justify-center bg-background text-foreground">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="flex flex-col items-center gap-4"><CelraLogo variant="mark" size={44} /><Loader2 className="h-5 w-5 animate-spin text-brand" aria-label="Loading" /></div>
             </div>
         )
     }
 
-    // Show Welcome to DMSpark screen for first-time connections
+    // Show Welcome to {BRAND_NAME} screen for first-time connections
     if (showWelcome && userId && username) {
         return (
             <WelcomeScreen
@@ -94,6 +98,8 @@ export default function DashboardLayout({
     return (
         <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-300 relative">
             <ActingBanner />
+            <SendHealthBanner />
+            <UsageBanner />
             {/* Google-style Top Navigation Bar */}
             <TopNavbar
                 username={username || "User"}
@@ -114,38 +120,32 @@ export default function DashboardLayout({
 
             {/* Instagram Webview Browser Breakout Overlay */}
             {isInAppBrowser && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/98 backdrop-blur-xl p-4 sm:p-6 text-white select-none font-sans">
-                    <div className="max-w-md w-full bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl relative overflow-hidden">
-                        {/* Glowing Background Art */}
-                        <div className="absolute -top-12 -left-12 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl" />
-                        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl" />
-                        
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background p-4 sm:p-6 text-foreground select-none font-sans">
+                    <div className="max-w-md w-full bg-card border border-border rounded-2xl p-6 sm:p-8 text-center space-y-6 relative overflow-hidden">
                         <div className="relative flex flex-col items-center">
                             {/* Animated Glowing Icon Ring */}
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 animate-bounce">
-                                <Compass className="w-8 h-8 text-white animate-pulse" />
-                            </div>
+                            <CelraLogo variant="mark" size={64} />
                         </div>
 
                         <div className="space-y-2">
-                            <h2 className="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                                Almost Connected! 🚀
+                            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-brand">
+                                Almost connected
                             </h2>
-                            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
+                            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-medium">
                                 You are currently inside the Instagram App browser. To access your Dashboard securely, please open this link in your standard web browser (Safari or Chrome).
                             </p>
                         </div>
 
                         {/* Interactive Steps */}
-                        <div className="bg-slate-950/50 border border-slate-800/80 rounded-2xl p-4 text-left space-y-3.5">
-                            <div className="flex gap-3 items-start text-xs sm:text-sm text-slate-300">
-                                <span className="w-5 h-5 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black shrink-0">1</span>
+                        <div className="bg-muted border border-border rounded-2xl p-4 text-left space-y-3.5">
+                            <div className="flex gap-3 items-start text-xs sm:text-sm text-foreground">
+                                <span className="w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center text-[10px] font-black shrink-0">1</span>
                                 <p className="leading-relaxed font-semibold">
-                                    Click the **three dots menu (<MoreVertical className="inline-block w-4 h-4 text-slate-400 align-middle" />)** or **Share icon** at the top right corner of your screen.
+                                    Click the **three dots menu (<MoreVertical className="inline-block w-4 h-4 text-muted-foreground align-middle" />)** or **Share icon** at the top right corner of your screen.
                                 </p>
                             </div>
-                            <div className="flex gap-3 items-start text-xs sm:text-sm text-slate-300">
-                                <span className="w-5 h-5 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black shrink-0">2</span>
+                            <div className="flex gap-3 items-start text-xs sm:text-sm text-foreground">
+                                <span className="w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center text-[10px] font-black shrink-0">2</span>
                                 <p className="leading-relaxed font-semibold">
                                     Select **"Open in System Browser"** or **"Open in Safari"** from the options.
                                 </p>
@@ -156,22 +156,22 @@ export default function DashboardLayout({
                         <div className="pt-2">
                             <button
                                 onClick={handleCopyLink}
-                                className="w-full h-11 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700/60 font-bold text-xs uppercase tracking-wider transition-all active:scale-98 flex items-center justify-center gap-2 cursor-pointer text-white"
+                                className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground border border-primary font-bold text-xs uppercase tracking-wider transition-all active:scale-98 flex items-center justify-center gap-2 cursor-pointer text-white"
                             >
                                 {copied ? (
                                     <>
-                                        <Check className="w-4 h-4 text-green-400" /> Link Copied!
+                                        <Check className="w-4 h-4 text-brand" /> Link Copied!
                                     </>
                                 ) : (
                                     <>
-                                        <Copy className="w-4 h-4 text-slate-300" /> Copy Dashboard Link
+                                        <Copy className="w-4 h-4 text-foreground" /> Copy Dashboard Link
                                     </>
                                 )}
                             </button>
                         </div>
 
-                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                            DMSpark Secure Redirect
+                        <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                            {BRAND_NAME} Secure Redirect
                         </div>
                     </div>
                 </div>

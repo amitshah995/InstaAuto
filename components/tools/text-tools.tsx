@@ -95,7 +95,7 @@ export function GiveawayPicker() {
         <Panel title="Result" actions={<CopyButton text={record} label="Copy record" small />}>
           {res.winners.length === 0 ? <p className="au-muted">No eligible entries.</p> : (
             <div className="au-grid2">
-              <div className="au-tile"><p className="au-muted" style={{ fontSize: 12 }}>Winner{res.winners.length > 1 ? "s" : ""}</p>{res.winners.map((w) => <p key={w} className="au-head" style={{ fontSize: 22, color: "#3ddc6b" }}>@{w}</p>)}</div>
+              <div className="au-tile"><p className="au-muted" style={{ fontSize: 12 }}>Winner{res.winners.length > 1 ? "s" : ""}</p>{res.winners.map((w) => <p key={w} className="au-head" style={{ fontSize: 22, color: "var(--au-green)" }}>@{w}</p>)}</div>
               {res.backups.length > 0 && <div className="au-tile"><p className="au-muted" style={{ fontSize: 12 }}>Backup{res.backups.length > 1 ? "s" : ""}</p>{res.backups.map((w) => <p key={w} className="au-head" style={{ fontSize: 18 }}>@{w}</p>)}</div>}
             </div>
           )}

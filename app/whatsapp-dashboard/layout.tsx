@@ -4,9 +4,11 @@ import { useState, useEffect } from "react"
 import { useWhatsAppSession } from "@/hooks/use-whatsapp-session"
 import { Loader2, ChevronLeft, ChevronRight, Compass, MessageSquare, LayoutDashboard, Zap, BarChart3, Settings, LogOut } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
+import { CelraLogo } from "@/components/ui/celra-logo"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { BRAND_NAME } from "@/lib/site"
 
 export default function WhatsAppDashboardLayout({
     children,
@@ -30,7 +32,7 @@ export default function WhatsAppDashboardLayout({
     if (isLoading || !waUserId) {
         return (
             <div className="flex h-screen items-center justify-center bg-background text-foreground">
-                <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-brand" />
             </div>
         )
     }
@@ -48,46 +50,44 @@ export default function WhatsAppDashboardLayout({
                 title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
                 {isCollapsed ? (
-                    <ChevronRight className="w-3.5 h-3.5 text-emerald-500" />
+                    <ChevronRight className="w-3.5 h-3.5 text-brand" />
                 ) : (
-                    <ChevronLeft className="w-3.5 h-3.5 text-emerald-500" />
+                    <ChevronLeft className="w-3.5 h-3.5 text-brand" />
                 )}
             </button>
 
-            {/* Desktop Sidebar (Green themed for WhatsApp) */}
+            {/* Desktop Sidebar (Celra themed) */}
             <div className={cn(
                 "hidden md:flex md:flex-col md:fixed md:inset-y-0 z-40 transition-all duration-300",
                 isCollapsed ? "md:w-16" : "md:w-64"
             )}>
-                <aside className="flex flex-col bg-slate-900 border-r border-slate-800 text-white h-full transition-all duration-300">
+                <aside className="flex flex-col bg-sidebar border-r border-sidebar-border text-sidebar-foreground h-full transition-all duration-300">
                     {/* Sidebar Header */}
                     <div className={cn("flex shrink-0 select-none items-center", isCollapsed ? "p-4 justify-center" : "p-6 gap-3")}>
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shrink-0">
-                            <MessageSquare className="w-6 h-6 fill-current" />
-                        </div>
+                        <CelraLogo variant="mark" size={40} />
                         {!isCollapsed && (
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-1.5">
-                                    <span className="font-black text-xl tracking-tight text-emerald-400 leading-none">
-                                        DMSpark
+                                    <span className="font-black text-xl tracking-tight text-brand leading-none">
+                                        {BRAND_NAME}
                                     </span>
-                                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 select-none animate-pulse shrink-0">
+                                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-brand/10 text-brand border border-brand/20 select-none animate-pulse shrink-0">
                                         WA
                                     </span>
                                 </div>
-                                <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase mt-1">
+                                <span className="text-[10px] text-muted-foreground font-bold tracking-wider uppercase mt-1">
                                     WhatsApp Auto
                                 </span>
                             </div>
                         )}
                     </div>
 
-                    <div className="h-px bg-slate-800 mx-6" />
+                    <div className="h-px bg-sidebar-border mx-6" />
 
                     {/* Nav Items */}
                     <div className="flex-1 px-4 space-y-2 py-4 overflow-y-auto hover-scrollbar">
                         {!isCollapsed && (
-                            <div className="px-2 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Main</div>
+                            <div className="px-2 mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Main</div>
                         )}
                         <NavItem
                             href="/whatsapp-dashboard"
@@ -127,28 +127,28 @@ export default function WhatsAppDashboardLayout({
                     </div>
 
                     {/* Profile & Logout Footer */}
-                    <div className="p-4 border-t border-slate-800 bg-slate-950/40">
+                    <div className="p-4 border-t border-sidebar-border bg-sidebar">
                         <div className={cn(
-                            "flex items-center rounded-xl bg-slate-800/60 border border-slate-800 group",
+                            "flex items-center rounded-xl bg-sidebar-border/60 border border-sidebar-border group",
                             isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-3"
                         )}>
-                            <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-inner shrink-0 text-emerald-400 font-bold">
+                            <div className="w-9 h-9 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shadow-inner shrink-0 text-brand font-bold">
                                 {waUsername ? waUsername.charAt(0).toUpperCase() : "W"}
                             </div>
                             {!isCollapsed && (
                                 <>
                                     <div className="flex-1 overflow-hidden">
-                                        <p className="text-xs font-bold text-white truncate">{waUsername}</p>
+                                        <p className="text-xs font-bold text-foreground truncate">{waUsername}</p>
                                         <div className="flex items-center gap-1.5 mt-0.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50" />
-                                            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Active</p>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shadow-sm shadow-black/5" />
+                                            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Active</p>
                                         </div>
                                     </div>
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         onClick={logoutWhatsApp}
-                                        className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-colors cursor-pointer"
+                                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors cursor-pointer"
                                     >
                                         <LogOut className="w-4 h-4" />
                                     </Button>
@@ -160,7 +160,7 @@ export default function WhatsAppDashboardLayout({
                                 variant="ghost"
                                 size="icon"
                                 onClick={logoutWhatsApp}
-                                className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-colors cursor-pointer mt-2 mx-auto block"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors cursor-pointer mt-2 mx-auto block"
                                 title="Logout"
                             >
                                 <LogOut className="w-4 h-4" />
@@ -178,24 +178,16 @@ export default function WhatsAppDashboardLayout({
                 {/* Mobile Header (Visible only on small screens) */}
                 <header className="md:hidden h-16 border-b border-border bg-card flex items-center justify-between px-4 sticky top-0 z-40">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white">
-                            <MessageSquare className="w-5 h-5 fill-current" />
-                        </div>
-                        <span className="font-black text-lg tracking-tighter bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">DMSpark WA</span>
+                        <CelraLogo variant="mark" size={32} />
+                        <span className="font-black text-lg tracking-tighter text-brand">{BRAND_NAME} WA</span>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={logoutWhatsApp} className="text-muted-foreground hover:text-red-500">
+                    <Button variant="ghost" size="icon" onClick={logoutWhatsApp} className="text-muted-foreground hover:text-destructive">
                         <LogOut className="w-4 h-4" />
                     </Button>
                 </header>
 
                 <main className="flex-1 relative overflow-hidden h-[calc(100dvh-4rem)] md:h-full flex flex-col">
                     <div className="flex-1 overflow-y-auto hover-scrollbar w-full h-full flex flex-col relative">
-                        {/* Premium WhatsApp-Branded Green & Teal Ambient Background Glows */}
-                        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-                            <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s' }} />
-                            <div className="pointer-events-none absolute -top-20 right-0 w-80 h-80 bg-teal-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '9s' }} />
-                            <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-emerald-500/[0.03] rounded-full blur-[100px] animate-pulse animate-duration-10000" />
-                        </div>
                         
                         <div className="relative z-10 flex-1 flex flex-col">
                             {children}
@@ -225,18 +217,18 @@ function NavItem({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 font-semibold text-[13px] group relative overflow-hidden hover:translate-x-1",
+        "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 font-semibold text-[13px] group relative overflow-hidden ",
         active 
-          ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20" 
-          : "text-slate-400 hover:text-white hover:bg-slate-800/50 hover:shadow-md",
+          ? "bg-brand text-brand-foreground " 
+          : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent",
         isCollapsed ? "justify-center px-2 hover:translate-x-0" : ""
       )}
       title={isCollapsed ? label : undefined}
     >
       {active && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] animate-shimmer" />
+        <div className="absolute inset-0  translate-x-[-100%] animate-shimmer" />
       )}
-      <span className={active ? "text-white" : "text-slate-400 group-hover:text-white transition-colors duration-200"}>{icon}</span>
+      <span className={active ? "text-brand-foreground" : "text-muted-foreground group-hover:text-foreground transition-colors duration-200"}>{icon}</span>
       {!isCollapsed && <span>{label}</span>}
     </Link>
   )

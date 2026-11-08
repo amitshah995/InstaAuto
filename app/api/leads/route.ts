@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/auth"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { isUuid } from "@/lib/audit/service"
+import { auditBelongsTo, isUuid } from "@/lib/audit/service"
 
 const INTERESTS = ["dm_automation", "smm_services", "tools", "other"] as const
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   const name = typeof body.name === "string" ? body.name.trim().slice(0, 100) : null
   const interest = INTERESTS.includes(body.interest) ? body.interest : "other"
   const consent = body.consent === true
-  const auditId = typeof body.auditId === "string" && isUuid(body.auditId) ? body.auditId : null
+  let auditId: string | null = typeof body.auditId === "string" && isUuid(body.auditId) ? body.auditId : null
 
   if (!email && !phoneDigits) {
     return NextResponse.json({ error: "Add an email or a phone number." }, { status: 400 })
@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
   if (!consent) {
     return NextResponse.json({ error: "Please agree to be contacted so we can follow up." }, { status: 400 })
   }
+
+  // Only link the lead to an audit that belongs to this user.
+  if (auditId && !(await auditBelongsTo(auditId, userId))) auditId = null
 
   const db = await getSupabaseServerClient()
   const now = new Date().toISOString()

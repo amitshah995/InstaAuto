@@ -13,68 +13,68 @@ type Fmt = "reel" | "carousel" | "image" | "video" | "story"
 
 const GOALS: [string, string][] = [["sales", "Sales"], ["leads", "Leads / enquiries"], ["followers", "Followers"], ["brand", "Brand awareness"], ["community", "Community"]]
 const FMT: Record<Fmt, { label: string; color: string; Icon: typeof Film }> = {
-  reel: { label: "Reel", color: "#d6246e", Icon: Film },
-  carousel: { label: "Carousel", color: "#4aa8ff", Icon: LayoutGrid },
-  image: { label: "Image", color: "#f5b301", Icon: ImageIcon },
-  video: { label: "Video", color: "#9b6bff", Icon: Video },
-  story: { label: "Story", color: "#2dd4bf", Icon: Circle },
+  reel: { label: "Reel", color: "var(--au-k1)", Icon: Film },
+  carousel: { label: "Carousel", color: "var(--au-k2)", Icon: LayoutGrid },
+  image: { label: "Image", color: "var(--au-k3)", Icon: ImageIcon },
+  video: { label: "Video", color: "var(--au-k5)", Icon: Video },
+  story: { label: "Story", color: "var(--au-k4)", Icon: Circle },
 }
 const fmtOf = (k: string) => FMT[(k in FMT ? k : "image") as Fmt]
-const PERF: Record<string, { color: string; label: string }> = { above: { color: "#3ddc6b", label: "Above your average" }, average: { color: "#f5b301", label: "About average" }, below: { color: "#ff6477", label: "Below your average" } }
-const CONF: Record<string, { pct: number; color: string }> = { low: { pct: 34, color: "#6cb4ff" }, medium: { pct: 67, color: "#f5b301" }, high: { pct: 100, color: "#3ddc6b" } }
+const PERF: Record<string, { color: string; label: string }> = { above: { color: "var(--au-green)", label: "Above your average" }, average: { color: "var(--au-amber)", label: "About average" }, below: { color: "var(--au-red)", label: "Below your average" } }
+const CONF: Record<string, { pct: number; color: string }> = { low: { pct: 34, color: "var(--au-blue)" }, medium: { pct: 67, color: "var(--au-amber)" }, high: { pct: 100, color: "var(--au-green)" } }
 const DAY_IDX = (d: string) => Math.max(0, ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].indexOf(d.trim().slice(0, 3).toLowerCase()))
 
 const CSS = `
-.ai-hero{position:relative;border-radius:24px;padding:1px;background:linear-gradient(135deg,#f09433,#ff3b52 45%,#c13584 75%,#4aa8ff)}
-.ai-hero>div{background:linear-gradient(180deg,#14101a,#0f0f15);border-radius:23px;padding:24px;display:grid;gap:18px}
+.ai-hero{position:relative;border-radius:16px;padding:1px;background:var(--au-brand)}
+.ai-hero>div{background:var(--au-card);border-radius:15px;padding:24px;display:grid;gap:18px}
 .ai-hero-top{display:grid;gap:18px;align-items:center}
 @media(min-width:720px){.ai-hero-top{grid-template-columns:1fr auto}}
 .ai-nav{display:flex;gap:8px;flex-wrap:wrap}
-.ai-nav a{font-size:12px;font-weight:600;color:#c9c9d1;text-decoration:none;border:1px solid var(--au-line);background:rgba(255,255,255,.04);border-radius:999px;padding:5px 12px}
-.ai-nav a:hover{border-color:rgba(255,59,82,.5);color:#fff}
+.ai-nav a{font-size:12px;font-weight:600;color:var(--au-muted);text-decoration:none;border:1px solid var(--au-line);background:var(--au-tile);border-radius:999px;padding:5px 12px}
+.ai-nav a:hover{border-color:var(--au-brand);color:var(--au-text)}
 .ai-sec{display:grid;gap:12px;scroll-margin-top:16px}
 .ai-sec>h4{display:flex;align-items:center;gap:8px;font-size:17px}
 .ai-sec>h4 .ic{display:inline-flex;width:30px;height:30px;border-radius:10px;align-items:center;justify-content:center;flex:none}
 .ai-sub{font-size:13px;color:var(--au-muted);margin-top:-6px}
 .ai-card{background:rgba(255,255,255,.025);border:1px solid var(--au-line);border-radius:16px;padding:14px 16px}
-.ai-win{border-left:3px solid #3ddc6b}
-.ai-bad{border-left:3px solid #ff6477}
-.ai-fix{margin-top:8px;border-radius:12px;background:rgba(61,220,107,.08);border:1px solid rgba(61,220,107,.22);padding:8px 12px;font-size:14px}
+.ai-win{border-left:3px solid var(--au-green)}
+.ai-bad{border-left:3px solid var(--au-red)}
+.ai-fix{margin-top:8px;border-radius:12px;background:color-mix(in srgb,var(--au-green) 8%,transparent);border:1px solid color-mix(in srgb,var(--au-green) 22%,transparent);padding:8px 12px;font-size:14px}
 .ai-grid{display:grid;gap:12px}
 @media(min-width:720px){.ai-grid.c2{grid-template-columns:1fr 1fr}.ai-grid.c3{grid-template-columns:repeat(3,1fr)}}
-.ai-thumb{width:64px;height:80px;border-radius:12px;object-fit:cover;background:#15151c;flex:none}
-.ai-mult{display:inline-flex;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;background:rgba(61,220,107,.14);color:#3ddc6b}
+.ai-thumb{width:64px;height:80px;border-radius:12px;object-fit:cover;background:var(--au-tile);flex:none}
+.ai-mult{display:inline-flex;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;background:color-mix(in srgb,var(--au-green) 14%,transparent);color:var(--au-green)}
 .ai-bars{position:relative;display:flex;align-items:flex-end;gap:6px;height:170px;padding-top:8px}
 .ai-bar{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;position:relative}
 .ai-bar span{height:14px;line-height:14px}
 .ai-bar i{display:block;width:100%;max-width:38px;border-radius:6px 6px 2px 2px;min-height:3px}
 .ai-bar span{font-size:10px;color:var(--au-muted)}
-.ai-bar.cited i{outline:2px solid #3ddc6b;outline-offset:2px}
-.ai-median{position:absolute;left:0;right:0;border-top:1.5px dashed rgba(255,255,255,.45);pointer-events:none}
-.ai-median em{position:absolute;left:0;top:-18px;font-style:normal;font-size:11px;color:#c9c9d1;background:#101016;padding:0 4px}
+.ai-bar.cited i{outline:2px solid var(--au-green);outline-offset:2px}
+.ai-median{position:absolute;left:0;right:0;border-top:1.5px dashed var(--au-line);pointer-events:none}
+.ai-median em{position:absolute;left:0;top:-18px;font-style:normal;font-size:11px;color:var(--au-muted);background:var(--au-card);padding:0 4px}
 .ai-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--au-muted)}
 .ai-legend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .ai-idea{display:grid;gap:8px;align-content:start}
-.ai-num{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#0a0a0c;flex:none}
-.ai-hook{border-radius:12px;background:rgba(255,255,255,.05);padding:10px 12px;font-size:15px;font-weight:600;line-height:1.4}
-.ai-copy{border:1px solid var(--au-line);background:transparent;color:#c9c9d1;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
-.ai-copy:hover{background:rgba(255,255,255,.07)}
+.ai-num{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:var(--au-onk);flex:none}
+.ai-hook{border-radius:12px;background:var(--au-tile);padding:10px 12px;font-size:15px;font-weight:600;line-height:1.4}
+.ai-copy{border:1px solid var(--au-line);background:transparent;color:var(--au-muted);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.ai-copy:hover{background:var(--au-tile)}
 .ai-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .ai-cal .dow{font-size:11px;text-align:center;color:var(--au-muted);padding-bottom:2px}
-.ai-cell{min-height:44px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--au-line);display:flex;align-items:center;justify-content:center}
-.ai-chip{border:0;cursor:pointer;width:100%;height:100%;min-height:42px;border-radius:9px;color:#0a0a0c;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:4px}
-.ai-chip[aria-pressed=true]{outline:2px solid #fff;outline-offset:1px}
-.ai-chip:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.ai-cell{min-height:44px;border-radius:10px;background:var(--au-tile);border:1px solid var(--au-line);display:flex;align-items:center;justify-content:center}
+.ai-chip{border:0;cursor:pointer;width:100%;height:100%;min-height:42px;border-radius:9px;color:var(--au-onk);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:4px}
+.ai-chip[aria-pressed=true]{outline:2px solid var(--au-text);outline-offset:1px}
+.ai-chip:focus-visible{outline:2px solid var(--au-text);outline-offset:1px}
 .ai-stack{display:flex;gap:2px;height:14px}
 .ai-stack i{display:block;height:100%;border-radius:4px;min-width:4px}
 .ai-road{display:grid;gap:12px}
 @media(min-width:720px){.ai-road{grid-template-columns:repeat(3,1fr)}}
 .ai-phase{position:relative;border-radius:18px;padding:16px;border:1px solid var(--au-line);background:rgba(255,255,255,.025);display:grid;gap:8px;align-content:start}
-.ai-phase .dot{display:inline-flex;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center;color:#fff}
-.ai-watch{display:flex;gap:6px;align-items:flex-start;border-radius:12px;padding:6px 10px;font-size:12px;background:rgba(74,168,255,.12);color:#7cc0ff;border:1px solid rgba(74,168,255,.28)}
+.ai-phase .dot{display:inline-flex;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center;color:var(--au-onk)}
+.ai-watch{display:flex;gap:6px;align-items:flex-start;border-radius:12px;padding:6px 10px;font-size:12px;background:color-mix(in srgb,var(--au-blue) 12%,transparent);color:var(--au-blue);border:1px solid color-mix(in srgb,var(--au-blue) 28%,transparent)}
 .ai-todo{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;cursor:pointer;color:inherit;font:inherit;font-size:14px}
-.ai-tick{flex:none;width:24px;height:24px;border-radius:8px;border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center}
-.ai-todo[aria-pressed=true] .ai-tick{background:#3ddc6b;border-color:#3ddc6b;color:#0a0a0c}
+.ai-tick{flex:none;width:24px;height:24px;border-radius:8px;border:2px solid var(--au-line);display:flex;align-items:center;justify-content:center}
+.ai-todo[aria-pressed=true] .ai-tick{background:var(--au-green);border-color:var(--au-green);color:var(--c-bg)}
 .ai-todo[aria-pressed=true] span:last-child{opacity:.6;text-decoration:line-through}
 .ai-ring{position:relative;width:112px;height:112px;flex:none}
 .ai-ring b{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-audit-head),sans-serif;font-size:15px;text-transform:capitalize}
@@ -100,7 +100,7 @@ function Gauge({ level }: { level: string }) {
   return (
     <div className="ai-ring" role="img" aria-label={`Confidence ${level}`}>
       <svg viewBox="0 0 112 112" width="112" height="112">
-        <circle cx="56" cy="56" r={R} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="10" />
+        <circle cx="56" cy="56" r={R} fill="none" stroke="var(--au-tile)" strokeWidth="10" />
         <circle className="p" cx="56" cy="56" r={R} fill="none" stroke={c.color} strokeWidth="10" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - c.pct / 100)} transform="rotate(-90 56 56)" />
       </svg>
       <b>{level}<small>confidence</small></b>
@@ -126,7 +126,7 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
   const [done, setDone] = useState<boolean[]>([false, false, false])
   const [b, setB] = useState<Brief>({ niche: "", goal: "sales", audience: "", offer: "", postsPerWeek: 3, language: "en" })
 
-  const storeKey = `dmspark-qw-${auditId}`
+  const storeKey = `celra-qw-${auditId}`
   useEffect(() => { try { const v = JSON.parse(localStorage.getItem(storeKey) || "null"); if (Array.isArray(v) && v.length === 3) setDone(v.map(Boolean)) } catch {} }, [storeKey])
   const toggle = (i: number) => setDone((d) => { const n = d.map((x, j) => (j === i ? !x : x)); try { localStorage.setItem(storeKey, JSON.stringify(n)) } catch {} return n })
 
@@ -188,7 +188,7 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
 
   if (!r) {
     return (
-      <section className="au-card" style={{ display: "grid", gap: 16, borderColor: "rgba(255,59,82,.25)" }}>
+      <section className="au-card" style={{ display: "grid", gap: 16, borderColor: "color-mix(in srgb,var(--au-red) 25%,transparent)" }}>
         <style>{CSS}</style>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}><span className="au-icon red"><Sparkles size={16} /></span><h3 className="au-head" style={{ fontSize: 20 }}>AI Growth Report <span className="au-pill" style={{ marginLeft: 6 }}>Free preview</span></h3></div>
         {showForm && formEl}
@@ -211,7 +211,7 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
           <div style={{ display: "grid", gap: 10 }}>
             <span className="au-pill high" style={{ width: "fit-content" }}><Sparkles size={12} /> Your AI Growth Report</span>
             <h3 className="au-head" style={{ fontSize: 26, lineHeight: 1.2 }}>{r.summary.headline}</h3>
-            <p style={{ fontSize: 15, color: "#d6d6dd", lineHeight: 1.55 }}>{r.summary.verdict}</p>
+            <p style={{ fontSize: 15, color: "var(--au-muted)", lineHeight: 1.55 }}>{r.summary.verdict}</p>
           </div>
           <div style={{ display: "grid", gap: 6, justifyItems: "center", maxWidth: 200, textAlign: "center" }}>
             <Gauge level={r.summary.confidence} />
@@ -220,9 +220,9 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
         </div>
         <div className="au-stats">
           <div className="au-stat"><b>{report.insights?.postsUsed ?? posts.length}</b><span>Posts analysed</span></div>
-          <div className="au-stat"><b style={{ color: (report.insights?.deltaPct ?? 0) >= 0 ? "#3ddc6b" : "#f5b301" }}>{report.insights?.erPct != null ? `${report.insights.erPct}%` : "n/a"}</b><span>Engagement rate</span></div>
-          <div className="au-stat"><b style={{ color: "#4aa8ff" }}>{Math.round(chart.median)}</b><span>Typical post (median)</span></div>
-          <div className="au-stat"><b style={{ color: "#f09433" }}>{tb?.peakDay ? tb.peakDay.slice(0, 3) : "n/a"}</b><span>Best day so far</span></div>
+          <div className="au-stat"><b style={{ color: (report.insights?.deltaPct ?? 0) >= 0 ? "var(--au-green)" : "var(--au-amber)" }}>{report.insights?.erPct != null ? `${report.insights.erPct}%` : "n/a"}</b><span>Engagement rate</span></div>
+          <div className="au-stat"><b style={{ color: "var(--au-blue)" }}>{Math.round(chart.median)}</b><span>Typical post (median)</span></div>
+          <div className="au-stat"><b style={{ color: "var(--au-coral)" }}>{tb?.peakDay ? tb.peakDay.slice(0, 3) : "n/a"}</b><span>Best day so far</span></div>
         </div>
         <nav className="ai-nav" aria-label="Report sections">
           {[["ai-posts", "Your posts"], ["ai-works", "What worked"], ["ai-fix", "What to fix"], ["ai-pillars", "Pillars"], ["ai-ideas", "Ideas"], ["ai-plan", "30-day plan"], ["ai-road", "Roadmap"], ["ai-wins", "Quick wins"]].map(([h, l]) => <a key={h} href={`#${h}`}>{l}</a>)}
@@ -230,7 +230,7 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
       </div></div>
 
       <section className="au-card" style={{ display: "grid", gap: 26 }}>
-        <Sec id="ai-posts" icon={<Flame />} color="#ff6b35" title="How each recent post did" sub="Likes plus comments per post. The dashed line is your median, the green outline marks posts the report calls out.">
+        <Sec id="ai-posts" icon={<Flame />} color="var(--au-coral)" title="How each recent post did" sub="Likes plus comments per post. The dashed line is your median, the green outline marks posts the report calls out.">
           <div className="ai-bars" role="img" aria-label="Interactions per recent post compared with the median">
             {chart.items.map((x) => {
               const cited = r.whatWorked.some((w) => w.postRef === x.ref)
@@ -246,7 +246,7 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
           <div className="ai-legend">{(["reel", "carousel", "image", "video"] as Fmt[]).filter((k) => chart.items.some((x) => x.kind === k)).map((k) => <span key={k}><b style={{ background: FMT[k].color }} />{FMT[k].label}</span>)}<span>P1 = newest post</span></div>
         </Sec>
 
-        <Sec id="ai-works" icon={<Trophy />} color="#3ddc6b" title="What worked" sub="Your strongest posts and the reason they likely landed.">
+        <Sec id="ai-works" icon={<Trophy />} color="var(--au-green)" title="What worked" sub="Your strongest posts and the reason they likely landed.">
           <div className="ai-grid c2">
             {r.whatWorked.map((w, i) => {
               const idx = Number(w.postRef.slice(1)) - 1, p = posts[idx]
@@ -266,19 +266,19 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
           </div>
         </Sec>
 
-        <Sec id="ai-fix" icon={<Wrench />} color="#ff6477" title="What to fix first" sub="Each problem comes with one concrete fix.">
+        <Sec id="ai-fix" icon={<Wrench />} color="var(--au-red)" title="What to fix first" sub="Each problem comes with one concrete fix.">
           <div className="ai-grid c2">
             {r.whatIsntWorking.map((w, i) => (
               <div key={i} className="ai-card ai-bad">
                 <b style={{ fontSize: 14 }}>{w.issue}</b>
                 <p className="au-muted" style={{ fontSize: 12, marginTop: 4 }}>{w.evidence}</p>
-                <div className="ai-fix"><b style={{ color: "#3ddc6b" }}>Fix:</b> {w.fix}</div>
+                <div className="ai-fix"><b style={{ color: "var(--au-green)" }}>Fix:</b> {w.fix}</div>
               </div>
             ))}
           </div>
         </Sec>
 
-        <Sec id="ai-patterns" icon={<Lightbulb />} color="#f5b301" title="Patterns to use" sub="Early signals from your own posts. Treat them as things to test.">
+        <Sec id="ai-patterns" icon={<Lightbulb />} color="var(--au-amber)" title="Patterns to use" sub="Early signals from your own posts. Treat them as things to test.">
           <div className="ai-grid c2">
             {r.patterns.map((p, i) => (
               <div key={i} className="ai-card"><b style={{ fontSize: 14 }}>{p.pattern}</b><p className="au-muted" style={{ fontSize: 12, margin: "4px 0 6px" }}>{p.evidence}</p><p style={{ fontSize: 14 }}>{p.howToUse}</p></div>
@@ -286,8 +286,8 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
           </div>
         </Sec>
 
-        <Sec id="ai-pillars" icon={<Target />} color="#9b6bff" title="Your content pillars" sub="The themes in your recent posts and how each one performs.">
-          {(() => { const pal = ["#d6246e", "#4aa8ff", "#f5b301", "#9b6bff", "#2dd4bf"]; return (
+        <Sec id="ai-pillars" icon={<Target />} color="var(--au-ink)" title="Your content pillars" sub="The themes in your recent posts and how each one performs.">
+          {(() => { const pal = ["var(--au-k1)", "var(--au-k2)", "var(--au-k3)", "var(--au-k5)", "var(--au-k4)"]; return (
             <div className="ai-grid c2" style={{ alignItems: "center" }}>
               <Donut hideLegend center={{ value: String(r.contentPillars.length), label: "themes" }} parts={r.contentPillars.map((p, i) => ({ label: p.name, value: Math.max(p.sharePct, 0.5), color: pal[i % pal.length] }))} />
               <div style={{ display: "grid", gap: 8 }}>
@@ -304,7 +304,7 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
       </section>
 
       <section className="au-card" style={{ display: "grid", gap: 26 }}>
-        <Sec id="ai-ideas" icon={<Rocket />} color="#ff3b52" title={`${r.nextContent.length} posts to make next`} sub="Ready-to-use hooks. Tap Copy and paste the first line into your caption or reel.">
+        <Sec id="ai-ideas" icon={<Rocket />} color="var(--au-red)" title={`${r.nextContent.length} posts to make next`} sub="Ready-to-use hooks. Tap Copy and paste the first line into your caption or reel.">
           <div className="ai-grid c2">
             {r.nextContent.map((c, i) => { const f = fmtOf(c.format); return (
               <div key={i} className="ai-card ai-idea" style={{ borderTop: `3px solid ${f.color}` }}>
@@ -322,7 +322,7 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
           </div>
         </Sec>
 
-        <Sec id="ai-plan" icon={<CalendarDays />} color="#4aa8ff" title="Your 30-day content calendar" sub="Each coloured box is one post. Tap a box to see the idea behind it.">
+        <Sec id="ai-plan" icon={<CalendarDays />} color="var(--au-blue)" title="Your 30-day content calendar" sub="Each coloured box is one post. Tap a box to see the idea behind it.">
           <div style={{ display: "grid", gap: 14 }}>
             {r.plan30.map((w, wi) => (
               <div key={w.week} style={{ display: "grid", gap: 6 }}>
@@ -363,9 +363,9 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
           </div>
         </Sec>
 
-        <Sec id="ai-road" icon={<Flag />} color="#f09433" title="Your 30 / 60 / 90 day roadmap" sub="One focus per month. The blue tag is a number you can watch in your own Instagram Insights.">
+        <Sec id="ai-road" icon={<Flag />} color="var(--au-coral)" title="Your 30 / 60 / 90 day roadmap" sub="One focus per month. The blue tag is a number you can watch in your own Instagram Insights.">
           <div className="ai-road">
-            {r.roadmap.map((p, i) => { const c = ["#ff6b35", "#d6246e", "#9b6bff"][i]; return (
+            {r.roadmap.map((p, i) => { const c = ["var(--au-k1)", "var(--au-k2)", "var(--au-k3)"][i]; return (
               <div key={i} className="ai-phase" style={{ borderTop: `3px solid ${c}` }}>
                 <span className="dot" style={{ background: c }}>{i + 1}</span>
                 <b className="au-head" style={{ fontSize: 15 }}>{p.phase}</b>
@@ -378,15 +378,15 @@ export function AiReportSection({ auditId, report }: { auditId: string; report: 
         </Sec>
       </section>
 
-      <section id="ai-wins" className="au-card" style={{ display: "grid", gap: 12, borderColor: "rgba(61,220,107,.3)", scrollMarginTop: 16 }}>
-        <div className="au-row"><h4 className="au-head" style={{ fontSize: 17 }}><CheckCircle2 size={16} style={{ display: "inline", color: "#3ddc6b", marginRight: 8 }} />3 quick wins for this week</h4><span className="au-muted" style={{ fontSize: 13 }}>{doneCount}/3 done</span></div>
-        <div className="au-bar" role="progressbar" aria-valuemin={0} aria-valuemax={3} aria-valuenow={doneCount}><i style={{ width: `${(doneCount / 3) * 100}%`, background: "linear-gradient(90deg,#28a745,#3ddc6b)" }} /></div>
+      <section id="ai-wins" className="au-card" style={{ display: "grid", gap: 12, borderColor: "color-mix(in srgb,var(--au-green) 30%,transparent)", scrollMarginTop: 16 }}>
+        <div className="au-row"><h4 className="au-head" style={{ fontSize: 17 }}><CheckCircle2 size={16} style={{ display: "inline", color: "var(--au-green)", marginRight: 8 }} />3 quick wins for this week</h4><span className="au-muted" style={{ fontSize: 13 }}>{doneCount}/3 done</span></div>
+        <div className="au-bar" role="progressbar" aria-valuemin={0} aria-valuemax={3} aria-valuenow={doneCount}><i style={{ width: `${(doneCount / 3) * 100}%`, background: "var(--au-green)" }} /></div>
         {r.quickWins.map((q, i) => (
           <button key={i} type="button" className="ai-todo ai-card" aria-pressed={done[i]} onClick={() => toggle(i)}>
             <span className="ai-tick">{done[i] && <Check size={14} />}</span><span>{q}</span>
           </button>
         ))}
-        <p style={{ fontSize: 14, color: doneCount === 3 ? "#3ddc6b" : "var(--au-muted)" }}>
+        <p style={{ fontSize: 14, color: doneCount === 3 ? "var(--au-green)" : "var(--au-muted)" }}>
           {doneCount === 3 ? "All three done. Nice work. Run a fresh audit in two weeks and see what changed." : "Small steps add up. Tick each one as you finish it."}
         </p>
       </section>

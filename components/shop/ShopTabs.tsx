@@ -1,7 +1,7 @@
 /** Shop / Studio switcher. Sticks to the top while scrolling so visitors can always switch. */
 export default function ShopTabs({ handle, active }: { handle: string; active: "shop" | "studio" }) {
   const item = "flex-1 rounded-full px-5 py-2 text-center text-sm font-bold transition-colors motion-reduce:transition-none"
-  const on = "shop-pill shadow-md"
+  const on = "shop-pill "
   const off = "text-muted-foreground hover:text-foreground"
   return (
     <div className="sticky top-0 z-20 -mx-4 px-4 py-3">

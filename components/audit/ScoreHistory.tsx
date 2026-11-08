@@ -51,7 +51,7 @@ export function ScoreHistory({ currentId }: { currentId: string }) {
     <section className="au-card" style={{ display: "grid", gap: 10 }}>
       <h2 className="au-head" style={{ fontSize: 20, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <span>Score history</span>
-        <span style={{ fontSize: 14, color: delta >= 0 ? "#3ddc6b" : "#ff3b52" }}>
+        <span style={{ fontSize: 14, color: delta >= 0 ? "var(--au-green)" : "var(--au-red)" }}>
           {delta >= 0 ? "+" : ""}
           {delta} since {fmt(pts[0].at)}
         </span>
@@ -62,9 +62,9 @@ export function ScoreHistory({ currentId }: { currentId: string }) {
         aria-label={`Audit score over time, from ${pts[0].score} to ${pts[pts.length - 1].score}`}
         style={{ width: "100%", height: "auto" }}
       >
-        <path d={line} fill="none" stroke="#3ddc6b" strokeWidth="2" strokeLinejoin="round" />
+        <path d={line} fill="none" stroke="var(--au-green)" strokeWidth="2" strokeLinejoin="round" />
         {pts.map((p, i) => (
-          <circle key={p.id} cx={xs(i)} cy={ys(p.score)} r={p.id === currentId ? 4.5 : 3} fill={p.id === currentId ? "#ff3b52" : "#3ddc6b"}>
+          <circle key={p.id} cx={xs(i)} cy={ys(p.score)} r={p.id === currentId ? 4.5 : 3} fill={p.id === currentId ? "var(--au-red)" : "var(--au-green)"}>
             <title>{`${fmt(p.at)}: ${p.score}/100`}</title>
           </circle>
         ))}

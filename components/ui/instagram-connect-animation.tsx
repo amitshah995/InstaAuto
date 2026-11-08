@@ -1,13 +1,15 @@
 "use client"
 
+import { CelraLogo } from "@/components/ui/celra-logo"
 import React, { useEffect, useRef, useState } from "react"
-import { Instagram, Shield, Zap, Check, Sparkles } from "lucide-react"
+import { Link2, Shield, Zap, Check, Sparkles } from "lucide-react"
+import { BRAND_NAME } from "@/lib/site"
 
 /**
  * Premium Instagram connection animation with:
  * - Animated particles/sparkles background
  * - Multi-step progress indicator
- * - Instagram gradient glow effects
+ * - Flat Celra colour accents
  * - Smooth transitions between states
  */
 export function InstagramConnectAnimation() {
@@ -15,7 +17,7 @@ export function InstagramConnectAnimation() {
   const [step, setStep] = useState(0)
 
   const steps = [
-    { label: "Connecting to Instagram...", icon: Instagram },
+    { label: "Connecting to Instagram...", icon: Link2 },
     { label: "Verifying your account...", icon: Shield },
     { label: "Setting up automation engine...", icon: Zap },
     { label: "Almost ready!", icon: Sparkles },
@@ -61,16 +63,9 @@ export function InstagramConnectAnimation() {
 
     const particles: SparkleParticle[] = []
 
-    // Instagram gradient colors
+    // Celra palette
     const colors = [
-      "#E1306C", // Instagram Pink
-      "#F77737", // Instagram Orange
-      "#FCAF45", // Instagram Yellow
-      "#833AB4", // Instagram Purple
-      "#405DE6", // Instagram Blue
-      "#D62976", // DMSpark Blue
-      "#C13584", // Instagram Magenta
-      "#FD1D1D", // Instagram Red
+      "#0B5C6E", "#FF6F4D", "#46C8D0", "#FF8466", "#0E2A33", "#5FA3AF", "#B5D3D7", "#FFB4A1",
     ]
 
     // Spawn particles continuously
@@ -166,16 +161,9 @@ export function InstagramConnectAnimation() {
       {/* Sparkle Canvas Background */}
       <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" />
 
-      {/* Subtle radial gradient background */}
+      {/* Flat background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#833AB4]/5 via-transparent to-[#E1306C]/5" />
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(225,48,108,0.15) 0%, rgba(131,58,180,0.1) 40%, transparent 70%)",
-          }}
-        />
+        <div className="absolute inset-0 bg-brand-soft" />
       </div>
 
       {/* Main Content */}
@@ -184,33 +172,19 @@ export function InstagramConnectAnimation() {
         {/* Animated Instagram Logo with Glow Ring */}
         <div className="relative">
           {/* Outer pulsing ring */}
-          <div className="absolute inset-0 -m-4 rounded-[2rem] border-2 border-[#E1306C]/30 animate-ping" />
+          <div className="absolute inset-0 -m-4 rounded-[2rem] border-2 border-brand/30 animate-ping" />
           {/* Second ring */}
           <div
-            className="absolute inset-0 -m-2 rounded-[1.75rem] border border-[#833AB4]/20"
+            className="absolute inset-0 -m-2 rounded-[1.75rem] border border-brand/20"
             style={{ animation: "pulse 2s ease-in-out infinite" }}
           />
 
-          {/* Instagram gradient icon container */}
-          <div
-            className="w-20 h-20 rounded-[1.5rem] flex items-center justify-center shadow-2xl relative overflow-hidden"
-            style={{
-              background: "linear-gradient(135deg, #833AB4 0%, #E1306C 50%, #F77737 100%)",
-            }}
-          >
-            {/* Shimmer overlay */}
-            <div
-              className="absolute inset-0 opacity-30"
-              style={{
-                background:
-                  "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)",
-                animation: "shimmer 2s infinite",
-              }}
-            />
+          {/* Celra mark container */}
+          <div className="w-20 h-20 rounded-[1.5rem] flex items-center justify-center relative overflow-hidden bg-brand">
             {step >= 3 ? (
-              <Check className="w-9 h-9 text-white drop-shadow-lg animate-in zoom-in-50 duration-500" />
+              <Check className="w-9 h-9 text-brand-foreground animate-in zoom-in-50 duration-500" />
             ) : (
-              <Instagram className="w-9 h-9 text-white drop-shadow-lg" />
+              <CelraLogo variant="mark" size={44} />
             )}
           </div>
 
@@ -220,13 +194,12 @@ export function InstagramConnectAnimation() {
               key={i}
               className="absolute w-2 h-2 rounded-full"
               style={{
-                background: ["#E1306C", "#833AB4", "#F77737"][i],
+                background: ["#0B5C6E", "#FF6F4D", "#0E2A33"][i],
                 top: "50%",
                 left: "50%",
                 transform: `rotate(${i * 120}deg) translateX(52px) translateY(-50%)`,
                 animation: `spin ${3 + i * 0.5}s linear infinite`,
                 opacity: 0.7,
-                boxShadow: `0 0 8px ${["#E1306C", "#833AB4", "#F77737"][i]}`,
               }}
             />
           ))}
@@ -239,11 +212,11 @@ export function InstagramConnectAnimation() {
             className="flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-500"
           >
             {React.createElement(steps[step].icon, {
-              className: `w-4.5 h-4.5 ${step >= 3 ? "text-emerald-500" : "text-[#E1306C]"}`,
+              className: `w-4.5 h-4.5 ${step >= 3 ? "text-brand" : "text-brand"}`,
             })}
             <p
               className={`text-sm font-semibold ${
-                step >= 3 ? "text-emerald-500" : "text-foreground"
+                step >= 3 ? "text-brand" : "text-foreground"
               }`}
             >
               {steps[step].label}
@@ -252,7 +225,7 @@ export function InstagramConnectAnimation() {
 
           <p className="text-xs text-muted-foreground max-w-[260px]">
             {step < 3
-              ? "Securely connecting via Official Meta API"
+              ? "Securely connecting through the official Instagram API"
               : "Your Instagram is ready for automation!"}
           </p>
         </div>
@@ -267,8 +240,8 @@ export function InstagramConnectAnimation() {
                 width: `${((step + 1) / steps.length) * 100}%`,
                 background:
                   step >= 3
-                    ? "#34A853"
-                    : "linear-gradient(90deg, #833AB4 0%, #E1306C 50%, #F77737 100%)",
+                    ? "var(--brand)"
+                    : "var(--primary)",
               }}
             />
           </div>
@@ -278,13 +251,13 @@ export function InstagramConnectAnimation() {
             {steps.map((s, i) => (
               <div key={i} className="flex flex-col items-center gap-1.5">
                 <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-white transition-all duration-500 ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-brand-foreground transition-all duration-500 ${
                     i <= step
                       ? i < step
-                        ? "bg-emerald-500 scale-100"
+                        ? "bg-brand scale-100"
                         : step >= 3
-                        ? "bg-emerald-500 scale-110"
-                        : "bg-[#E1306C] scale-110 shadow-lg shadow-[#E1306C]/30"
+                        ? "bg-brand scale-110"
+                        : "bg-brand scale-110"
                       : "bg-secondary text-muted-foreground scale-90"
                   }`}
                 >
@@ -302,7 +275,7 @@ export function InstagramConnectAnimation() {
         {/* Powered by badge */}
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 font-medium">
           <Shield className="w-3 h-3" />
-          <span>Powered by Official Meta Instagram API</span>
+          <span>Connected through the official Instagram API</span>
         </div>
       </div>
 
