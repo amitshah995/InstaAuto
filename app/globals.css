@@ -127,6 +127,7 @@
   --color-c-bg: var(--c-bg);
   --color-c-surface: var(--c-surface);
   --color-c-soft: var(--c-soft);
+  --color-c-cream: var(--c-cream);
   --color-c-ink: var(--c-ink);
   --color-c-muted: var(--c-muted);
   --color-c-line: var(--c-line);
@@ -145,6 +146,7 @@
   --c-bg: #FBFAF6;
   --c-surface: #FFFFFF;
   --c-soft: #F1EFE8;
+  --c-cream: #FFF6F1;
   --c-ink: #0E2A33;
   --c-muted: #46606A;
   --c-line: #D9E0DE;
@@ -157,6 +159,7 @@
   --c-bg: #071A20;
   --c-surface: #0D2830;
   --c-soft: #0A2128;
+  --c-cream: #0B2229;
   --c-ink: #E9F4F5;
   --c-muted: #A3BDC3;
   --c-line: #1E4048;

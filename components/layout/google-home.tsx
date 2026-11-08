@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
-import { ArrowRight, Cake, Check, ClipboardCheck, KeyRound, MessageSquareText, MessagesSquare, Moon, ShieldCheck, Sun, UserCheck, Plug } from "lucide-react"
+import { ArrowRight, Cake, CheckCheck, ClipboardCheck, Heart, MessageCircle, Send, KeyRound, MessageSquareText, MessagesSquare, Moon, ShieldCheck, Sun, UserCheck, Plug } from "lucide-react"
 import { CelraLogo } from "@/components/ui/celra-logo"
 import { BRAND_NAME } from "@/lib/site"
 
@@ -107,13 +107,19 @@ function CommentToDmDemo() {
           </div>
         </div>
 
-        <div className="mt-4 space-y-2.5">
+        <div className="mt-3 flex items-center gap-4 text-c-muted" aria-hidden>
+          <Heart className="h-[18px] w-[18px]" />
+          <MessageCircle className="h-[18px] w-[18px]" />
+          <Send className="h-[18px] w-[18px]" />
+        </div>
+
+        <div className="mt-3 space-y-2.5">
           <div className="flex items-start gap-2.5 opacity-70">
             <span className="h-7 w-7 shrink-0 rounded-full bg-c-soft grid place-items-center text-[11px] font-semibold text-c-muted" aria-hidden>S</span>
             <p className="text-sm text-c-muted pt-0.5"><span className="font-semibold">sana_m</span> Looks so good!</p>
           </div>
           <div className="celra-pop flex items-start gap-2.5 rounded-2xl bg-c-brand-soft px-3 py-2.5" style={{ ["--d" as string]: "0.2s" }}>
-            <span className="h-7 w-7 shrink-0 rounded-full bg-c-brand text-c-bg grid place-items-center text-[11px] font-bold" aria-hidden>R</span>
+            <span className="h-7 w-7 shrink-0 rounded-full bg-c-brand text-c-bg grid place-items-center text-[11px] font-bold ring-2 ring-c-accent ring-offset-2 ring-offset-c-brand-soft" aria-hidden>R</span>
             <p className="text-sm text-c-ink pt-0.5"><span className="font-semibold">riya.k</span> price?</p>
           </div>
         </div>
@@ -128,13 +134,16 @@ function CommentToDmDemo() {
           <span className="h-px flex-1 bg-c-line" />
         </div>
 
-        {/* the DM */}
-        <div className="celra-pop rounded-2xl rounded-bl-md bg-c-brand text-c-bg px-4 py-3 text-sm leading-relaxed max-w-[92%]" style={{ ["--d" as string]: "1s" }}>
-          <p>Hi Riya! Chocolate cake 1 kg is ₹850. Order here: <span className="underline underline-offset-2">your-shop.link/cake</span></p>
+        {/* the DM thread */}
+        <div className="rounded-2xl bg-c-soft p-3">
+          <p className="mb-2 text-center text-[11px] font-medium text-c-muted">Today, 10:42 am</p>
+          <div className="celra-pop rounded-2xl rounded-bl-md bg-c-brand text-c-bg px-4 py-3 text-sm leading-relaxed max-w-[92%]" style={{ ["--d" as string]: "1s" }}>
+            <p>Hi Riya! 😊 Chocolate cake 1 kg is ₹850. Order here: <span className="underline underline-offset-2">your-shop.link/cake</span></p>
+          </div>
+          <p className="mt-1.5 flex items-center gap-1 text-[11px] text-c-muted">
+            10:42 am <span aria-hidden>·</span> <CheckCheck className="h-3.5 w-3.5 text-c-brand" aria-hidden /> Seen
+          </p>
         </div>
-        <p className="mt-2 text-[11px] text-c-muted flex items-center gap-1">
-          <Check className="h-3 w-3" aria-hidden /> Sent automatically
-        </p>
       </div>
       <figcaption className="mt-3 text-center lg:text-right text-xs text-c-muted">Example only. You write your own message.</figcaption>
     </figure>
@@ -186,8 +195,8 @@ export function GoogleSearchHome() {
                 href={instagramAuthUrl}
                 className={`group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-c-accent px-7 text-base font-semibold text-c-accent-ink shadow-sm transition-transform hover:-translate-y-0.5 active:translate-y-0 ${focusRing}`}
               >
+                <Plug className="h-4 w-4" aria-hidden />
                 Connect Instagram
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
               </a>
               <Link
                 href="/instagram-audit"
@@ -224,7 +233,7 @@ export function GoogleSearchHome() {
         </section>
 
         {/* TRUST */}
-        <section aria-labelledby="trust-h" className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
+        <section aria-labelledby="trust-h" className="bg-c-cream"><div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
           <h2 id="trust-h" className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Safe aur simple</h2>
           <ul className="mt-8 grid gap-6 md:grid-cols-3">
             {trust.map((t) => (
@@ -239,10 +248,10 @@ export function GoogleSearchHome() {
               </li>
             ))}
           </ul>
-        </section>
+        </div></section>
 
         {/* AUDIT */}
-        <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6 lg:pb-20">
+        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
           <div className="flex flex-col items-start gap-5 rounded-3xl bg-c-brand p-6 text-c-bg sm:flex-row sm:items-center sm:justify-between sm:p-9">
             <div className="max-w-xl">
               <div className="flex items-center gap-2 text-sm font-medium opacity-90">
@@ -263,7 +272,7 @@ export function GoogleSearchHome() {
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="scroll-mt-20 mx-auto max-w-3xl px-4 pb-16 sm:px-6 lg:pb-24">
+        <section id="faq" className="scroll-mt-20 bg-c-cream"><div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:py-20">
           <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Aksar puchhe jaane wale sawaal</h2>
           <div className="mt-6 divide-y divide-c-line border-y border-c-line">
             {faqs.map((f) => (
@@ -278,14 +287,17 @@ export function GoogleSearchHome() {
               </details>
             ))}
           </div>
-        </section>
+        </div></section>
       </main>
 
       <footer className="border-t border-c-line">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-8 text-sm text-c-muted sm:px-6 md:flex-row md:justify-between">
-          <div className="flex flex-col items-center gap-1 md:items-start">
-            <span className="text-c-ink font-medium">© 2026 {BRAND_NAME}</span>
-            <span className="text-xs text-center md:text-left">Not affiliated with Meta Platforms Inc. or Instagram.</span>
+          <div className="flex max-w-xl flex-col items-center gap-3 md:items-start">
+            <CelraLogo variant="full" size={28} className="text-c-ink" />
+            <span className="text-xs leading-relaxed text-center md:text-left">
+              Celra is an independent product. It is not affiliated with, endorsed by or sponsored by Meta Platforms, Inc. or Instagram. Instagram is a trademark of Meta Platforms, Inc.
+            </span>
+            <span className="text-xs">© 2026 {BRAND_NAME}</span>
           </div>
           <nav aria-label="Legal" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 font-medium">
             <Link href="/instagram-audit" className={`rounded py-2 hover:text-c-ink hover:underline ${focusRing}`}>Free Audit</Link>
