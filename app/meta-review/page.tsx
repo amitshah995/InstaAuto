@@ -8,11 +8,9 @@ export const metadata: Metadata = {
 }
 
 const PERMISSIONS = [
-  { name: "instagram_business_basic", use: "Identify the connected account (username, profile picture) after login." },
+  { name: "instagram_business_basic", use: "Identify the connected account (username, profile picture) and read its follower count and recent posts for the Reports and Audit pages." },
   { name: "instagram_business_manage_comments", use: "Read comments on the user's own posts so a keyword can trigger an automation, and post the public reply." },
   { name: "instagram_business_manage_messages", use: "Send the automated DM (private reply to a comment, or a reply inside the 24-hour window) and receive replies for flows." },
-  { name: "instagram_business_manage_insights", use: "Show the account's follower count and growth chart on the Reports and Analytics pages." },
-  { name: "instagram_business_content_publish", use: "Only if the user schedules a post or reel from the Publisher page." },
 ]
 
 export default function MetaReviewPage() {
