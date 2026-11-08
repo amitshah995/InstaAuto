@@ -1,8 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import crypto from "crypto"
-import { sendSteps } from "@/lib/messaging/send-steps"
+import { postGraphMessage, sendSteps } from "@/lib/messaging/send-steps"
+import { releaseDm, reserveAiRun, reserveDm } from "@/lib/billing/usage"
 import { runFlow } from "@/lib/messaging/flow-runner"
+import { emitEvent } from "@/lib/webhooks/events"
+import { checkFollowStatus } from "@/lib/messaging/follow-check"
+import { matchesAnyKeyword } from "@/lib/matching/keywords"
 import { isOncePerPerson, onceKey } from "@/lib/automations/once"
 
 // No default token: a guessable fallback would let anyone subscribe. If this env var is unset, verification fails.
@@ -11,11 +15,7 @@ const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || ""
 // Long delayed-reply sequences and AI "typing" waits can exceed the default function time limit.
 export const maxDuration = 60
 
-// Escapes regex special characters so a keyword like "10% off" or "a+b"
-// can't crash new RegExp() or match unintended patterns.
-function escapeRegex(str: string) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
+// Keyword matching lives in lib/matching/keywords.ts (Unicode-aware, whole-word).
 
 // Returns true if this exact event_id was already processed (Meta redelivered it).
 // Inserts a row on first sight; a duplicate insert (unique violation) means "already seen".
@@ -43,6 +43,8 @@ async function logRun(
     matched: boolean
     actionStatus?: "sent" | "failed" | "skipped" | null
     errorMessage?: string | null
+    /** Instagram-scoped id of the person involved, forwarded to outbound webhooks. */
+    igsid?: string | null
   },
 ) {
   try {
@@ -57,6 +59,20 @@ async function logRun(
     })
   } catch (e) {
     console.error("[v0] ⚠️ Failed to write automation_runs log:", e)
+  }
+
+  // Outbound webhooks (Phase 4): every matched rule is a comment_matched / dm_sent / dm_failed event.
+  // emitEvent never throws and does nothing when the user has no endpoints.
+  if (params.matched && params.actionStatus !== "skipped") {
+    const data = {
+      automation_id: params.automationId || null,
+      source: params.eventType,
+      igsid: params.igsid || null,
+      trigger_text: params.triggerText || null,
+    }
+    if (params.eventType === "comment") await emitEvent(params.userId, "comment_matched", data)
+    if (params.actionStatus === "sent") await emitEvent(params.userId, "dm_sent", data)
+    else if (params.actionStatus === "failed") await emitEvent(params.userId, "dm_failed", { ...data, error: params.errorMessage || null })
   }
 }
 
@@ -290,9 +306,7 @@ export async function POST(request: NextRequest) {
                 (a: any) =>
                   a.specific_media_id === mediaId &&
                   a.trigger_type === "keyword" &&
-                  a.trigger_value
-                    .split(",")
-                    .some((k: string) => new RegExp(`\\b${escapeRegex(k.trim())}\\b`, "i").test(commentText)),
+                  matchesAnyKeyword(commentText, a.trigger_value),
               )
             }
 
@@ -304,9 +318,7 @@ export async function POST(request: NextRequest) {
                 (a: any) =>
                   !a.specific_media_id &&
                   a.trigger_type === "keyword" &&
-                  a.trigger_value
-                    .split(",")
-                    .some((k: string) => new RegExp(`\\b${escapeRegex(k.trim())}\\b`, "i").test(commentText)),
+                  matchesAnyKeyword(commentText, a.trigger_value),
               )
             }
 
@@ -316,6 +328,7 @@ export async function POST(request: NextRequest) {
               if (commentAutomations.length > 0) {
                 await logRun(supabase, {
                   userId: user.id,
+                  igsid: senderId,
                   eventType: "comment",
                   triggerText: commentText,
                   matched: false,
@@ -336,6 +349,7 @@ export async function POST(request: NextRequest) {
                 console.log(`[v0] ⏭️ Skipped: ${senderId} already got "${match.name}" on this post`)
                 await logRun(supabase, {
                   userId: user.id,
+                  igsid: senderId,
                   automationId: match.id,
                   eventType: "comment",
                   triggerText: commentText,
@@ -396,6 +410,7 @@ export async function POST(request: NextRequest) {
               }
               await logRun(supabase, {
                 userId: user.id,
+                igsid: senderId,
                 automationId: match.id,
                 eventType: "comment",
                 triggerText: commentText,
@@ -407,6 +422,7 @@ export async function POST(request: NextRequest) {
               console.log(`[v0] 🟢 Private DM Sent! (${dmResults.length} step${dmResults.length > 1 ? "s" : ""})`)
               await logRun(supabase, {
                 userId: user.id,
+                igsid: senderId,
                 automationId: match.id,
                 eventType: "comment",
                 triggerText: commentText,
@@ -549,9 +565,7 @@ export async function POST(request: NextRequest) {
 
               const triggers = a.trigger_value?.split(',').map((t: string) => t.trim()) || []
               if (triggers.length > 0 && triggers[0] !== 'ALL' && triggers[0] !== 'ALL_MENTIONS' && triggers[0] !== '') {
-                return triggers.some((keyword: string) =>
-                  new RegExp(`\\b${escapeRegex(keyword)}\\b`, 'i').test(messageText)
-                )
+                return triggers.some((keyword: string) => matchesAnyKeyword(messageText, keyword))
               }
               return true
             })
@@ -697,6 +711,7 @@ export async function POST(request: NextRequest) {
             console.log(`[v0] 🙋 Human is handling ${senderId} — skipping automation`)
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               eventType: triggerType === "postback" ? "postback" : "dm",
               triggerText: triggerValue,
               matched: false,
@@ -738,21 +753,37 @@ export async function POST(request: NextRequest) {
 
               if (nextQuestion) {
                 await supabase.from("conversations").update({ active_flow_step: nextIndex }).eq("id", conv.id)
-                await sendSteps(user.access_token, { id: senderId }, senderId, { message: nextQuestion.prompt })
+                await sendSteps(user.access_token, { id: senderId }, senderId, { message: nextQuestion.prompt }, { userId: user.id })
               } else {
                 await supabase
                   .from("conversations")
                   .update({ active_flow_automation_id: null, active_flow_step: null })
                   .eq("id", conv.id)
+                // Lead complete: tell the creator's outbound webhooks (Sheets, CRM, Zapier...).
+                const { data: lead } = await supabase
+                  .from("contacts")
+                  .select("name, email, phone, custom_fields")
+                  .eq("user_id", user.id)
+                  .eq("igsid", senderId)
+                  .single()
+                await emitEvent(user.id, "lead_captured", {
+                  automation_id: flowAutomation.id,
+                  igsid: senderId,
+                  name: lead?.name ?? null,
+                  email: lead?.email ?? null,
+                  phone: lead?.phone ?? null,
+                  custom_fields: lead?.custom_fields ?? {},
+                })
                 if (flowAutomation.response_content.closing_message) {
                   await sendSteps(user.access_token, { id: senderId }, senderId, {
                     message: flowAutomation.response_content.closing_message,
-                  })
+                  }, { userId: user.id })
                 }
               }
 
               await logRun(supabase, {
                 userId: user.id,
+                igsid: senderId,
                 automationId: flowAutomation.id,
                 eventType: "dm",
                 triggerText: triggerValue,
@@ -807,6 +838,7 @@ export async function POST(request: NextRequest) {
 
               await logRun(supabase, {
                 userId: user.id,
+                igsid: senderId,
                 automationId: flowAutomation.id,
                 eventType: "dm",
                 triggerText: triggerValue,
@@ -835,6 +867,7 @@ export async function POST(request: NextRequest) {
             console.log(`[v0] ⏸️ Skipped DM to ${senderId} — outside 24h messaging window`)
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               eventType: triggerType === "postback" ? "postback" : "dm",
               triggerText: triggerValue,
               matched: false,
@@ -876,7 +909,7 @@ export async function POST(request: NextRequest) {
             match = dmAutomations.find(
               (a: any) =>
                 a.trigger_type === "keyword" &&
-                a.trigger_value.split(",").some((k: string) => new RegExp(`\\b${escapeRegex(k.trim())}\\b`, "i").test(triggerValue)),
+                matchesAnyKeyword(triggerValue, a.trigger_value),
             )
 
             // Priority 2: wildcard catch-all — matches ANY DM. Only used when no
@@ -896,6 +929,21 @@ export async function POST(request: NextRequest) {
                 const gatewaySecret = process.env.GATEWAY_SECRET
                 if (!gatewaySecret) {
                   console.log("[v0] ❌ GATEWAY_SECRET not set")
+                  continue
+                }
+
+                // Plan AI limit (daily). Over the limit: skip the AI fallback silently (no reply is sent).
+                const aiQuota = await reserveAiRun(user.id)
+                if (!aiQuota.allowed) {
+                  await logRun(supabase, {
+                    userId: user.id,
+                    igsid: senderId,
+                    eventType: "dm",
+                    triggerText: triggerValue,
+                    matched: false,
+                    actionStatus: "skipped",
+                    errorMessage: aiQuota.message,
+                  })
                   continue
                 }
 
@@ -1006,6 +1054,7 @@ STRICT RULES — follow every single one:
                   console.log(`[v0] ❌ AI proxy error: ${aiRes.status}`)
                   await logRun(supabase, {
                     userId: user.id,
+                    igsid: senderId,
                     eventType: "dm",
                     triggerText: triggerValue,
                     matched: false,
@@ -1110,6 +1159,7 @@ STRICT RULES — follow every single one:
                   const handoffJson = await handoffRes.json()
                   await logRun(supabase, {
                     userId: user.id,
+                    igsid: senderId,
                     eventType: "dm",
                     triggerText: triggerValue,
                     matched: false,
@@ -1137,15 +1187,28 @@ STRICT RULES — follow every single one:
                   message: { text: aiReply },
                 }
 
-                const sendRes = await fetch(
-                  `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(user.access_token)}`,
-                  { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(aiApiBody) },
-                )
-                const sendJson = await sendRes.json()
+                // Plan DM limit, then send with the shared retry helper (transient Meta errors are retried).
+                const dmQuota = await reserveDm(user.id)
+                if (!dmQuota.allowed) {
+                  await logRun(supabase, {
+                    userId: user.id,
+                    igsid: senderId,
+                    eventType: "dm",
+                    triggerText: triggerValue,
+                    matched: false,
+                    actionStatus: "skipped",
+                    errorMessage: dmQuota.message,
+                  })
+                  continue
+                }
+                const aiSent = await postGraphMessage(user.access_token, aiApiBody)
+                if (!aiSent.ok) await releaseDm(user.id) // failed sends are not billed
+                const sendJson = { error: aiSent.ok ? null : (aiSent.error ?? { message: "Network error talking to Instagram" }) }
                 if (sendJson.error) {
                   console.error("[v0] 🔴 AI Reply Send Failed:", sendJson.error)
                   await logRun(supabase, {
                     userId: user.id,
+                    igsid: senderId,
                     eventType: "dm",
                     triggerText: triggerValue,
                     matched: false,
@@ -1156,6 +1219,7 @@ STRICT RULES — follow every single one:
                   console.log("[v0] 🟢 AI Reply Sent!")
                   await logRun(supabase, {
                     userId: user.id,
+                    igsid: senderId,
                     eventType: "dm",
                     triggerText: triggerValue,
                     matched: false,
@@ -1191,6 +1255,7 @@ STRICT RULES — follow every single one:
             console.log(`[v0] ❌ No match.`)
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               eventType: triggerType === "postback" ? "postback" : "dm",
               triggerText: triggerValue,
               matched: false,
@@ -1218,6 +1283,7 @@ STRICT RULES — follow every single one:
 
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               automationId: match.id,
               eventType: "dm",
               triggerText: triggerValue,
@@ -1266,6 +1332,7 @@ STRICT RULES — follow every single one:
 
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               automationId: match.id,
               eventType: "dm",
               triggerText: triggerValue,
@@ -1290,15 +1357,25 @@ STRICT RULES — follow every single one:
           }
 
           const isUnlockEvent = triggerType === "postback" && triggerValue.startsWith("UNLOCK_CONTENT_")
-          const isFollowGate = content.check_follow === true && !isUnlockEvent
+
+          // Real follow check (Instagram User Profile API). Only asked when the rule has the gate on.
+          // "unknown" (field missing, no consent yet, error) keeps the old honour-system behaviour.
+          const followStatus = content.check_follow === true ? await checkFollowStatus(user.access_token, senderId) : "unknown"
+
+          // Verified NOT following, and they tapped "I Followed!": do not unlock. Keep the button and ask kindly.
+          const stillLocked = isUnlockEvent && followStatus === "not_following"
+          // Already verified as a follower: no need to gate them at all, send the content straight away.
+          const isFollowGate = content.check_follow === true && !isUnlockEvent && followStatus !== "following"
 
           // Follow-gate is always a single locked-content card, never a sequence —
           // steps only apply to the normal (non-gated) reply content.
-          const sendContent = isFollowGate
+          const sendContent = isFollowGate || stillLocked
             ? {
                 card: {
-                  title: "🔒 Content Locked",
-                  subtitle: `Please follow @${user.username} to see this!`,
+                  title: stillLocked ? "Almost there" : "🔒 Content Locked",
+                  subtitle: stillLocked
+                    ? `We could not see that you follow @${user.username} yet. Please follow first, then tap the button again.`
+                    : `Please follow @${user.username} to see this!`,
                   buttons: [
                     { type: "web_url", url: `https://instagram.com/${user.username}`, title: "Follow Us" },
                     { type: "postback", title: "I Followed! ✅", payload: `UNLOCK_CONTENT_${match.id}` },
@@ -1320,6 +1397,7 @@ STRICT RULES — follow every single one:
             console.error("[v0] 🔴 Reply Failed:", lastError)
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               automationId: match.id,
               eventType: triggerType === "postback" ? "postback" : "dm",
               triggerText: triggerValue,
@@ -1331,11 +1409,14 @@ STRICT RULES — follow every single one:
             console.log(`[v0] 🟢 Reply Sent! (${dmResults.length} step${dmResults.length > 1 ? "s" : ""})`)
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               automationId: match.id,
               eventType: triggerType === "postback" ? "postback" : "dm",
               triggerText: triggerValue,
               matched: true,
               actionStatus: "sent",
+              // Transparent in the run log: this unlock was not verified by Instagram.
+              errorMessage: isUnlockEvent && content.check_follow === true && followStatus === "unknown" ? "Follow not verified (honour system)" : stillLocked ? "Follow gate: not following yet, content kept locked" : null,
             })
 
             const { data: outConv } = await supabase
