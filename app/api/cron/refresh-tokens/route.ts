@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { isServiceAuthorized } from "@/lib/security/service-auth"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { encryptPlaintextTokens } from "@/lib/token-sweep"
 
@@ -22,15 +23,8 @@ import { encryptPlaintextTokens } from "@/lib/token-sweep"
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify authorization (Vercel Cron sends CRON_SECRET, or use API_SECRET_KEY)
-    const authHeader = request.headers.get("authorization")
-    const cronSecret = process.env.CRON_SECRET
-    const apiSecret = process.env.API_SECRET_KEY
-
-    const isVercelCron = cronSecret && authHeader === `Bearer ${cronSecret}`
-    const isManualCall = apiSecret && authHeader === `Bearer ${apiSecret}`
-
-    if (!isVercelCron && !isManualCall) {
+    // Verify authorization (Vercel Cron sends CRON_SECRET; API_SECRET_KEY still accepted), constant-time.
+    if (!isServiceAuthorized(request.headers)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
