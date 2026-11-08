@@ -1,26 +1,27 @@
 import { type NextRequest } from "next/server"
+import { resolveAuthFlags } from "@/lib/security/auth-flags"
 import { SESSION_COOKIE, verifySessionToken, type SessionPayload } from "@/lib/session"
 
 /**
  * Rollout flags (all read at request time):
  *
- *  SESSION_ACCEPT_LEGACY  default ON. Accepts the old unsigned JSON cookie so
- *                         existing logged-in users are not signed out on
- *                         deploy. Set to "0" once everyone has re-logged in.
- *                         While ON, the session is NOT trustworthy.
+ *  SESSION_ACCEPT_LEGACY  Accepts the old unsigned JSON cookie. While ON, the session is NOT
+ *                         trustworthy. Default: ON in development, OFF in production when
+ *                         SESSION_SECRET is set (secure by default). "1" / "0" always wins.
  *
- *  AUTH_ENFORCE           default OFF. When "1", routes that used to trust a
- *                         client-supplied userId (query/body) require a valid
- *                         session and reject a mismatching userId. Turn on
- *                         after the Android app sends Authorization: Bearer.
+ *  AUTH_ENFORCE           When on, routes that used to trust a client-supplied userId
+ *                         (query/body) require a valid session and reject a mismatching userId.
+ *                         Default: OFF in development, ON in production when SESSION_SECRET is set.
+ *                         "1" / "0" always wins (set AUTH_ENFORCE=0 to keep the old Android app
+ *                         working until it is migrated; see docs/TODO-ANDROID-AUTH.md).
  */
 
 function acceptLegacy(): boolean {
-  return process.env.SESSION_ACCEPT_LEGACY !== "0"
+  return resolveAuthFlags().acceptLegacy
 }
 
 function enforce(): boolean {
-  return process.env.AUTH_ENFORCE === "1"
+  return resolveAuthFlags().enforce
 }
 
 export function isEnforced(): boolean {
