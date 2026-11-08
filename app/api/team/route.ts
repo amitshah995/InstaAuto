@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { rawQuery } from "@/lib/supabase-server"
 import { getSiteUrl } from "@/lib/site"
 import { getTeamCtx, makeInviteCode } from "@/lib/team"
+import { getEntitlement } from "@/lib/billing/usage"
 
 const NOT_SETUP = { error: "Team access is not set up yet (run migration 25)." }
 
@@ -45,6 +46,11 @@ export async function POST(request: NextRequest) {
       [ctx.accountId],
     )
     if (Number(n) >= 10) return NextResponse.json({ error: "You can have up to 10 teammates and open invites." }, { status: 400 })
+    // Plan seats (owner counts as one). Only enforced when billing is switched on; during the beta the old cap applies.
+    const ent = await getEntitlement(ctx.accountId)
+    if (ent.enforce && Number(n) + 1 >= ent.plan.seats) {
+      return NextResponse.json({ error: `Your ${ent.plan.name} plan includes ${ent.plan.seats} seat${ent.plan.seats === 1 ? "" : "s"}. Upgrade to invite more people.` }, { status: 402 })
+    }
     const code = makeInviteCode()
     await rawQuery(`INSERT INTO team_invites (code, owner_id) VALUES ($1,$2)`, [code, ctx.accountId])
     return NextResponse.json({ code, url: `${getSiteUrl()}/team/join/${code}` })
