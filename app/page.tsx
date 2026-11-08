@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { GoogleSearchHome } from "@/components/layout/google-home"
 import { InstagramConnectAnimation } from "@/components/ui/instagram-connect-animation"
 import { BRAND_NAME } from "@/lib/site"
+import { FAQS } from "@/lib/marketing-faq"
 import { Loader2, AlertCircle } from "lucide-react"
 
 function HomeContent() {
@@ -135,48 +136,11 @@ export default function Home() {
       {
         "@type": "FAQPage",
         "@id": "https://www.dmspark.in/#faq",
-        mainEntity: [
-          {
-            "@type": "Question",
-            name: `What is ${BRAND_NAME}?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: `${BRAND_NAME} is an Instagram comment-to-DM automation tool. It auto-replies to Instagram comments and DMs using keyword triggers, through the official Instagram API.`,
-            },
-          },
-          {
-            "@type": "Question",
-            name: `How does ${BRAND_NAME} Instagram automation work?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: `${BRAND_NAME} works by connecting your Instagram Business or Creator account via the official Meta API. You set up keyword triggers (like 'price', 'link', 'info') and ${BRAND_NAME} automatically replies to comments and sends DMs whenever someone uses those keywords. Replies are sent automatically, even when you are offline.`,
-            },
-          },
-          {
-            "@type": "Question",
-            name: `Is ${BRAND_NAME} free to use?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: `${BRAND_NAME} is currently free to use while it is in beta. You can connect your Instagram account and set up auto-replies at no cost.`,
-            },
-          },
-          {
-            "@type": "Question",
-            name: `Is ${BRAND_NAME} safe? Does it use the official Instagram API?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: `${BRAND_NAME} uses the official Instagram API and signs in with Instagram's own OAuth login; we never ask for your Instagram password. Follow Instagram's messaging rules when you set up automations.`,
-            },
-          },
-          {
-            "@type": "Question",
-            name: `How is ${BRAND_NAME} different from other Instagram automation tools?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: `${BRAND_NAME} uses the official Instagram API (not scraping), supports comment-to-DM and DM automation, and includes a free Instagram audit that turns findings into ready-to-use automations.`,
-            },
-          },
-        ],
+        mainEntity: FAQS.map((f) => ({
+          "@type": "Question",
+          name: f.q,
+          acceptedAnswer: { "@type": "Answer", text: f.a },
+        })),
       },
     ],
   }
