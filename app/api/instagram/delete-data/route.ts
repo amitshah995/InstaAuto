@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { rawQuery } from "@/lib/supabase-server"
 import crypto from "crypto"
+import { getSiteUrl } from "@/lib/site"
 
 /**
  * Meta Data Deletion Request Callback
@@ -36,13 +37,13 @@ function parseSignedRequest(signedRequest: string, appSecret: string): any | nul
       .digest()
 
     if (!crypto.timingSafeEqual(sig, expectedSig)) {
-      console.error("[DMSpark] ❌ Data deletion: Invalid signature")
+      console.error("[Celra] ❌ Data deletion: Invalid signature")
       return null
     }
 
     return data
   } catch (e) {
-    console.error("[DMSpark] ❌ Data deletion: Failed to parse signed_request", e)
+    console.error("[Celra] ❌ Data deletion: Failed to parse signed_request", e)
     return null
   }
 }
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No user_id in signed_request" }, { status: 400 })
     }
 
-    console.log(`[DMSpark] 🗑️ Data deletion request for user: ${userId}`)
+    console.log(`[Celra] 🗑️ Data deletion request for user: ${userId}`)
 
     // Raw SQL so we can check every result. Each statement runs on its own, so a table that
     // doesn't exist yet (a migration not run) is skipped instead of aborting the whole deletion.
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
       } catch (e: any) {
         // 42P01 = table missing, 42703 = column missing: nothing to delete there, safe to skip.
         if (e?.code === "42P01" || e?.code === "42703") continue
-        console.error(`[DMSpark] delete step failed: ${step.label}`, e?.message)
+        console.error(`[Celra] delete step failed: ${step.label}`, e?.message)
         // Return 500 so Meta retries the callback instead of believing the data is gone.
         return NextResponse.json({ error: "Deletion incomplete" }, { status: 500 })
       }
@@ -132,19 +133,19 @@ export async function POST(request: NextRequest) {
     // Last: the account row itself (this also removes the stored access token).
     await rawQuery("DELETE FROM users WHERE id = $1", [uid])
 
-    console.log(`[DMSpark] ✅ All data deleted for user: ${userId}`)
+    console.log(`[Celra] ✅ All data deleted for user: ${userId}`)
 
     // Generate confirmation code
     const confirmationCode = crypto.randomUUID()
 
     // Meta expects this exact response format
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://dmspark.in"
+    const baseUrl = getSiteUrl()
     return NextResponse.json({
       url: `${baseUrl}/delete-data?confirmation=${confirmationCode}`,
       confirmation_code: confirmationCode,
     })
   } catch (error: any) {
-    console.error("[DMSpark] ❌ Data deletion error:", error)
+    console.error("[Celra] ❌ Data deletion error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

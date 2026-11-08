@@ -30,13 +30,13 @@ function parseSignedRequest(signedRequest: string, appSecret: string): any | nul
       .digest()
 
     if (!crypto.timingSafeEqual(sig, expectedSig)) {
-      console.error("[DMSpark] ❌ Deauthorize: Invalid signature")
+      console.error("[Celra] ❌ Deauthorize: Invalid signature")
       return null
     }
 
     return data
   } catch (e) {
-    console.error("[DMSpark] ❌ Deauthorize: Failed to parse signed_request", e)
+    console.error("[Celra] ❌ Deauthorize: Failed to parse signed_request", e)
     return null
   }
 }
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No user_id in signed_request" }, { status: 400 })
     }
 
-    console.log(`[DMSpark] 🔌 Deauthorization request for user: ${userId}`)
+    console.log(`[Celra] 🔌 Deauthorization request for user: ${userId}`)
 
     const supabase = await getSupabaseServerClient()
 
@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
       .eq("id", userId)
 
     if (error) {
-      console.error("[DMSpark] ❌ Failed to revoke token:", error)
+      console.error("[Celra] ❌ Failed to revoke token:", error)
     } else {
-      console.log(`[DMSpark] ✅ Token revoked for user: ${userId}`)
+      console.log(`[Celra] ✅ Token revoked for user: ${userId}`)
     }
 
     // Log the deauthorization event
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error("[DMSpark] ❌ Deauthorization error:", error)
+    console.error("[Celra] ❌ Deauthorization error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

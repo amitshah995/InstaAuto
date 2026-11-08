@@ -176,7 +176,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
         {/* Header */}
         <div className="px-6 py-4.5 border-b border-border/70 flex items-center justify-between bg-secondary/20">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 text-warn flex items-center justify-center shrink-0">
               <Pencil className="w-4 h-4" />
             </div>
             <div>
@@ -255,7 +255,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="message-text" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <MessageCircle className="w-3.5 h-3.5 text-emerald-500" /> Automated Direct Message (DM)
+                  <MessageCircle className="w-3.5 h-3.5 text-brand" /> Automated Direct Message (DM)
                 </Label>
                 <span className="text-[10px] text-muted-foreground font-mono">{messageText.length} chars</span>
               </div>
@@ -281,9 +281,9 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
             <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-2.5">
               <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                 {contentType === "sequence" ? (
-                  <ListOrdered className="w-3.5 h-3.5 text-blue-500" />
+                  <ListOrdered className="w-3.5 h-3.5 text-brand" />
                 ) : (
-                  <ListChecks className="w-3.5 h-3.5 text-blue-500" />
+                  <ListChecks className="w-3.5 h-3.5 text-brand" />
                 )}
                 {contentType === "sequence"
                   ? `Message Sequence (${rule.response_content?.steps?.length || 0} messages)`
@@ -306,7 +306,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
           {contentType === "card" && (
             <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-3.5">
               <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-                <Send className="w-3.5 h-3.5 text-blue-500" /> Rich Card Settings
+                <Send className="w-3.5 h-3.5 text-brand" /> Rich Card Settings
               </div>
 
               <div className="space-y-1">
@@ -372,7 +372,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
                         type="button"
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 text-red-500"
+                        className="h-8 w-8 text-destructive"
                         onClick={() => setCardButtons(cardButtons.filter((_, j) => j !== i))}
                       >
                         <X className="h-3 w-3" />

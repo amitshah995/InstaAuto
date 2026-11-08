@@ -4,7 +4,6 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { 
-  Instagram, 
   LayoutDashboard, 
   Zap, 
   LogOut, 
@@ -24,6 +23,8 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
+import { CelraLogo } from "@/components/ui/celra-logo"
+import { BRAND_NAME } from "@/lib/site"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   username?: string
@@ -49,24 +50,9 @@ export function Sidebar({ className, username = "Demo User", profilePictureUrl, 
     <aside className={cn("flex flex-col bg-sidebar border-r border-sidebar-border text-sidebar-foreground h-full transition-all duration-300", className)} {...props}>
       <div className={cn("flex shrink-0 select-none", isCollapsed ? "p-4 justify-center items-center" : "p-6 items-center gap-3")}>
         {isCollapsed ? (
-          <img src="/logo.png" alt="DMSpark" className="w-10 h-10 object-contain shrink-0 bg-white rounded-xl p-1 shadow-sm hover:scale-105 transition-transform duration-300" />
+          <CelraLogo variant="mark" size={36} />
         ) : (
-          <>
-            <img src="/logo.png" alt="DMSpark" className="w-12 h-12 object-contain shrink-0 bg-white rounded-xl p-1 shadow-sm hover:scale-105 transition-transform duration-300" />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-2xl tracking-tight text-[#D62976] leading-none">
-                  DMSpark
-                </span>
-                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#D62976]/10 text-[#D62976] border border-[#D62976]/20 select-none animate-pulse shrink-0">
-                  v1.5.1
-                </span>
-              </div>
-              <span className="text-[10px] text-muted-foreground/50 font-bold tracking-wider uppercase mt-1">
-                DM Automation
-              </span>
-            </div>
-          </>
+          <CelraLogo variant="full" size={34} className="text-sidebar-foreground" />
         )}
       </div>
 
@@ -162,7 +148,7 @@ export function Sidebar({ className, username = "Demo User", profilePictureUrl, 
         />
         <NavItem
           href="/dashboard/help"
-          icon={<Compass className="w-4 h-4 text-primary animate-pulse" />}
+          icon={<Compass className="w-4 h-4 text-brand" />}
           label="How to Use"
           active={isActive("/dashboard/help")}
           onClick={onNavigate}
@@ -197,9 +183,9 @@ export function Sidebar({ className, username = "Demo User", profilePictureUrl, 
           >
             <div className="flex items-center gap-3">
               {mounted && theme === "dark" ? (
-                <Sun className="w-4 h-4 text-amber-500 transition-transform duration-500 rotate-0 group-hover:rotate-45" />
+                <Sun className="w-4 h-4 transition-transform duration-500 rotate-0 group-hover:rotate-45" />
               ) : (
-                <Moon className="w-4 h-4 text-indigo-500 transition-transform duration-500 rotate-0 group-hover:-rotate-12" />
+                <Moon className="w-4 h-4 transition-transform duration-500 rotate-0 group-hover:-rotate-12" />
               )}
               {!isCollapsed && <span>Theme Mode</span>}
             </div>
@@ -232,7 +218,7 @@ export function Sidebar({ className, username = "Demo User", profilePictureUrl, 
               <div className="flex-1 overflow-hidden">
                 <p className="text-xs font-bold text-foreground truncate">{username}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-sm shadow-green-500/50" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shadow-sm shadow-black/5" />
                   <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Active</p>
                 </div>
               </div>
@@ -285,17 +271,14 @@ function NavItem({
       href={href}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 font-semibold text-[13px] group relative overflow-hidden hover:translate-x-1",
+        "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 font-semibold text-[13px] group relative overflow-hidden ",
         active 
-          ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" 
-          : "text-sidebar-foreground/80 hover:text-foreground hover:bg-sidebar-accent/50 hover:shadow-md hover:shadow-primary/10",
+          ? "bg-primary text-primary-foreground " 
+          : "text-sidebar-foreground/80 hover:text-foreground hover:bg-sidebar-accent/50 ",
         isCollapsed ? "justify-center px-2 hover:translate-x-0" : ""
       )}
       title={isCollapsed ? label : undefined}
     >
-      {active && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] animate-shimmer" />
-      )}
       <span className={active ? "text-primary-foreground" : "text-sidebar-foreground/75 group-hover:text-foreground transition-colors duration-200"}>{icon}</span>
       {!isCollapsed && (
         <div className="flex-1 flex items-center justify-between">

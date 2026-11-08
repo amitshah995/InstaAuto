@@ -40,4 +40,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: e?.message || "Could not switch" }, { status: 500 })
   }
 }
-  

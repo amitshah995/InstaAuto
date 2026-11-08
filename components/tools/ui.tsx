@@ -88,9 +88,9 @@ export function Tile({ label, value, color, sub }: { label: string; value: React
 
 export function CheckList({ checks }: { checks: CheckItem[] }) {
   const meta = {
-    good: { Icon: CheckCircle2, bg: "rgba(40,167,69,.16)", fg: "#3ddc6b" },
-    warn: { Icon: AlertTriangle, bg: "rgba(245,179,1,.15)", fg: "#f5b301" },
-    bad: { Icon: XCircle, bg: "rgba(255,59,82,.15)", fg: "#ff3b52" },
+    good: { Icon: CheckCircle2, bg: "color-mix(in srgb,var(--au-green) 16%,transparent)", fg: "var(--au-green)" },
+    warn: { Icon: AlertTriangle, bg: "color-mix(in srgb,var(--au-amber) 15%,transparent)", fg: "var(--au-amber)" },
+    bad: { Icon: XCircle, bg: "color-mix(in srgb,var(--au-red) 15%,transparent)", fg: "var(--au-red)" },
   } as const
   return (
     <div style={{ display: "grid", gap: 10 }}>

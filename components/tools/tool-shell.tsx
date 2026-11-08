@@ -4,8 +4,9 @@ import { AuditShell } from "@/components/audit/audit-theme"
 import { ToolIcon } from "./tool-icon"
 import { TOOLS, type ToolMeta } from "@/lib/tools/registry"
 import { ArrowLeft, ClipboardCheck, Zap } from "lucide-react"
+import { BRAND_NAME } from "@/lib/site"
 
-/** Page frame for one tool: heading, the tool, FAQ (with structured data), related tools, DMSpark CTA. */
+/** Page frame for one tool: heading, the tool, FAQ (with structured data), related tools, {BRAND_NAME} CTA. */
 export function ToolShell({ tool, children }: { tool: ToolMeta; children: ReactNode }) {
   const related = [...TOOLS.filter((t) => t.slug !== tool.slug && t.category === tool.category), ...TOOLS.filter((t) => t.slug !== tool.slug && t.category !== tool.category)].slice(0, 3)
   const ld = {
@@ -51,8 +52,8 @@ export function ToolShell({ tool, children }: { tool: ToolMeta; children: ReactN
           <div className="au-card" style={{ display: "grid", gap: 10, alignContent: "start" }}>
             <span className="au-icon red"><Zap size={16} /></span>
             <h3 className="au-head" style={{ fontSize: 18 }}>Reply to comments and DMs automatically</h3>
-            <p className="au-muted" style={{ fontSize: 14 }}>DMSpark sends the right message the moment someone comments a keyword or writes to you.</p>
-            <div><Link href="/" className="au-btn ghost" style={{ padding: "11px 24px", fontSize: 15 }}>See DMSpark</Link></div>
+            <p className="au-muted" style={{ fontSize: 14 }}>{BRAND_NAME} sends the right message the moment someone comments a keyword or writes to you.</p>
+            <div><Link href="/" className="au-btn ghost" style={{ padding: "11px 24px", fontSize: 15 }}>See {BRAND_NAME}</Link></div>
           </div>
         </section>
 

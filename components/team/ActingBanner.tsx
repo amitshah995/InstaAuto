@@ -15,7 +15,7 @@ export function ActingBanner() {
   }, [])
   if (!info) return null
   return (
-    <div className="flex items-center justify-center gap-3 bg-fuchsia-600 px-3 py-1.5 text-xs font-medium text-white">
+    <div className="flex items-center justify-center gap-3 bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground">
       <Users className="h-3.5 w-3.5" />
       Working inside @{info.account?.username}'s account
       <button onClick={() => switchWorkspace()} className="rounded-full bg-white/20 px-2.5 py-0.5 font-semibold hover:bg-white/30">

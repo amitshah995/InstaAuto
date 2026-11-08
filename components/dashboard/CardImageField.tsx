@@ -96,17 +96,17 @@ export function CardImageField({
         <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Finding the product image…</p>
       )}
       {status === "missing" && !value && (
-        <p className="text-[11px] text-amber-600">Is link se image nahi mili — Upload dabakar apni photo daalein.</p>
+        <p className="text-[11px] text-warn">Is link se image nahi mili — Upload dabakar apni photo daalein.</p>
       )}
       {value && (
         <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/40 p-1.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={value} alt="" className="h-10 w-10 rounded object-cover" onError={(e) => ((e.currentTarget.style.visibility = "hidden"))} />
           <span className="flex min-w-0 flex-1 items-center gap-1 text-[11px] text-muted-foreground">
-            {status === "found" && <Sparkles className="h-3 w-3 shrink-0 text-emerald-600" />}
+            {status === "found" && <Sparkles className="h-3 w-3 shrink-0 text-brand" />}
             <span className="truncate">{value}</span>
           </span>
-          <button type="button" onClick={() => { onChange(""); tried.current = ""; setStatus("idle") }} className="rounded p-1 text-red-500 hover:bg-red-500/10">
+          <button type="button" onClick={() => { onChange(""); tried.current = ""; setStatus("idle") }} className="rounded p-1 text-destructive hover:bg-destructive/10">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>

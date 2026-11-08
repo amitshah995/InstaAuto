@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { switchWorkspace } from "@/components/team/switchWorkspace"
+import { BRAND_NAME } from "@/lib/site"
 
 interface TeamData {
   acting: boolean
@@ -46,7 +47,7 @@ export function TeamPanel() {
     }
   }
 
-  if (error) return <Card><CardContent className="p-5 text-sm text-amber-600">{error}</CardContent></Card>
+  if (error) return <Card><CardContent className="p-5 text-sm text-warn">{error}</CardContent></Card>
   if (!data) return <div className="flex h-24 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
 
   return (
@@ -63,7 +64,7 @@ export function TeamPanel() {
                   <Button size="sm" variant="outline" className="h-7" onClick={async () => { const e = await switchWorkspace(w.id); if (e) toast.error(e) }}>
                     <LogIn className="mr-1 h-3 w-3" /> Open
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-red-500" disabled={busy} onClick={() => act(() => fetch(`/api/team?leave=${w.id}`, { method: "DELETE" }), "Left team")}>
+                  <Button size="sm" variant="ghost" className="h-7 text-destructive" disabled={busy} onClick={() => act(() => fetch(`/api/team?leave=${w.id}`, { method: "DELETE" }), "Left team")}>
                     Leave
                   </Button>
                 </div>
@@ -81,7 +82,7 @@ export function TeamPanel() {
             {data.members.map((m) => (
               <div key={m.id} className="flex items-center justify-between rounded-lg border border-border p-2.5">
                 <span>@{m.username}</span>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" disabled={busy} onClick={() => act(() => fetch(`/api/team?member=${m.id}`, { method: "DELETE" }), "Teammate removed")}>
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" disabled={busy} onClick={() => act(() => fetch(`/api/team?member=${m.id}`, { method: "DELETE" }), "Teammate removed")}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -90,12 +91,12 @@ export function TeamPanel() {
               <div key={i.code} className="flex items-center gap-2 rounded-lg border border-dashed border-border p-2.5">
                 <code className="flex-1 truncate text-[11px]">{i.url}</code>
                 <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => { navigator.clipboard.writeText(i.url); toast.success("Invite link copied") }}><Copy className="h-3.5 w-3.5" /></Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" disabled={busy} onClick={() => act(() => fetch(`/api/team?invite=${i.code}`, { method: "DELETE" }))}><Trash2 className="h-3.5 w-3.5" /></Button>
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" disabled={busy} onClick={() => act(() => fetch(`/api/team?invite=${i.code}`, { method: "DELETE" }))}><Trash2 className="h-3.5 w-3.5" /></Button>
               </div>
             ))}
             <Button disabled={busy} onClick={() => act(() => fetch("/api/team", { method: "POST" }), "Invite link created")}>Create invite link</Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              The teammate opens the link while logged in to DMSpark with their own Instagram account. They can then manage your automations, links, contacts and reports
+              The teammate opens the link while logged in to {BRAND_NAME} with their own Instagram account. They can then manage your automations, links, contacts and reports
               from their dashboard, but cannot invite or remove people. Links work once and expire in 7 days. Their access is re-checked every 2 hours.
             </p>
           </div>

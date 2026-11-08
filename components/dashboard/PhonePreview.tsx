@@ -36,7 +36,7 @@ function Avatar({ src, size = 28 }: { src?: string | null; size?: number }) {
   ) : (
     <div
       style={{ width: size, height: size }}
-      className="shrink-0 rounded-full bg-gradient-to-tr from-amber-300 via-pink-500 to-indigo-500"
+      className="shrink-0 rounded-full bg-brand"
     />
   )
 }
@@ -49,7 +49,7 @@ function Img({ src, className, label }: { src?: string; className?: string; labe
     return <img src={src} alt="" onError={() => setBad(true)} className={`object-cover ${className || ""}`} />
   }
   return (
-    <div className={`flex items-center justify-center bg-gradient-to-br from-pink-100 via-orange-100 to-violet-100 text-zinc-400 ${className || ""}`}>
+    <div className={`flex items-center justify-center bg-brand-soft text-zinc-400 ${className || ""}`}>
       <div className="flex flex-col items-center gap-1 text-[10px]">
         <ImageIcon className="h-5 w-5" />
         {label}
@@ -59,7 +59,7 @@ function Img({ src, className, label }: { src?: string; className?: string; labe
 }
 
 /**
- * Live Instagram-style phone shown beside the rule form. Everything here is a preview
+ * Live phone preview (drawn in Celra colours, no platform assets) shown beside the rule form. Everything here is a preview
  * of what the follower will see; nothing is sent.
  */
 export function PhonePreview({ userId, data, autoTab }: { userId: string; data: PhonePreviewData; autoTab?: Tab }) {
@@ -131,7 +131,7 @@ export function PhonePreview({ userId, data, autoTab }: { userId: string; data: 
             <div className="text-[10px] text-zinc-400">Reply</div>
           </div>
         </div>
-        <div className="ml-9 rounded-xl bg-emerald-50 px-2.5 py-1.5 text-[10px] text-emerald-700">📩 They get your DM automatically (see the DM tab)</div>
+        <div className="ml-9 rounded-xl bg-brand-soft px-2.5 py-1.5 text-[10px] text-brand">📩 They get your DM automatically (see the DM tab)</div>
       </div>
       <div className="m-3 flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] text-zinc-400">
         <Smile className="h-4 w-4" /> Add a comment for {username}…
@@ -173,7 +173,7 @@ export function PhonePreview({ userId, data, autoTab }: { userId: string; data: 
             {data.card.subtitle && <div className="mt-0.5 text-[10px] text-zinc-500">{data.card.subtitle}</div>}
           </div>
           {data.card.buttons.filter((b) => b.title.trim()).map((b, i) => (
-            <div key={i} className="border-t border-zinc-200 py-2 text-center text-[11px] font-semibold text-blue-600">{b.title}</div>
+            <div key={i} className="border-t border-zinc-200 py-2 text-center text-[11px] font-semibold text-brand">{b.title}</div>
           ))}
         </div>
       ) : (
@@ -221,7 +221,7 @@ export function PhonePreview({ userId, data, autoTab }: { userId: string; data: 
 
   return (
     <div>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-lime-600">Live preview</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-brand">Live preview</p>
       <p className="mb-3 text-[11px] text-muted-foreground">Form bharte hi phone badalta hai.</p>
       <div className="mx-auto h-[560px] w-[280px] overflow-hidden rounded-[38px] border-[7px] border-zinc-200 bg-white text-zinc-900 shadow-xl">
         <div className="mx-auto mt-1.5 h-4 w-20 rounded-full bg-zinc-200" />
@@ -247,7 +247,7 @@ export function PhonePreview({ userId, data, autoTab }: { userId: string; data: 
 }
 
 function Out({ children }: { children: React.ReactNode }) {
-  return <div className="ml-auto w-fit max-w-[200px] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-blue-500 px-3 py-2 text-[12px] leading-snug text-white">{children}</div>
+  return <div className="ml-auto w-fit max-w-[200px] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-brand px-3 py-2 text-[12px] leading-snug text-brand-foreground">{children}</div>
 }
 function In({ children }: { children: React.ReactNode }) {
   return <div className="w-fit max-w-[200px] rounded-2xl rounded-bl-sm bg-zinc-100 px-3 py-2 text-[12px] leading-snug">{children}</div>

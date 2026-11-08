@@ -95,6 +95,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  if (replayed) console.log(`[DMSpark] 🔁 Reconciliation replayed ${replayed} missed comment(s)`)
+  if (replayed) console.log(`[Celra] 🔁 Reconciliation replayed ${replayed} missed comment(s)`)
   return NextResponse.json({ users: users.length, checked, replayed })
 }

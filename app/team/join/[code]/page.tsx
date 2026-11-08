@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react"
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
+import { PageShell } from "@/components/marketing/page-shell"
 
 export default function JoinTeamPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params)
@@ -33,24 +34,26 @@ export default function JoinTeamPage({ params }: { params: Promise<{ code: strin
   }, [code])
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-fuchsia-50 to-orange-50 px-4 font-sans text-neutral-900">
-      <div className="w-full max-w-sm space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm">
+    <PageShell strip={false}>
+    <div className="text-c-ink flex items-center justify-center px-4  min-h-[60vh]">
+      <div className="w-full max-w-sm space-y-4 rounded-xl border border-c-line bg-c-surface p-6 text-center ">
         <h1 className="text-xl font-bold">Team invite</h1>
         {state === "loading" && <Loader2 className="mx-auto h-6 w-6 animate-spin" />}
         {state === "login" && (
           <>
-            <p className="text-sm text-neutral-600">Log in with your own Instagram account first, then open this invite link again.</p>
-            <Link href="/" className="inline-block rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white">Go to login</Link>
+            <p className="text-sm text-c-muted">Log in with your own Instagram account first, then open this invite link again.</p>
+            <Link href="/" className="inline-block rounded-[5px] bg-c-accent px-5 py-2.5 text-sm font-semibold text-c-accent-ink">Go to login</Link>
           </>
         )}
         {state === "done" && (
           <>
-            <p className="text-sm text-neutral-600">{message}</p>
-            <Link href="/dashboard/settings" className="inline-block rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white">Open Settings → Team</Link>
+            <p className="text-sm text-c-muted">{message}</p>
+            <Link href="/dashboard/settings" className="inline-block rounded-[5px] bg-c-accent px-5 py-2.5 text-sm font-semibold text-c-accent-ink">Open Settings → Team</Link>
           </>
         )}
-        {state === "error" && <p className="text-sm text-red-600">{message}</p>}
+        {state === "error" && <p className="text-sm text-destructive">{message}</p>}
       </div>
-    </main>
+    </div>
+    </PageShell>
   )
 }

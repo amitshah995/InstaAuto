@@ -8,11 +8,11 @@ import ShopTabs from "@/components/shop/ShopTabs"
 import ReportButton from "@/components/shop/ReportButton"
 
 const TINTS = [
-  "linear-gradient(135deg,#ffe3f1,#ffd1e8)",
-  "linear-gradient(135deg,#e6e0ff,#d5ccff)",
-  "linear-gradient(135deg,#ffeccc,#ffdca0)",
-  "linear-gradient(135deg,#d9f3ff,#bfe6ff)",
-  "linear-gradient(135deg,#dcf8e6,#c2f0d3)",
+  "var(--c-brand-soft)",
+  "var(--c-cream)",
+  "var(--c-soft)",
+  "var(--c-brand-soft)",
+  "var(--c-cream)",
 ]
 
 export const dynamic = "force-dynamic"
@@ -34,7 +34,7 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
   const { profile, links, hasStudio } = shop
 
   return (
-    <main className="min-h-screen text-foreground">
+    <div className="min-h-screen text-foreground">
       <ShopHeader handle={profile.handle} displayName={profile.display_name} bio={profile.bio} avatarUrl={profile.avatar_url} bannerUrl={profile.banner_url} />
       <div className="mx-auto max-w-6xl px-4 pb-16">
         {hasStudio ? <ShopTabs handle={profile.handle} active="shop" /> : <div className="h-6" />}
@@ -70,7 +70,7 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
                     <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
                       <span className="shop-price text-[17px] font-extrabold">{formatINR(l.price_inr)}</span>
                       {l.mrp_inr && l.mrp_inr > l.price_inr && <span className="text-xs text-foreground/50 line-through">{formatINR(l.mrp_inr)}</span>}
-                      {discountPct(l.price_inr, l.mrp_inr) && <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[11px] font-bold text-white">{discountPct(l.price_inr, l.mrp_inr)}% off</span>}
+                      {discountPct(l.price_inr, l.mrp_inr) && <span className="rounded-full bg-c-accent px-1.5 py-0.5 text-[11px] font-bold text-c-accent-ink">{discountPct(l.price_inr, l.mrp_inr)}% off</span>}
                     </p>
                   ) : (
                     l.network && <p className="mt-0.5 text-xs text-muted-foreground">{l.network}</p>
@@ -90,6 +90,6 @@ export default async function ShopPage({ params }: { params: Promise<{ handle: s
           </p>
         )}
       </div>
-    </main>
+    </div>
   )
 }

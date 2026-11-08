@@ -21,7 +21,7 @@ export function makeSlug(len = 7): string {
   return out
 }
 
-const BLOCKED_HOST_SUFFIXES = ["dmspark.in", "localhost", "internal", "local", "lan", "home.arpa"]
+const BLOCKED_HOST_SUFFIXES = ["localhost", "internal", "local", "lan", "home.arpa"]
 
 function isPrivateOrIpHost(host: string): boolean {
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true // any IPv4 literal
@@ -59,7 +59,7 @@ export function isBotUserAgent(ua: string | null | undefined): boolean {
 
 /** Daily-rotating hash so we can count unique visitors without storing IPs. */
 export function visitorHash(ip: string, ua: string, day = new Date().toISOString().slice(0, 10)): string {
-  const salt = process.env.LINK_HASH_SALT || process.env.API_SECRET_KEY || "dmspark-links"
+  const salt = process.env.LINK_HASH_SALT || process.env.API_SECRET_KEY || "celra-links"
   return crypto.createHash("sha256").update(`${salt}|${day}|${ip}|${ua}`).digest("hex").slice(0, 32)
 }
 

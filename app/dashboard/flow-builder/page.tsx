@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { FlowTester } from "@/components/flows/flow-tester"
 import { VersionHistory } from "@/components/flows/version-history"
+import { BRAND_NAME } from "@/lib/site"
 
 interface Node {
   id: string
@@ -226,7 +227,7 @@ function FlowBuilderContent() {
       x: 420,
       y: 80,
       title: "Welcome DM",
-      content: "Hey machan! Welcome to DMSpark! Smart automations are now active on your profile.",
+      content: `Hey machan! Welcome to ${BRAND_NAME}! Smart automations are now active on your profile.`,
       extra: "Auto-reply text"
     },
     {
@@ -329,7 +330,7 @@ function FlowBuilderContent() {
 
             const isFollowGate = content.check_follow
             const delaySec = content.delay_seconds
-            const responseMsg = content.message || content.card?.title || "Welcome to DMSpark!"
+            const responseMsg = content.message || content.card?.title || `Welcome to ${BRAND_NAME}!`
 
             const messageNode: Node = {
               id: "message-node",
@@ -682,7 +683,7 @@ function FlowBuilderContent() {
           <Button
             onClick={handleSave}
             disabled={isSaved}
-            className="bg-primary hover:bg-primary/95 text-white font-bold rounded-xl px-4 py-2 flex items-center gap-2 cursor-pointer shadow-md shadow-primary/10 transition-all"
+            className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold rounded-xl px-4 py-2 flex items-center gap-2 cursor-pointer shadow-md shadow-primary/10 transition-all"
           >
             <Save className="w-4 h-4" /> {isSaved ? "Flow Saved!" : "Save Changes"}
           </Button>
@@ -710,23 +711,23 @@ function FlowBuilderContent() {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          className="lg:col-span-3 border border-border bg-card/40 backdrop-blur-sm rounded-3xl relative overflow-hidden select-none min-h-[500px] shadow-sm flex flex-col justify-between"
+          className="lg:col-span-3 border border-border bg-card/40  rounded-3xl relative overflow-hidden select-none min-h-[500px] shadow-sm flex flex-col justify-between"
         >
           {/* Grid Background Overlay */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+          <div className="absolute inset-0 bg-[size:24px_24px] bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2724%27%20height%3D%2724%27%3E%3Ccircle%20cx%3D%271.5%27%20cy%3D%271.5%27%20r%3D%271.2%27%20fill%3D%27%23809296%27%20fill-opacity%3D%27.35%27%2F%3E%3C%2Fsvg%3E')] pointer-events-none" />
 
           {/* Floating Canvas Dock / Toolbar */}
-          <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between bg-card/85 backdrop-blur-lg px-4 py-3 rounded-2xl border border-border/80 shadow-md shadow-black/5 flex-wrap gap-3">
-            <span className="text-xs font-extrabold text-foreground flex items-center gap-2 bg-gradient-to-r from-primary/10 to-indigo-500/10 border border-primary/20 px-3 py-1 rounded-full shadow-sm">
-              <Compass className="w-4 h-4 text-primary animate-pulse" />
-              <span className="bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent">Flow Dock</span>
+          <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between bg-card/85  px-4 py-3 rounded-2xl border border-border/80 shadow-md shadow-black/5 flex-wrap gap-3">
+            <span className="text-xs font-extrabold text-foreground flex items-center gap-2 bg-brand-soft border border-primary/20 px-3 py-1 rounded-full shadow-sm">
+              <Compass className="w-4 h-4 text-brand" />
+              <span className="text-brand">Flow Dock</span>
             </span>
             <div className="flex items-center gap-2.5 flex-wrap">
               <Button
                 onClick={() => addNewNode("message")}
                 size="sm"
                 variant="outline"
-                className="h-9 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-white hover:border-blue-500 border-blue-500/25 text-blue-500 transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-blue-500/5 shadow-sm shadow-blue-500/5 hover:shadow-blue-500/15"
+                className="h-9 rounded-xl text-xs font-bold hover:bg-brand/90 hover:text-brand-foreground hover:border-brand border-brand/25 text-brand transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-brand/5 shadow-sm shadow-black/5 hover:shadow-black/5"
               >
                 <Plus className="w-3.5 h-3.5" /> Message
               </Button>
@@ -734,7 +735,7 @@ function FlowBuilderContent() {
                 onClick={() => addNewNode("condition")}
                 size="sm"
                 variant="outline"
-                className="h-9 rounded-xl text-xs font-bold hover:bg-rose-500 hover:text-white hover:border-rose-500 border-rose-500/25 text-rose-500 transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-rose-500/5 shadow-sm shadow-rose-500/5 hover:shadow-rose-500/15"
+                className="h-9 rounded-xl text-xs font-bold hover:bg-destructive hover:text-destructive-foreground hover:border-destructive border-destructive/25 text-destructive transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-destructive/5 shadow-sm shadow-black/5 hover:shadow-black/5"
               >
                 <Plus className="w-3.5 h-3.5" /> Condition
               </Button>
@@ -742,7 +743,7 @@ function FlowBuilderContent() {
                 onClick={() => addNewNode("delay")}
                 size="sm"
                 variant="outline"
-                className="h-9 rounded-xl text-xs font-bold hover:bg-amber-500 hover:text-white hover:border-amber-500 border-amber-500/25 text-amber-500 transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-amber-500/5 shadow-sm shadow-amber-500/5 hover:shadow-amber-500/15"
+                className="h-9 rounded-xl text-xs font-bold hover:bg-primary/90 hover:text-primary-foreground hover:border-primary/40 border-primary/25 text-warn transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-primary/5 shadow-sm shadow-black/5 hover:shadow-black/5"
               >
                 <Plus className="w-3.5 h-3.5" /> Delay
               </Button>
@@ -750,7 +751,7 @@ function FlowBuilderContent() {
                 onClick={() => addNewNode("action")}
                 size="sm"
                 variant="outline"
-                className="h-9 rounded-xl text-xs font-bold hover:bg-purple-500 hover:text-white hover:border-purple-500 border-purple-500/25 text-purple-500 transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-purple-500/5 shadow-sm shadow-purple-500/5 hover:shadow-purple-500/15"
+                className="h-9 rounded-xl text-xs font-bold hover:bg-primary/90 hover:text-primary-foreground hover:border-brand border-brand/25 text-brand transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-brand/5 shadow-sm shadow-black/5 hover:shadow-black/5"
               >
                 <Plus className="w-3.5 h-3.5" /> Action
               </Button>
@@ -758,7 +759,7 @@ function FlowBuilderContent() {
                 onClick={() => addNewNode("ai")}
                 size="sm"
                 variant="outline"
-                className="h-9 rounded-xl text-xs font-bold hover:bg-pink-500 hover:text-white hover:border-pink-500 border-pink-500/25 text-pink-500 transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-pink-500/5"
+                className="h-9 rounded-xl text-xs font-bold hover:bg-primary/90 hover:text-primary-foreground hover:border-brand border-brand/25 text-brand transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-brand/5"
               >
                 <Plus className="w-3.5 h-3.5" /> AI Reply
               </Button>
@@ -768,8 +769,8 @@ function FlowBuilderContent() {
                 variant={linkMode ? "default" : "outline"}
                 className={`h-9 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
                   linkMode
-                    ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500"
-                    : "hover:bg-emerald-500 hover:text-white hover:border-emerald-500 border-emerald-500/25 text-emerald-500 bg-emerald-500/5"
+                    ? "bg-brand hover:bg-brand/90 text-brand-foreground border-brand"
+                    : "hover:bg-brand/90 hover:text-brand-foreground hover:border-brand border-brand/25 text-brand bg-brand/5"
                 }`}
               >
                 <Link2 className="w-3.5 h-3.5" /> {linkMode ? (linkFromId ? "Click target node..." : "Click source node...") : "Connect"}
@@ -779,12 +780,6 @@ function FlowBuilderContent() {
 
           {/* SVG Connections Overlay */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
-            <defs>
-              <linearGradient id="wireGradient" x1="0%" y1="0%" x2="100%" y2="0%" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="oklch(0.58 0.16 260)" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="oklch(0.68 0.18 280)" stopOpacity={0.8} />
-              </linearGradient>
-            </defs>
             {connections.map(c => {
               const fromNode = nodes.find(n => n.id === c.fromId)
               const toNode = nodes.find(n => n.id === c.toId)
@@ -814,20 +809,20 @@ function FlowBuilderContent() {
                   <path
                     d={pathD}
                     fill="none"
-                    stroke={fromNode.type === "condition" ? "oklch(0.64 0.21 20)" : "url(#wireGradient)"}
+                    stroke={fromNode.type === "condition" ? "var(--primary)" : "var(--brand)"}
                     strokeWidth={2.5}
                     className="transition-all"
                   />
                   {fromNode.type === "condition" && (
                     <>
-                      <rect x={midX - 26} y={midY - 10} width={52} height={20} rx={6} fill="var(--card)" stroke="oklch(0.64 0.21 20)" strokeWidth={1} />
-                      <text x={midX} y={midY + 4} textAnchor="middle" fontSize="9" fontWeight={800} fill="oklch(0.64 0.21 20)">
+                      <rect x={midX - 26} y={midY - 10} width={52} height={20} rx={6} fill="var(--card)" stroke="var(--primary)" strokeWidth={1} />
+                      <text x={midX} y={midY + 4} textAnchor="middle" fontSize="9" fontWeight={800} fill="var(--primary)">
                         {c.label?.trim() ? c.label.trim().slice(0, 8) : "else"}
                       </text>
                     </>
                   )}
                   {/* Floating pulse circle along path */}
-                  <circle r={3.5} fill="oklch(0.58 0.16 260)">
+                  <circle r={3.5} fill="var(--brand)">
                     <animateMotion
                       dur="3.5s"
                       repeatCount="indefinite"
@@ -848,20 +843,20 @@ function FlowBuilderContent() {
               let iconElement = null
 
               if (node.type === "trigger") {
-                typeStyles = "border-emerald-500/30 shadow-emerald-500/5 bg-emerald-500/5"
-                iconElement = <Zap className="w-3.5 h-3.5 text-emerald-500" />
+                typeStyles = "border-brand/30 shadow-black/5 bg-brand/5"
+                iconElement = <Zap className="w-3.5 h-3.5 text-brand" />
               } else if (node.type === "message") {
-                typeStyles = "border-blue-500/30 shadow-blue-500/5 bg-blue-500/5"
-                iconElement = <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
+                typeStyles = "border-brand/30 shadow-black/5 bg-brand/5"
+                iconElement = <MessageSquare className="w-3.5 h-3.5 text-brand" />
               } else if (node.type === "delay") {
-                typeStyles = "border-amber-500/30 shadow-amber-500/5 bg-amber-500/5"
-                iconElement = <Clock className="w-3.5 h-3.5 text-amber-500" />
+                typeStyles = "border-primary/30 shadow-black/5 bg-primary/5"
+                iconElement = <Clock className="w-3.5 h-3.5 text-warn" />
               } else if (node.type === "condition") {
-                typeStyles = "border-rose-500/30 shadow-rose-500/5 bg-rose-500/5"
-                iconElement = <GitBranch className="w-3.5 h-3.5 text-rose-500" />
+                typeStyles = "border-destructive/30 shadow-black/5 bg-destructive/5"
+                iconElement = <GitBranch className="w-3.5 h-3.5 text-destructive" />
               } else if (node.type === "action") {
-                typeStyles = "border-purple-500/30 shadow-purple-500/5 bg-purple-500/5"
-                iconElement = <Sliders className="w-3.5 h-3.5 text-purple-500" />
+                typeStyles = "border-brand/30 shadow-black/5 bg-brand/5"
+                iconElement = <Sliders className="w-3.5 h-3.5 text-brand" />
               }
 
               return (
@@ -870,7 +865,7 @@ function FlowBuilderContent() {
                   style={{ left: node.x, top: node.y }}
                   onClick={(e) => { e.stopPropagation(); handleNodeClick(node.id) }}
                   className={`absolute w-[200px] bg-card rounded-2xl border ${
-                    isLinkSource ? 'border-emerald-500 ring-2 ring-emerald-500/40' : isSelected ? 'border-primary shadow-lg ring-1 ring-primary/20' : 'border-border'
+                    isLinkSource ? 'border-brand ring-2 ring-brand/40' : isSelected ? 'border-primary shadow-lg ring-1 ring-primary/20' : 'border-border'
                   } shadow-sm transition-shadow duration-200 cursor-pointer overflow-hidden ${typeStyles}`}
                 >
                   {/* Node Header (Drag Target) */}
@@ -896,7 +891,7 @@ function FlowBuilderContent() {
                       </p>
                     )}
                     {node.type === "message" && !!node.delaySeconds && (
-                      <span className="text-[9px] text-amber-500 font-bold uppercase tracking-wider block mt-2 text-right">
+                      <span className="text-[9px] text-warn font-bold uppercase tracking-wider block mt-2 text-right">
                         wait {node.delaySeconds}s first
                       </span>
                     )}

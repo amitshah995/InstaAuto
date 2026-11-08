@@ -34,14 +34,14 @@ export function useInstagramSession() {
                 }
 
                 try {
-                    console.log("[Insta Autobot] 🔄 Exchanging code for token...")
+                    console.log("[Celra] 🔄 Exchanging code for token...")
                     const res = await fetch("/api/instagram/callback", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ code }),
                     })
                     const data = await res.json()
-                    console.log("[Insta Autobot] 📋 Callback response:", data)
+                    console.log("[Celra] 📋 Callback response:", data)
 
                     if (data.success) {
                         localStorage.setItem("ig_user_id", data.userId)
@@ -59,11 +59,11 @@ export function useInstagramSession() {
                         } catch { }
                         router.replace(pendingAudit ? "/instagram-audit?run=1" : "/dashboard")
                     } else {
-                        console.error("[Insta Autobot] ❌ Login failed:", data.error)
+                        console.error("[Celra] ❌ Login failed:", data.error)
                         setError(data.error || "Login failed")
                     }
                 } catch (err: any) {
-                    console.error("[Insta Autobot] ❌ Login error:", err)
+                    console.error("[Celra] ❌ Login error:", err)
                     setError(err.message || "Network error during login")
                 }
             }

@@ -123,11 +123,11 @@ export async function POST(request: NextRequest) {
     // FAIL CLOSED: without the app secret we cannot tell Meta from an attacker, and a forged event
     // would make a customer's account send DMs. So refuse everything until it is configured.
     if (!appSecret) {
-      console.error("[DMSpark] INSTAGRAM_APP_SECRET is not set: refusing webhook event")
+      console.error("[Celra] INSTAGRAM_APP_SECRET is not set: refusing webhook event")
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
     if (!signature) {
-      console.error("[DMSpark] Missing webhook signature")
+      console.error("[Celra] Missing webhook signature")
       return NextResponse.json({ error: "Missing signature" }, { status: 403 })
     }
     const expectedSig = "sha256=" + crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex")
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     const sigB = Buffer.from(expectedSig)
     // Constant-time compare so the signature can't be guessed byte by byte.
     if (sigA.length !== sigB.length || !crypto.timingSafeEqual(sigA, sigB)) {
-      console.error("[DMSpark] Invalid webhook signature")
+      console.error("[Celra] Invalid webhook signature")
       return NextResponse.json({ error: "Invalid signature" }, { status: 403 })
     }
 

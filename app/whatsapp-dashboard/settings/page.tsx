@@ -25,6 +25,7 @@ import {
   Settings
 } from "lucide-react"
 import Link from "next/link"
+import { BRAND_NAME, getSiteUrl } from "@/lib/site"
 
 export default function WhatsAppSettingsPage() {
   const { waUsername, waUserId, logoutWhatsApp, isLoading: sessionLoading } = useWhatsAppSession()
@@ -89,13 +90,13 @@ export default function WhatsAppSettingsPage() {
   }
 
   const handleCopyUrl = () => {
-    navigator.clipboard.writeText("https://dmspark.in/api/hooks/whatsapp")
+    navigator.clipboard.writeText(`${getSiteUrl()}/api/hooks/whatsapp`)
     setCopiedUrl(true)
     setTimeout(() => setCopiedUrl(false), 2000)
   }
 
   const handleCopyToken = () => {
-    navigator.clipboard.writeText("dmspark_wa_verify_challenge_2026")
+    navigator.clipboard.writeText("celra_wa_verify_challenge_2026")
     setCopiedToken(true)
     setTimeout(() => setCopiedToken(false), 2000)
   }
@@ -104,8 +105,8 @@ export default function WhatsAppSettingsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
         <div className="relative">
-          <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-emerald-500/20 animate-ping" />
-          <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />
+          <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-brand/20 animate-ping" />
+          <Loader2 className="w-12 h-12 text-brand animate-spin" />
         </div>
         <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading WhatsApp settings...</p>
       </div>
@@ -117,14 +118,12 @@ export default function WhatsAppSettingsPage() {
 
       {/* Ambient background glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden -z-10" aria-hidden>
-        <div className="absolute -top-24 -left-24 w-72 h-72 bg-emerald-500/[0.04] rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
-        <div className="absolute top-1/3 -right-20 w-64 h-64 bg-teal-500/[0.04] rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
       </div>
       
       {/* Title Header */}
       <div className={`flex flex-col gap-1.5 border-b border-border pb-4 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-1 h-8 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500" />
+          <div className="w-1 h-8 rounded-full bg-primary" />
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight">WhatsApp Settings</h1>
         </div>
         <p className="text-muted-foreground text-sm font-semibold ml-[1.15rem]">
@@ -139,20 +138,20 @@ export default function WhatsAppSettingsPage() {
           
           {/* Account Details */}
           <Card className={`border-border bg-card/65 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '100ms' : '0ms', transitionDuration: '700ms' }}>
-            <div className="h-16 bg-gradient-to-tr from-emerald-500 to-teal-650 relative flex items-center justify-center">
+            <div className="h-16 bg-primary relative flex items-center justify-center">
               <MessageSquare className="absolute top-2.5 right-3 w-4 h-4 text-white/50 fill-current" />
             </div>
             <CardContent className="pt-0 relative flex flex-col items-center text-center px-4 pb-6 mt-[-32px]">
               
-              <div className="w-20 h-20 rounded-full border-4 border-card bg-emerald-500/10 border-emerald-500/20 text-emerald-500 flex items-center justify-center shadow-md overflow-hidden shrink-0 font-black text-xl">
+              <div className="w-20 h-20 rounded-full border-4 border-card bg-brand/10 border-brand/20 text-brand flex items-center justify-center shadow-md overflow-hidden shrink-0 font-black text-xl">
                 {waUsername ? waUsername.charAt(0).toUpperCase() : "W"}
               </div>
 
               <h3 className="font-extrabold text-foreground text-base mt-3 leading-none truncate max-w-full">{waUsername}</h3>
               <p className="text-[10px] text-muted-foreground font-bold mt-1.5 uppercase tracking-wider">WhatsApp Business Profile</p>
               
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-bold uppercase tracking-wider mt-4">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Active Connection
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-brand text-[10px] font-bold uppercase tracking-wider mt-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" /> Active Connection
               </div>
 
               <div className="w-full border-t border-border mt-6 pt-5 space-y-3.5 text-left">
@@ -165,7 +164,7 @@ export default function WhatsAppSettingsPage() {
               <Button
                 variant="destructive"
                 onClick={logoutWhatsApp}
-                className="w-full mt-6 py-4.5 rounded-xl font-bold text-xs shadow-md shadow-red-500/10 cursor-pointer"
+                className="w-full mt-6 py-4.5 rounded-xl font-bold text-xs shadow-md shadow-black/5 cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 mr-2" /> Disconnect Business
               </Button>
@@ -175,7 +174,7 @@ export default function WhatsAppSettingsPage() {
           {/* Compliance Card */}
           <Card className={`border-border bg-card/65 shadow-sm p-5 space-y-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '200ms' : '0ms', transitionDuration: '700ms' }}>
             <div className="flex items-center gap-2 border-b border-border pb-3">
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+              <div className="p-1.5 rounded-lg bg-brand/10 text-brand border border-brand/20">
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <h3 className="font-extrabold text-foreground text-sm">Security & Privacy</h3>
@@ -183,11 +182,11 @@ export default function WhatsAppSettingsPage() {
             <div className="space-y-3.5 text-xs text-muted-foreground font-semibold">
               <div className="flex justify-between items-center bg-secondary/40 p-2 rounded border border-border/20">
                 <span>Webhook SSL</span>
-                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-1.5 py-0.5 rounded">Enforced</span>
+                <span className="text-[10px] font-bold text-brand uppercase tracking-widest bg-brand/10 px-1.5 py-0.5 rounded">Enforced</span>
               </div>
               <div className="flex justify-between items-center bg-secondary/40 p-2 rounded border border-border/20">
                 <span>Data Protection</span>
-                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-1.5 py-0.5 rounded">Compliant</span>
+                <span className="text-[10px] font-bold text-brand uppercase tracking-widest bg-brand/10 px-1.5 py-0.5 rounded">Secure</span>
               </div>
               <p className="text-[11px] leading-relaxed mt-2.5">
                 Our servers handle incoming webhook JSON feeds via end-to-end HTTPS protection. Access tokens are encrypted.
@@ -204,13 +203,13 @@ export default function WhatsAppSettingsPage() {
           <Card className={`border-border bg-card/65 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '150ms' : '0ms', transitionDuration: '700ms' }}>
             <CardHeader className="border-b border-border/50 pb-5">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                <div className="p-1.5 rounded-lg bg-brand/10 border border-brand/20 text-brand">
                   <Settings className="w-5 h-5" />
                 </div>
                 <CardTitle className="text-base text-foreground font-extrabold">Meta Developer App Settings</CardTitle>
               </div>
               <CardDescription className="text-xs mt-2.5">
-                These settings associate your DMSpark profile to your Meta Developer Cloud App.
+                These settings associate your {BRAND_NAME} profile to your Meta Developer Cloud App.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
@@ -221,7 +220,7 @@ export default function WhatsAppSettingsPage() {
                     type="text" 
                     value={appId} 
                     onChange={(e) => setAppId(e.target.value)}
-                    className="h-10 text-xs bg-background border-border font-semibold focus:border-emerald-500/40"
+                    className="h-10 text-xs bg-background border-border font-semibold focus:border-brand/40"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -230,7 +229,7 @@ export default function WhatsAppSettingsPage() {
                     type="text" 
                     value={businessAccountId} 
                     onChange={(e) => setBusinessAccountId(e.target.value)}
-                    className="h-10 text-xs bg-background border-border font-semibold focus:border-emerald-500/40"
+                    className="h-10 text-xs bg-background border-border font-semibold focus:border-brand/40"
                   />
                 </div>
               </div>
@@ -241,7 +240,7 @@ export default function WhatsAppSettingsPage() {
                     type={showToken ? "text" : "password"} 
                     value={accessToken} 
                     onChange={(e) => setAccessToken(e.target.value)}
-                    className="h-10 text-xs bg-background border-border font-semibold focus:border-emerald-500/40 pr-10"
+                    className="h-10 text-xs bg-background border-border font-semibold focus:border-brand/40 pr-10"
                   />
                   <button 
                     type="button"
@@ -259,7 +258,7 @@ export default function WhatsAppSettingsPage() {
           <Card className={`border-border bg-card/65 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '200ms' : '0ms', transitionDuration: '700ms' }}>
             <CardHeader className="border-b border-border/50 pb-5">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                <div className="p-1.5 rounded-lg bg-brand/10 border border-brand/20 text-brand">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <CardTitle className="text-base text-foreground font-extrabold">Webhook callback URL</CardTitle>
@@ -275,7 +274,7 @@ export default function WhatsAppSettingsPage() {
                   <Input 
                     type="text" 
                     readOnly 
-                    value="https://dmspark.in/api/hooks/whatsapp" 
+                    value={`${getSiteUrl()}/api/hooks/whatsapp`} 
                     className="h-10 text-xs bg-secondary border-border font-semibold focus:outline-none flex-grow"
                   />
                   <Button 
@@ -283,7 +282,7 @@ export default function WhatsAppSettingsPage() {
                     onClick={handleCopyUrl}
                     className="h-10 px-3 border-border hover:bg-secondary flex items-center justify-center shrink-0 cursor-pointer"
                   >
-                    {copiedUrl ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+                    {copiedUrl ? <Check className="w-4 h-4 text-brand" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
                   </Button>
                 </div>
               </div>
@@ -294,7 +293,7 @@ export default function WhatsAppSettingsPage() {
                   <Input 
                     type="text" 
                     readOnly 
-                    value="dmspark_wa_verify_challenge_2026" 
+                    value="celra_wa_verify_challenge_2026" 
                     className="h-10 text-xs bg-secondary border-border font-semibold focus:outline-none flex-grow"
                   />
                   <Button 
@@ -302,7 +301,7 @@ export default function WhatsAppSettingsPage() {
                     onClick={handleCopyToken}
                     className="h-10 px-3 border-border hover:bg-secondary flex items-center justify-center shrink-0 cursor-pointer"
                   >
-                    {copiedToken ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+                    {copiedToken ? <Check className="w-4 h-4 text-brand" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
                   </Button>
                 </div>
               </div>
@@ -314,7 +313,7 @@ export default function WhatsAppSettingsPage() {
             <CardHeader className="border-b border-border/50 pb-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                  <div className="p-1.5 rounded-lg bg-brand/10 border border-brand/20 text-brand">
                     <BrainCircuit className="w-5 h-5" />
                   </div>
                   <CardTitle className="text-base text-foreground font-extrabold">Groq LLaMA 3 Auto-Reply Context</CardTitle>
@@ -338,7 +337,7 @@ export default function WhatsAppSettingsPage() {
                   onChange={(e) => setAiContext(e.target.value)}
                   disabled={!aiEnabled}
                   placeholder="Example: You are a friendly customer agent for Sun Rockers. Reply to WhatsApp users. Offer discount coupons and help coordinate bookings..."
-                  className="min-h-[160px] bg-background border-border text-xs focus:ring-emerald-500/20 text-foreground resize-none leading-relaxed placeholder:opacity-60"
+                  className="min-h-[160px] bg-background border-border text-xs focus:ring-brand/20 text-foreground resize-none leading-relaxed placeholder:opacity-60"
                 />
                 <p className="text-[10px] text-muted-foreground font-semibold">
                   Custom instructions for the AI bot when replying to WhatsApp client messages.
@@ -346,15 +345,15 @@ export default function WhatsAppSettingsPage() {
               </div>
 
               {aiEnabled ? (
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                  <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500 animate-pulse" />
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-brand/5 border border-brand/10 text-xs text-brand font-semibold">
+                  <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-brand animate-pulse" />
                   <p className="leading-relaxed">
                     <strong>AI Active:</strong> Groq auto-reply context is active for all WhatsApp chats. Standard casual questions will be handled automatically.
                   </p>
                 </div>
               ) : (
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 text-xs text-amber-500 font-semibold">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/10 text-xs text-warn font-semibold">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-warn" />
                   <p className="leading-relaxed">
                     <strong>AI Disabled:</strong> Casual user text queries will not get automated answers. Only keyword rules set under Automations will be triggered.
                   </p>
@@ -363,7 +362,7 @@ export default function WhatsAppSettingsPage() {
 
               <div className="border-t border-border/50 pt-5 flex items-center justify-between gap-4">
                 {saveSuccess ? (
-                  <span className="flex items-center gap-1.5 text-emerald-500 text-xs font-extrabold animate-in fade-in duration-300">
+                  <span className="flex items-center gap-1.5 text-brand text-xs font-extrabold animate-in fade-in duration-300">
                     <CheckCircle className="w-4 h-4" /> WhatsApp Preferences Saved!
                   </span>
                 ) : (
@@ -375,7 +374,7 @@ export default function WhatsAppSettingsPage() {
                 <Button
                   onClick={handleSaveAISettings}
                   disabled={saving}
-                  className="px-6 py-4.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shrink-0 border-none"
+                  className="px-6 py-4.5 rounded-xl bg-brand hover:bg-brand/90 text-brand-foreground font-bold text-xs shadow-md shadow-black/5 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shrink-0 border-none"
                 >
                   {saving ? (
                     <>

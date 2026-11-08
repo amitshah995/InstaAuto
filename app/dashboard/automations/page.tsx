@@ -11,11 +11,13 @@ import { AutomationTransfer } from "@/components/dashboard/AutomationTransfer"
 import { IceBreakersManager } from "@/components/dashboard/IceBreakersManager"
 import type { Automation } from "@/lib/types"
 import { AUTOMATION_TEMPLATES, TEMPLATE_GOALS, type AutomationTemplate } from "@/lib/automation-templates"
+import { BRAND_NAME } from "@/lib/site"
+import { CelraLogo } from "@/components/ui/celra-logo"
 
 const TRIGGER_SOURCE_LABEL: Record<string, string> = { comment: "Comments", dm: "DMs", story: "Stories", live: "Live" }
 const TEMPLATE_BADGE_STYLE: Record<string, string> = {
-    Popular: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-    New: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    Popular: "bg-primary/10 text-warn border-primary/20",
+    New: "bg-brand/10 text-brand border-brand/20",
 }
 
 export default function AutomationsPage() {
@@ -195,7 +197,7 @@ export default function AutomationsPage() {
                             Manage instant keyword triggers, auto-replies, and DM funnels.
                         </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <AutomationTransfer userId={userId} automations={automations} onImported={fetchAutomations} />
                         <button
                             onClick={() => setShowTemplates(true)}
@@ -206,7 +208,7 @@ export default function AutomationsPage() {
                         </button>
                         <button
                             onClick={() => { setSelectedTemplate(null); setShowCreateForm(!showCreateForm) }}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all active:scale-95 cursor-pointer w-full sm:w-auto justify-center shadow-xs ${
+                            className={`flex items-center gap-2 whitespace-nowrap shrink-0 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all active:scale-95 cursor-pointer sm:w-auto justify-center shadow-xs ${
                                 showCreateForm
                                     ? 'bg-secondary text-foreground hover:bg-muted border border-border'
                                     : 'bg-primary text-primary-foreground hover:bg-primary/90'
@@ -219,12 +221,12 @@ export default function AutomationsPage() {
                 </div>
 
                 {/* Google-style Clean Pill Tabs */}
-                <div className="flex gap-1.5 bg-secondary/50 p-1 rounded-full border border-border/60">
+                <div className="flex gap-1 bg-secondary p-1 rounded-full border border-border/60 overflow-x-auto scrollbar-hide">
                     {tabs.map((tab) => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                            className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2.5 sm:px-3 rounded-full whitespace-nowrap text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                                 activeTab === tab.key
                                     ? 'bg-background text-foreground shadow-xs border border-border/50 font-semibold'
                                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/70'
@@ -260,7 +262,7 @@ export default function AutomationsPage() {
                             </div>
                         )}
                         {isAuditRecipe && (
-                            <div className="mb-4 space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-foreground">
+                            <div className="mb-4 space-y-1 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs text-foreground">
                                 <p className="font-semibold">Starting from your audit suggestion</p>
                                 <p className="text-muted-foreground">
                                     Pick the post this applies to and replace the [bracketed] parts with your real details. Nothing goes live until you press Create.
@@ -271,7 +273,7 @@ export default function AutomationsPage() {
                                     </p>
                                 )}
                                 {overlappingKeywords.length > 0 && (
-                                    <p className="text-amber-700">
+                                    <p className="text-warn">
                                         You already have a comment rule using: {overlappingKeywords.join(", ")}. A new rule on a specific post is fine, but check you are not duplicating one.
                                     </p>
                                 )}
@@ -341,7 +343,7 @@ export default function AutomationsPage() {
                                                                     {TRIGGER_SOURCE_LABEL[t.triggerSource]}
                                                                 </span>
                                                                 {t.kind === "flow" && (
-                                                                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-indigo-500/10 text-indigo-600 border-indigo-500/20 flex items-center gap-1">
+                                                                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-brand/10 text-brand border-brand/20 flex items-center gap-1">
                                                                         <Zap className="w-2.5 h-2.5" /> Flow Builder
                                                                     </span>
                                                                 )}
@@ -403,7 +405,7 @@ export default function AutomationsPage() {
 
                         <div className="space-y-1">
                             <h3 className="font-extrabold text-foreground text-sm tracking-tight flex items-center gap-1.5 justify-center">
-                                <Eye className="w-4 h-4 text-green-500" /> Automation Live Preview
+                                <Eye className="w-4 h-4 text-brand" /> Automation Live Preview
                             </h3>
                             <p className="text-[10.5px] text-muted-foreground truncate w-full max-w-[220px] font-medium leading-none">
                                 Rule: {previewAutomation.name}
@@ -415,16 +417,16 @@ export default function AutomationsPage() {
                             {/* Smartphone Island/Notch */}
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-3 bg-slate-900 rounded-b-lg z-20" />
 
-                            {/* Instagram Header Mock */}
+                            {/* Chat header mock */}
                             <div className="flex items-center gap-2 border-b border-slate-100 pb-2 pt-4 px-3 shrink-0 bg-white/95 backdrop-blur-sm z-10">
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#fbbc04] via-[#ea4335] to-[#D62976] p-0.5">
+                                <div className="w-7 h-7 rounded-full bg-brand p-0.5">
                                     <div className="w-full h-full rounded-full bg-white p-0.5">
-                                        <img src="/logo.png" alt="Profile" className="w-full h-full object-contain rounded-full" />
+                                        <CelraLogo variant="mark" size={28} className="h-full w-full" />
                                     </div>
                                 </div>
                                 <div className="text-left">
-                                    <p className="text-[9px] font-black text-slate-800 leading-none">dmspark_bot</p>
-                                    <p className="text-[6.5px] text-slate-400 mt-0.5 uppercase tracking-wider font-semibold">Instagram Direct</p>
+                                    <p className="text-[9px] font-black text-slate-800 leading-none">your_brand</p>
+                                    <p className="text-[6.5px] text-slate-400 mt-0.5 uppercase tracking-wider font-semibold">Direct messages</p>
                                 </div>
                             </div>
 
@@ -456,8 +458,8 @@ export default function AutomationsPage() {
                                             <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0.2s' }} />
                                             <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0.4s' }} />
                                         </div>
-                                        <div className="w-5.5 h-5.5 rounded-full bg-blue-100 flex items-center justify-center p-0.5 border border-blue-200/30 shrink-0">
-                                            <img src="/logo.png" alt="Profile" className="w-full h-full object-contain rounded-full" />
+                                        <div className="w-5.5 h-5.5 rounded-full bg-brand-soft flex items-center justify-center p-0.5 border border-brand/30 shrink-0">
+                                            <CelraLogo variant="mark" size={28} className="h-full w-full" />
                                         </div>
                                     </div>
                                 )}
@@ -493,7 +495,7 @@ export default function AutomationsPage() {
                                                             {previewAutomation.response_content.card.buttons.map((btn: any, btnIdx: number) => (
                                                                 <div 
                                                                     key={btnIdx} 
-                                                                    className="py-1 text-[7px] font-bold text-blue-500 bg-white hover:bg-slate-50 cursor-pointer select-none truncate px-1"
+                                                                    className="py-1 text-[7px] font-bold text-brand bg-white hover:bg-slate-50 cursor-pointer select-none truncate px-1"
                                                                 >
                                                                     {btn.title || "Button"}
                                                                 </div>
@@ -502,10 +504,10 @@ export default function AutomationsPage() {
                                                     )}
                                                 </div>
                                             ) : (
-                                                <div className="bg-[#D62976] text-white rounded-xl rounded-tr-none p-1.5 shadow-md shadow-blue-500/10 text-left w-fit">
+                                                <div className="bg-primary text-primary-foreground rounded-xl rounded-tr-none p-1.5 shadow-md shadow-black/5 text-left w-fit">
                                                     <div className="flex items-center gap-1 shrink-0 select-none">
-                                                        <img src="/logo.png" alt="DMSpark" className="w-2.5 h-2.5 object-contain brightness-0 invert" />
-                                                        <span className="text-[6.5px] font-black uppercase tracking-wider opacity-85">DMSpark</span>
+                                                        <CelraLogo variant="mark" size={10} />
+                                                        <span className="text-[6.5px] font-black uppercase tracking-wider opacity-85">{BRAND_NAME}</span>
                                                     </div>
                                                     <p className="text-[8.5px] mt-0.5 leading-snug font-semibold text-white break-words">
                                                         {previewAutomation.response_content?.message || "Sent!"}
@@ -513,8 +515,8 @@ export default function AutomationsPage() {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="w-5.5 h-5.5 rounded-full bg-blue-100 flex items-center justify-center p-0.5 border border-blue-200/30 shrink-0">
-                                            <img src="/logo.png" alt="Profile" className="w-full h-full object-contain rounded-full" />
+                                        <div className="w-5.5 h-5.5 rounded-full bg-brand-soft flex items-center justify-center p-0.5 border border-brand/30 shrink-0">
+                                            <CelraLogo variant="mark" size={28} className="h-full w-full" />
                                         </div>
                                     </div>
                                 )}
@@ -525,17 +527,17 @@ export default function AutomationsPage() {
                             <div className="border-t border-slate-100 p-2 flex items-center justify-between text-[7px] text-slate-500 font-bold shrink-0 bg-white select-none">
                                 <span className="text-slate-400">Simulation View</span>
                                 {previewStep === "delay" && (
-                                    <span className="text-amber-500 font-black animate-pulse uppercase tracking-wider flex items-center gap-0.5 shrink-0">
+                                    <span className="text-warn font-black animate-pulse uppercase tracking-wider flex items-center gap-0.5 shrink-0">
                                         ⏳ Waiting {previewAutomation.response_content?.delay_seconds || 0}s...
                                     </span>
                                 )}
                                 {previewStep === "reply" && (
-                                    <span className="text-green-500 font-black uppercase tracking-wider flex items-center gap-0.5 shrink-0">
-                                        <span className="w-1 h-1 rounded-full bg-green-500 animate-ping" /> Sent!
+                                    <span className="text-brand font-black uppercase tracking-wider flex items-center gap-0.5 shrink-0">
+                                        <span className="w-1 h-1 rounded-full bg-brand animate-ping" /> Sent!
                                     </span>
                                 )}
                                 {previewStep === "done" && (
-                                    <span className="text-blue-500 font-black uppercase tracking-wider shrink-0">
+                                    <span className="text-brand font-black uppercase tracking-wider shrink-0">
                                         Completed
                                     </span>
                                 )}

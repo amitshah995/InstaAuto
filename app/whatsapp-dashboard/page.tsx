@@ -79,11 +79,11 @@ export default function WhatsAppDashboardPage() {
             {/* Top Header Panel */}
             <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 <div>
-                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1.5 mb-1 bg-emerald-500/10 px-2 py-0.5 rounded-full w-fit">
+                    <span className="text-[10px] font-black text-brand uppercase tracking-widest flex items-center gap-1.5 mb-1 bg-brand/10 px-2 py-0.5 rounded-full w-fit">
                         <MessageCircle className="w-3.5 h-3.5 fill-current" /> WhatsApp Workspace
                     </span>
                     <h1 className="text-3xl font-extrabold tracking-tight">
-                        {getGreeting()}, <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">{waUsername || "WhatsApp Business"}</span>
+                        {getGreeting()}, <span className="text-brand">{waUsername || "WhatsApp Business"}</span>
                     </h1>
                     <p className="text-muted-foreground mt-1 text-sm font-semibold">
                         Your WhatsApp auto-reply flows are active and running.
@@ -91,7 +91,7 @@ export default function WhatsAppDashboardPage() {
                 </div>
 
                 <div className="flex gap-2">
-                    <Button asChild className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs px-4 rounded-xl shadow-lg shadow-emerald-500/20 cursor-pointer">
+                    <Button asChild className="bg-brand hover:bg-brand/90 text-brand-foreground font-bold text-xs px-4 rounded-xl shadow-lg shadow-black/5 cursor-pointer">
                         <Link href="/whatsapp-dashboard/automations">
                             <Plus className="w-4 h-4 mr-1.5" /> Create Rule
                         </Link>
@@ -104,7 +104,7 @@ export default function WhatsAppDashboardPage() {
                 <Card className="p-5 bg-card/60 backdrop-blur-md border border-border shadow-sm flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
                     <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-3">
                         <span className="text-[10px] font-black text-muted-foreground/60 tracking-wider uppercase">Active WhatsApp Rules</span>
-                        <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                        <span className="p-2 rounded-lg bg-brand/10 text-brand border border-brand/20">
                             <Zap className="w-4 h-4" />
                         </span>
                     </div>
@@ -113,7 +113,7 @@ export default function WhatsAppDashboardPage() {
                             <AnimatedCounter value={5} />
                         </h3>
                         <p className="text-[10px] text-muted-foreground font-semibold mt-1 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Trigger keywords listening
+                            <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" /> Trigger keywords listening
                         </p>
                     </div>
                 </Card>
@@ -121,7 +121,7 @@ export default function WhatsAppDashboardPage() {
                 <Card className="p-5 bg-card/60 backdrop-blur-md border border-border shadow-sm flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
                     <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-3">
                         <span className="text-[10px] font-black text-muted-foreground/60 tracking-wider uppercase">WhatsApp Messages Sent</span>
-                        <span className="p-2 rounded-lg bg-teal-500/10 text-teal-500 border border-teal-500/20">
+                        <span className="p-2 rounded-lg bg-brand/10 text-brand border border-brand/20">
                             <MessageSquare className="w-4 h-4" />
                         </span>
                     </div>
@@ -132,14 +132,14 @@ export default function WhatsAppDashboardPage() {
                         <p className="text-[10px] text-muted-foreground font-semibold mt-1">
                             Replies sent globally
                         </p>
-                        <MiniSparkline color="#14b8a6" data={[5, 10, 8, 15, 20, 18, 28]} />
+                        <MiniSparkline color="var(--chart-1)" data={[5, 10, 8, 15, 20, 18, 28]} />
                     </div>
                 </Card>
 
                 <Card className="p-5 bg-card/60 backdrop-blur-md border border-border shadow-sm flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
                     <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-3">
                         <span className="text-[10px] font-black text-muted-foreground/60 tracking-wider uppercase">Contacts Reached</span>
-                        <span className="p-2 rounded-lg bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+                        <span className="p-2 rounded-lg bg-brand/10 text-brand border border-brand/20">
                             <Users className="w-4 h-4" />
                         </span>
                     </div>
@@ -156,7 +156,7 @@ export default function WhatsAppDashboardPage() {
                 <Card className="p-5 bg-card/60 backdrop-blur-md border border-border shadow-sm flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
                     <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-3">
                         <span className="text-[10px] font-black text-muted-foreground/60 tracking-wider uppercase">Campaign Conversion</span>
-                        <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                        <span className="p-2 rounded-lg bg-brand/10 text-brand border border-brand/20">
                             <TrendingUp className="w-4 h-4" />
                         </span>
                     </div>
@@ -167,7 +167,7 @@ export default function WhatsAppDashboardPage() {
                         <p className="text-[10px] text-muted-foreground font-semibold mt-1">
                             Link click-through success
                         </p>
-                        <MiniSparkline color="#10b981" data={[30, 28, 32, 29, 35, 30, 32.5]} />
+                        <MiniSparkline color="var(--chart-2)" data={[30, 28, 32, 29, 35, 30, 32.5]} />
                     </div>
                 </Card>
             </div>
@@ -180,7 +180,7 @@ export default function WhatsAppDashboardPage() {
                     <div className="space-y-4 flex flex-col h-full justify-between">
                         <div className="flex items-center justify-between border-b border-border/50 pb-2.5 shrink-0 select-none">
                             <h3 className="font-extrabold text-foreground text-sm tracking-tight flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-sm" /> Live Activity Feed
+                                <span className="w-2.5 h-2.5 rounded-full bg-brand animate-pulse shadow-sm" /> Live Activity Feed
                             </h3>
                             <span className="text-[10px] text-muted-foreground font-semibold">Real-time webhooks</span>
                         </div>
@@ -189,11 +189,11 @@ export default function WhatsAppDashboardPage() {
                         <div className="flex-1 overflow-y-auto hover-scrollbar space-y-2.5 pr-1 py-1 max-h-[220px]">
                             <div className="p-3 bg-secondary/30 rounded-xl border border-border/40 flex items-center justify-between text-xs font-semibold leading-relaxed hover:bg-secondary/50 transition-colors">
                                 <span className="text-slate-700 dark:text-slate-350">💬 +91 98765 43210: "price info"</span>
-                                <span className="text-emerald-500 font-extrabold flex items-center gap-1">Sent Auto DM <ArrowUpRight className="w-3.5 h-3.5" /></span>
+                                <span className="text-brand font-extrabold flex items-center gap-1">Sent Auto DM <ArrowUpRight className="w-3.5 h-3.5" /></span>
                             </div>
                             <div className="p-3 bg-secondary/30 rounded-xl border border-border/40 flex items-center justify-between text-xs font-semibold leading-relaxed hover:bg-secondary/50 transition-colors">
                                 <span className="text-slate-700 dark:text-slate-350">💬 +91 88776 55443: "coupon discount"</span>
-                                <span className="text-emerald-500 font-extrabold flex items-center gap-1">Sent Auto DM <ArrowUpRight className="w-3.5 h-3.5" /></span>
+                                <span className="text-brand font-extrabold flex items-center gap-1">Sent Auto DM <ArrowUpRight className="w-3.5 h-3.5" /></span>
                             </div>
                         </div>
 
@@ -211,7 +211,7 @@ export default function WhatsAppDashboardPage() {
                         </h3>
                         <div className="space-y-4">
                             <div className="flex items-start gap-3.5">
-                                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
+                                <div className="w-8 h-8 rounded-xl bg-brand/10 border border-brand/20 text-brand flex items-center justify-center shrink-0">
                                     <Shield className="w-4 h-4" />
                                 </div>
                                 <div>
@@ -220,7 +220,7 @@ export default function WhatsAppDashboardPage() {
                                 </div>
                             </div>
                             <div className="flex items-start gap-3.5">
-                                <div className="w-8 h-8 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-500 flex items-center justify-center shrink-0">
+                                <div className="w-8 h-8 rounded-xl bg-brand/10 border border-brand/20 text-brand flex items-center justify-center shrink-0">
                                     <Clock className="w-4 h-4" />
                                 </div>
                                 <div>
@@ -233,7 +233,7 @@ export default function WhatsAppDashboardPage() {
 
                     <div className="pt-4 border-t border-border/40 flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-primary">
                         <Link href="/whatsapp-dashboard/settings" className="hover:underline flex items-center gap-1">
-                            Settings <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
+                            Settings <ArrowUpRight className="w-3.5 h-3.5 text-brand" />
                         </Link>
                     </div>
                 </Card>

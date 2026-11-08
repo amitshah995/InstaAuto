@@ -16,13 +16,13 @@ export default function ShopHeader({ handle, displayName, bio, avatarUrl, banner
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt={`${name} profile picture`} referrerPolicy="no-referrer" className="h-full w-full rounded-full object-cover" />
             ) : (
-              <div className="grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-pink-100 to-violet-100 text-5xl font-black text-fuchsia-600 [font-family:var(--font-shop-display),ui-sans-serif]">
+              <div className="grid h-full w-full place-items-center rounded-full bg-c-brand-soft text-5xl font-black text-c-brand font-display">
                 {initialOf(name)}
               </div>
             )}
           </div>
         </div>
-        <h1 className="shop-name mt-3 text-3xl font-extrabold tracking-tight md:text-4xl [font-family:var(--font-shop-display),ui-sans-serif]">{name}</h1>
+        <h1 className="shop-name mt-3 text-3xl font-extrabold tracking-tight md:text-4xl font-display">{name}</h1>
         <p className="mt-0.5 text-sm font-medium text-muted-foreground">@{handle}</p>
         {bio && <p className="mx-auto mt-3 max-w-md whitespace-pre-line text-[15px] leading-relaxed text-foreground/80">{bio}</p>}
       </div>

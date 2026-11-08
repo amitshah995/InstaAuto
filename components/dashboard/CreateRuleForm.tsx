@@ -219,6 +219,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
             if (cleanUrl.startsWith("https://https://")) cleanUrl = cleanUrl.replace("https://https://", "https://")
             return { type: "web_url", title: b.title, url: cleanUrl }
           }
+          // "Pay" button: the amount is typed in the shared value box. Razorpay creates the link at send time.
+          if (b.type === "pay") return { type: "pay", title: b.title, amount_inr: Number(b.payload) || 0 }
           return { type: "postback", title: b.title, payload: b.payload }
         })
         .filter((b) => b.title)
@@ -295,14 +297,14 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
               s === step
                 ? "bg-foreground text-background scale-110 shadow-lg shadow-foreground/10"
                 : s < step
-                  ? "bg-blue-500/20 text-blue-600 border border-blue-500/30 cursor-pointer hover:scale-105"
+                  ? "bg-brand/20 text-brand border border-brand/30 cursor-pointer hover:scale-105"
                   : "bg-secondary text-muted-foreground border border-border"
             }`}
           >
             {s < step ? <Check className="w-3.5 h-3.5" /> : s}
           </button>
           {s < 3 && (
-            <div className={`w-8 h-px transition-colors duration-500 ${s < step ? "bg-blue-500/50" : "bg-border"}`} />
+            <div className={`w-8 h-px transition-colors duration-500 ${s < step ? "bg-brand/50" : "bg-border"}`} />
           )}
         </div>
       ))}
@@ -419,20 +421,20 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
           type="button"
           onClick={() => setReplyToAll(!replyToAll)}
           className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
-            replyToAll ? 'border-blue-500/50 bg-blue-50' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
+            replyToAll ? 'border-brand/50 bg-brand-soft' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
           }`}
         >
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            replyToAll ? 'bg-blue-100 text-blue-600' : 'bg-secondary text-muted-foreground'
+            replyToAll ? 'bg-brand-soft text-brand' : 'bg-secondary text-muted-foreground'
           }`}>
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="text-left flex-1">
-            <p className={`text-sm font-bold ${replyToAll ? 'text-blue-600' : 'text-foreground'}`}>Reply to All Comments</p>
+            <p className={`text-sm font-bold ${replyToAll ? 'text-brand' : 'text-foreground'}`}>Reply to All Comments</p>
             <p className="text-[11px] text-muted-foreground">Auto-reply to every comment on a specific post</p>
           </div>
           <div className={`w-5 h-5 rounded-full border-2 transition-all ${
-            replyToAll ? 'border-blue-600 bg-blue-600' : 'border-border'
+            replyToAll ? 'border-brand bg-brand' : 'border-border'
           }`}>
             {replyToAll && <Check className="w-3 h-3 text-white m-auto mt-0.5" />}
           </div>
@@ -445,20 +447,20 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
           type="button"
           onClick={() => setReplyToAll(!replyToAll)}
           className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
-            replyToAll ? 'border-blue-500/50 bg-blue-50' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
+            replyToAll ? 'border-brand/50 bg-brand-soft' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
           }`}
         >
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            replyToAll ? 'bg-blue-100 text-blue-600' : 'bg-secondary text-muted-foreground'
+            replyToAll ? 'bg-brand-soft text-brand' : 'bg-secondary text-muted-foreground'
           }`}>
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="text-left flex-1">
-            <p className={`text-sm font-bold ${replyToAll ? 'text-blue-600' : 'text-foreground'}`}>Reply to ALL DMs</p>
+            <p className={`text-sm font-bold ${replyToAll ? 'text-brand' : 'text-foreground'}`}>Reply to ALL DMs</p>
             <p className="text-[11px] text-muted-foreground">Auto-reply to every DM you receive, no keyword needed</p>
           </div>
           <div className={`w-5 h-5 rounded-full border-2 transition-all ${
-            replyToAll ? 'border-blue-600 bg-blue-600' : 'border-border'
+            replyToAll ? 'border-brand bg-brand' : 'border-border'
           }`}>
             {replyToAll && <Check className="w-3 h-3 text-white m-auto mt-0.5" />}
           </div>
@@ -504,7 +506,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-foreground truncate">{selectedReel.caption || 'No caption'}</p>
-                    <p className="text-[10px] text-blue-600 font-semibold">✓ Selected</p>
+                    <p className="text-[10px] text-brand font-semibold">✓ Selected</p>
                   </div>
                 </>
               ) : (
@@ -597,7 +599,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
                     size="icon"
                     variant="ghost"
                     onClick={() => removeQuestion(q.id)}
-                    className="h-6 w-6 text-red-500 hover:bg-red-500/10"
+                    className="h-6 w-6 text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
@@ -652,7 +654,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
                     size="icon"
                     variant="ghost"
                     onClick={() => removeStep(s.id)}
-                    className="h-6 w-6 text-red-500 hover:bg-red-500/10"
+                    className="h-6 w-6 text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
@@ -745,15 +747,16 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
                   <SelectContent>
                     <SelectItem value="web_url">Link</SelectItem>
                     <SelectItem value="postback">Flow</SelectItem>
+                    <SelectItem value="pay">Pay</SelectItem>
                   </SelectContent>
                 </Select>
                 <Input
                   value={btn.type === "web_url" ? btn.url : btn.payload}
                   onChange={(e) => updateButton(btn.id, btn.type === "web_url" ? "url" : "payload", e.target.value)}
                   className="h-8 text-xs flex-1 bg-background border border-border px-2 text-foreground"
-                  placeholder={btn.type === "web_url" ? "https://..." : "Keyword"}
+                  placeholder={btn.type === "web_url" ? "https://..." : btn.type === "pay" ? "Amount in Rs, e.g. 499" : "Keyword"}
                 />
-                <Button size="icon" variant="ghost" onClick={() => removeButton(btn.id)} className="h-6 w-6 text-red-500 hover:bg-red-500/10">
+                <Button size="icon" variant="ghost" onClick={() => removeButton(btn.id)} className="h-6 w-6 text-destructive hover:bg-destructive/10">
                   <Trash2 className="w-3 h-3" />
                 </Button>
                 </div>
@@ -793,20 +796,20 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         type="button"
         onClick={() => setCheckFollow(!checkFollow)}
         className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
-          checkFollow ? 'border-green-500/50 bg-green-50' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
+          checkFollow ? 'border-brand/50 bg-brand-soft' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
         }`}
       >
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-          checkFollow ? 'bg-green-100 text-green-600' : 'bg-secondary text-muted-foreground'
+          checkFollow ? 'bg-brand-soft text-brand' : 'bg-secondary text-muted-foreground'
         }`}>
           <Lock className="w-5 h-5" />
         </div>
         <div className="text-left flex-1">
-          <p className={`text-sm font-bold ${checkFollow ? 'text-green-600' : 'text-foreground'}`}>Follow Gate</p>
-          <p className="text-[11px] text-muted-foreground">Only reply to your followers</p>
+          <p className={`text-sm font-bold ${checkFollow ? 'text-brand' : 'text-foreground'}`}>Follow Gate</p>
+          <p className="text-[11px] text-muted-foreground">Only reply to your followers. We check with Instagram when it allows; if it cannot confirm, the gate works on the honour system.</p>
         </div>
         <div className={`w-5 h-5 rounded-full border-2 transition-all ${
-          checkFollow ? 'border-green-600 bg-green-600' : 'border-border'
+          checkFollow ? 'border-brand bg-brand' : 'border-border'
         }`}>
           {checkFollow && <Check className="w-3 h-3 text-white m-auto mt-0.5" />}
         </div>
@@ -855,7 +858,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         {checkFollow && (
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground font-medium">Gate:</span>
-            <span className="text-amber-500 dark:text-amber-400 font-semibold">Followers only</span>
+            <span className="text-warn font-semibold">Followers only (honour system if Instagram cannot verify)</span>
           </div>
         )}
       </div>
@@ -898,7 +901,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         ) : (
           <Button
             onClick={handleSubmit}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+            className="flex-1 bg-brand hover:bg-brand/90 text-brand-foreground font-bold h-11 rounded-xl shadow-lg shadow-black/5 active:scale-95 transition-all"
           >
             <Sparkles className="w-4 h-4 mr-2" /> Create Automation
           </Button>

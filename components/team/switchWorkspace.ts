@@ -10,8 +10,8 @@ export async function switchWorkspace(ownerId?: string): Promise<string | null> 
   try {
     localStorage.setItem("ig_user_id", String(d.userId))
     localStorage.setItem("ig_username", String(d.username))
-    sessionStorage.removeItem("dmspark_welcomed")
-    sessionStorage.setItem("dmspark_welcomed", "true")
+    sessionStorage.removeItem("celra_welcomed")
+    sessionStorage.setItem("celra_welcomed", "true")
   } catch {}
   window.location.assign("/dashboard")
   return null
