@@ -13,7 +13,6 @@ import {
   Menu,
   X,
   Compass,
-  Instagram,
   Users,
   Link2, Clapperboard,
   ClipboardCheck,
@@ -23,7 +22,8 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
-import { DMSparkGoogleLogo } from "@/components/ui/dmspark-logo"
+import { CelraLogo } from "@/components/ui/celra-logo"
+import { INSTAGRAM_AUTH_URL } from "@/lib/instagram-auth"
 
 interface TopNavbarProps {
   username?: string
@@ -61,13 +61,12 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
     return [item.href, ...extra].some((p) => pathname === p || pathname.startsWith(p + "/"))
   }
 
- const instagramAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID}&redirect_uri=${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}&response_type=code&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments#weblink`
   return (
     <>
-      <nav className="h-14 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50 flex items-center px-4 md:px-6 gap-1 select-none">
+      <nav className="h-14 border-b border-border bg-card sticky top-0 z-50 flex items-center px-4 md:px-6 gap-1 select-none">
         {/* Logo */}
         <Link href={isConnected ? "/dashboard" : "/"} className="flex items-center shrink-0 mr-4 md:mr-8 hover:opacity-90 transition-opacity">
-          <DMSparkGoogleLogo size="sm" showIcon={true} />
+          <CelraLogo variant="full" size={30} className="text-foreground" />
         </Link>
 
         {/* Desktop Nav Tabs */}
@@ -79,10 +78,10 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200",
+                    "relative px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200",
                     isActive(item)
-                      ? "text-[#D62976] bg-[#D62976]/8"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      ? "text-brand bg-brand/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   )}
                 >
                   {item.label}
@@ -91,10 +90,10 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
               <Link
                 href="/dashboard/help"
                 className={cn(
-                  "relative px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200",
+                  "relative px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200",
                   pathname.startsWith("/dashboard/help")
-                    ? "text-[#D62976] bg-[#D62976]/8"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                    ? "text-brand bg-brand/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
                 )}
               >
                 Help
@@ -108,11 +107,11 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
           {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
             title="Toggle theme"
           >
             {mounted && theme === "dark" ? (
-              <Sun className="w-[18px] h-[18px] text-amber-500" />
+              <Sun className="w-[18px] h-[18px]" />
             ) : (
               <Moon className="w-[18px] h-[18px]" />
             )}
@@ -121,10 +120,9 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
           {/* Connect Button or Profile Avatar */}
           {!isConnected ? (
             <a
-              href={instagramAuthUrl}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full ig-gradient text-white text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
+              href={INSTAGRAM_AUTH_URL}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-primary text-primary-foreground text-xs sm:text-sm font-semibold transition-colors hover:bg-primary/90 cursor-pointer"
             >
-              <Instagram className="w-4 h-4" />
               <span>Connect</span>
             </a>
           ) : (
@@ -153,7 +151,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
           {isConnected && (
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="w-9 h-9 rounded-full flex md:hidden items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer ml-1"
+              className="w-9 h-9 rounded-full flex md:hidden items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer ml-1"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -163,7 +161,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
 
       {/* Mobile Dropdown Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-x-0 top-14 z-40 bg-background/98 backdrop-blur-md border-b border-border shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="md:hidden fixed inset-x-0 top-14 z-40 bg-card border-b border-border shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex flex-col p-2 gap-0.5">
             {navItems.map((item) => (
               <Link
@@ -173,7 +171,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                   isActive(item)
-                    ? "text-[#D62976] bg-[#D62976]/8"
+                    ? "text-brand bg-brand/10"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                 )}
               >
@@ -187,7 +185,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                 pathname.startsWith("/dashboard/help")
-                  ? "text-[#D62976] bg-[#D62976]/8"
+                  ? "text-brand bg-brand/10"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
               )}
             >

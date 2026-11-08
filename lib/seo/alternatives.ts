@@ -1,6 +1,7 @@
+import { BRAND_NAME } from "@/lib/site"
 /**
  * Honest "alternative" pages. Rules for editing this file:
- *  - Only claim things DMSpark really does.
+ *  - Only claim things Celra really does.
  *  - Never state a competitor's price, user count or limits (they change) — tell readers to check.
  *  - No invented testimonials or numbers.
  */
@@ -12,20 +13,20 @@ export interface AltPage {
   intro: string
   whyLook: string[]
   fits: string[]
-  comparison: { feature: string; dmspark: string; note?: string }[]
+  comparison: { feature: string; celra: string; note?: string }[]
   notFor: string[]
 }
 
 const COMMON_COMPARISON = [
-  { feature: "Comment → DM automation (keyword or every comment)", dmspark: "Yes — per post or account-wide" },
-  { feature: "Reply to the comment publicly as well", dmspark: "Yes" },
-  { feature: "Rich card DM with up to 3 buttons", dmspark: "Yes" },
-  { feature: "Click tracking on every button link", dmspark: "Yes — each link is counted separately" },
-  { feature: "Multi-step flows and lead questions", dmspark: "Yes — flow builder with ready templates" },
-  { feature: "Contacts list with CSV export", dmspark: "Yes" },
-  { feature: "Link-in-bio style shop page with price and discount", dmspark: "Yes — built in" },
-  { feature: "Shareable read-only client report", dmspark: "Yes" },
-  { feature: "Works on WhatsApp / Messenger / TikTok", dmspark: "Instagram only (a WhatsApp area exists separately)" },
+  { feature: "Comment → DM automation (keyword or every comment)", celra: "Yes — per post or account-wide" },
+  { feature: "Reply to the comment publicly as well", celra: "Yes" },
+  { feature: "Rich card DM with up to 3 buttons", celra: "Yes" },
+  { feature: "Click tracking on every button link", celra: "Yes — each link is counted separately" },
+  { feature: "Multi-step flows and lead questions", celra: "Yes — flow builder with ready templates" },
+  { feature: "Contacts list with CSV export", celra: "Yes" },
+  { feature: "Link-in-bio style shop page with price and discount", celra: "Yes — built in" },
+  { feature: "Shareable read-only client report", celra: "Yes" },
+  { feature: "Works on WhatsApp / Messenger / TikTok", celra: "Instagram only (a WhatsApp area exists separately)" },
 ]
 
 const NOT_FOR_COMMON = [
@@ -39,8 +40,8 @@ export const ALT_PAGES: AltPage[] = [
     slug: "manychat-alternative",
     competitor: "ManyChat",
     title: "A simpler ManyChat alternative for Instagram comment-to-DM",
-    description: "DMSpark is an Instagram-only ManyChat alternative: comment → DM automation, tracked links, lead capture and a shop page, without the multi-channel complexity.",
-    intro: "ManyChat is a broad, multi-channel chatbot platform. If all you want is to answer Instagram comments and send DMs with links, a focused tool can be quicker to set up. That is what DMSpark is.",
+    description: `${BRAND_NAME} is an Instagram-only ManyChat alternative: comment → DM automation, tracked links, lead capture and a shop page, without the multi-channel complexity.`,
+    intro: `ManyChat is a broad, multi-channel chatbot platform. If all you want is to answer Instagram comments and send DMs with links, a focused tool can be quicker to set up. That is what ${BRAND_NAME} is.`,
     whyLook: [
       "You only sell or post on Instagram and don't need other channels.",
       "You want a setup that takes minutes, not a flow canvas to learn.",
@@ -54,8 +55,8 @@ export const ALT_PAGES: AltPage[] = [
     slug: "chatfuel-alternative",
     competitor: "Chatfuel",
     title: "A focused Chatfuel alternative for Instagram automation",
-    description: "Looking for a Chatfuel alternative just for Instagram? DMSpark automates comments and DMs, tracks link clicks and captures leads.",
-    intro: "Chatfuel is a general chatbot builder. DMSpark does one thing — Instagram comment and DM automation — and adds the pieces creators ask for next: tracked links, a shop page and shareable reports.",
+    description: `Looking for a Chatfuel alternative just for Instagram? ${BRAND_NAME} automates comments and DMs, tracks link clicks and captures leads.`,
+    intro: `Chatfuel is a general chatbot builder. ${BRAND_NAME} does one thing — Instagram comment and DM automation — and adds the pieces creators ask for next: tracked links, a shop page and shareable reports.`,
     whyLook: [
       "You want Instagram-specific features rather than a general bot builder.",
       "You want to see which button in a DM actually got clicks.",
@@ -69,8 +70,8 @@ export const ALT_PAGES: AltPage[] = [
     slug: "linkdm-alternative",
     competitor: "LinkDM",
     title: "A LinkDM alternative with a shop page and click tracking",
-    description: "DMSpark covers the 'comment a word, get the link' flow like LinkDM, plus tracked links, flows, contacts export and a built-in shop page.",
-    intro: "LinkDM-style tools send a link when someone comments a keyword. DMSpark does that too, and goes further with multi-step flows, tracked buttons, a contacts list and a link-in-bio style shop with prices.",
+    description: `${BRAND_NAME} covers the 'comment a word, get the link' flow like LinkDM, plus tracked links, flows, contacts export and a built-in shop page.`,
+    intro: `LinkDM-style tools send a link when someone comments a keyword. ${BRAND_NAME} does that too, and goes further with multi-step flows, tracked buttons, a contacts list and a link-in-bio style shop with prices.`,
     whyLook: [
       "You want more than a single link per DM — up to three tracked buttons.",
       "You want leads saved to a contacts list you can export.",

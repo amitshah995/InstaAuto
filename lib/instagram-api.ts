@@ -51,7 +51,7 @@ export async function instagramApiFetch(
             // Warn if approaching limits (>80%)
             if (rateLimitInfo.callCount > 80) {
               console.warn(
-                `[DMSpark] ⚠️ Rate limit warning: ${rateLimitInfo.callCount}% used`
+                `[Celra] ⚠️ Rate limit warning: ${rateLimitInfo.callCount}% used`
               )
             }
           }
@@ -65,12 +65,12 @@ export async function instagramApiFetch(
         if (attempt < retries) {
           const delay = BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 500
           console.warn(
-            `[DMSpark] ⚠️ Rate limited (429). Retry ${attempt + 1}/${retries} in ${Math.round(delay)}ms`
+            `[Celra] ⚠️ Rate limited (429). Retry ${attempt + 1}/${retries} in ${Math.round(delay)}ms`
           )
           await new Promise((resolve) => setTimeout(resolve, delay))
           continue
         }
-        console.error("[DMSpark] ❌ Rate limit exceeded after all retries")
+        console.error("[Celra] ❌ Rate limit exceeded after all retries")
       }
 
       const data = await res.json()
@@ -79,7 +79,7 @@ export async function instagramApiFetch(
       if (attempt < retries) {
         const delay = BASE_DELAY_MS * Math.pow(2, attempt)
         console.warn(
-          `[DMSpark] ⚠️ Network error. Retry ${attempt + 1}/${retries} in ${delay}ms:`,
+          `[Celra] ⚠️ Network error. Retry ${attempt + 1}/${retries} in ${delay}ms:`,
           error.message
         )
         await new Promise((resolve) => setTimeout(resolve, delay))

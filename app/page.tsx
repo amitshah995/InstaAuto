@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { GoogleSearchHome } from "@/components/layout/google-home"
 import { InstagramConnectAnimation } from "@/components/ui/instagram-connect-animation"
-import { BRAND_NAME } from "@/lib/site"
+import { BRAND_NAME, getSiteUrl } from "@/lib/site"
 import { FAQS } from "@/lib/marketing-faq"
 import { Loader2, AlertCircle } from "lucide-react"
 
@@ -60,24 +60,24 @@ function HomeContent() {
 }
 
 export default function Home() {
+  const SITE = getSiteUrl()
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "WebSite",
-        "@id": "https://www.dmspark.in/#website",
-        url: "https://www.dmspark.in",
+        "@id": `${SITE}/#website`,
+        url: SITE,
         name: BRAND_NAME,
-        alternateName: ["DMSpark"],
         description:
           `${BRAND_NAME} auto-replies to Instagram comments and DMs with keyword triggers, using the official Instagram API.`,
         publisher: {
           "@type": "Organization",
           name: BRAND_NAME,
-          url: "https://www.dmspark.in",
+          url: SITE,
           logo: {
             "@type": "ImageObject",
-            url: "https://www.dmspark.in/logo.png",
+            url: `${SITE}/celra-mark-512.png`,
             width: 512,
             height: 512,
           },
@@ -86,12 +86,11 @@ export default function Home() {
       },
       {
         "@type": "SoftwareApplication",
-        "@id": "https://www.dmspark.in/#app",
+        "@id": `${SITE}/#app`,
         name: BRAND_NAME,
-        alternateName: ["DMSpark"],
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web, Android",
-        url: "https://www.dmspark.in",
+        url: SITE,
         description:
           `${BRAND_NAME} sends the price, link or details to anyone who comments on your reel. Auto-reply to comments, DMs, and stories with smart keyword triggers.`,
         offers: {
@@ -103,18 +102,17 @@ export default function Home() {
         creator: {
           "@type": "Organization",
           name: BRAND_NAME,
-          url: "https://www.dmspark.in",
+          url: SITE,
         },
       },
       {
         "@type": "Organization",
-        "@id": "https://www.dmspark.in/#organization",
+        "@id": `${SITE}/#organization`,
         name: BRAND_NAME,
-        alternateName: ["DMSpark"],
-        url: "https://www.dmspark.in",
+        url: SITE,
         logo: {
           "@type": "ImageObject",
-          url: "https://www.dmspark.in/logo.png",
+          url: `${SITE}/celra-mark-512.png`,
           width: 512,
           height: 512,
         },
@@ -123,19 +121,19 @@ export default function Home() {
       },
       {
         "@type": "BreadcrumbList",
-        "@id": "https://www.dmspark.in/#breadcrumb",
+        "@id": `${SITE}/#breadcrumb`,
         itemListElement: [
           {
             "@type": "ListItem",
             position: 1,
             name: `${BRAND_NAME} Home`,
-            item: "https://www.dmspark.in",
+            item: SITE,
           },
         ],
       },
       {
         "@type": "FAQPage",
-        "@id": "https://www.dmspark.in/#faq",
+        "@id": `${SITE}/#faq`,
         mainEntity: FAQS.map((f) => ({
           "@type": "Question",
           name: f.q,

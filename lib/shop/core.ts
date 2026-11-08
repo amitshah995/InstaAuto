@@ -12,7 +12,7 @@ const HANDLE_RE = /^(?!\.)(?!.*\.\.)(?!.*\.$)[a-z0-9._]{1,30}$/
 const RESERVED = new Set([
   "admin", "administrator", "api", "app", "dashboard", "help", "support", "security", "staff", "team",
   "official", "root", "system", "login", "logout", "signup", "settings", "privacy", "terms", "about",
-  "dmspark", "instagram", "meta", "facebook", "whatsapp", "shop", "l", "tools", "audit",
+  "celra", "instagram", "meta", "facebook", "whatsapp", "shop", "l", "tools", "audit",
 ])
 
 /** Lowercases and strips a leading "@". Returns the handle, or an error message. */
