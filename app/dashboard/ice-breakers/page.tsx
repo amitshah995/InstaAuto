@@ -68,19 +68,9 @@ export default function IceBreakersPage() {
         </div>
 
         {/* Dynamic Action */}
-        <div className="max-w-xs mx-auto">
-          {requested ? (
-            <div className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold animate-in zoom-in-95 duration-200">
-              <CheckCircle className="w-4 h-4" /> Request for Beta Access Sent!
-            </div>
-          ) : (
-            <Button 
-              onClick={() => setRequested(true)}
-              className="w-full py-5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 text-white font-bold text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-md shadow-blue-500/20 cursor-pointer"
-            >
-              <Mail className="w-4 h-4 mr-2" /> Request Early Access
-            </Button>
-          )}
+        {/* Was a fake "Request Early Access" button that sent nothing. Replaced with an honest status line. */}
+        <div className="max-w-xs mx-auto text-center text-xs font-semibold text-muted-foreground">
+          Not available yet.
         </div>
 
       </div>
