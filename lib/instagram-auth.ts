@@ -1,0 +1,2 @@
+/** The one place for the Instagram sign-in link used by every "Connect Instagram" / "Start" button. */
+export const INSTAGRAM_AUTH_URL = `https://api.instagram.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID}&redirect_uri=${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}&response_type=code&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments#weblink`
