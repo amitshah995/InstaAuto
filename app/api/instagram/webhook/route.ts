@@ -4,6 +4,8 @@ import crypto from "crypto"
 import { postGraphMessage, sendSteps } from "@/lib/messaging/send-steps"
 import { releaseDm, reserveAiRun, reserveDm } from "@/lib/billing/usage"
 import { runFlow } from "@/lib/messaging/flow-runner"
+import { checkFollowStatus } from "@/lib/messaging/follow-check"
+import { matchesAnyKeyword } from "@/lib/matching/keywords"
 import { isOncePerPerson, onceKey } from "@/lib/automations/once"
 
 // No default token: a guessable fallback would let anyone subscribe. If this env var is unset, verification fails.
@@ -12,11 +14,7 @@ const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || ""
 // Long delayed-reply sequences and AI "typing" waits can exceed the default function time limit.
 export const maxDuration = 60
 
-// Escapes regex special characters so a keyword like "10% off" or "a+b"
-// can't crash new RegExp() or match unintended patterns.
-function escapeRegex(str: string) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
+// Keyword matching lives in lib/matching/keywords.ts (Unicode-aware, whole-word).
 
 // Returns true if this exact event_id was already processed (Meta redelivered it).
 // Inserts a row on first sight; a duplicate insert (unique violation) means "already seen".
@@ -291,9 +289,7 @@ export async function POST(request: NextRequest) {
                 (a: any) =>
                   a.specific_media_id === mediaId &&
                   a.trigger_type === "keyword" &&
-                  a.trigger_value
-                    .split(",")
-                    .some((k: string) => new RegExp(`\\b${escapeRegex(k.trim())}\\b`, "i").test(commentText)),
+                  matchesAnyKeyword(commentText, a.trigger_value),
               )
             }
 
@@ -305,9 +301,7 @@ export async function POST(request: NextRequest) {
                 (a: any) =>
                   !a.specific_media_id &&
                   a.trigger_type === "keyword" &&
-                  a.trigger_value
-                    .split(",")
-                    .some((k: string) => new RegExp(`\\b${escapeRegex(k.trim())}\\b`, "i").test(commentText)),
+                  matchesAnyKeyword(commentText, a.trigger_value),
               )
             }
 
@@ -550,9 +544,7 @@ export async function POST(request: NextRequest) {
 
               const triggers = a.trigger_value?.split(',').map((t: string) => t.trim()) || []
               if (triggers.length > 0 && triggers[0] !== 'ALL' && triggers[0] !== 'ALL_MENTIONS' && triggers[0] !== '') {
-                return triggers.some((keyword: string) =>
-                  new RegExp(`\\b${escapeRegex(keyword)}\\b`, 'i').test(messageText)
-                )
+                return triggers.some((keyword: string) => matchesAnyKeyword(messageText, keyword))
               }
               return true
             })
@@ -877,7 +869,7 @@ export async function POST(request: NextRequest) {
             match = dmAutomations.find(
               (a: any) =>
                 a.trigger_type === "keyword" &&
-                a.trigger_value.split(",").some((k: string) => new RegExp(`\\b${escapeRegex(k.trim())}\\b`, "i").test(triggerValue)),
+                matchesAnyKeyword(triggerValue, a.trigger_value),
             )
 
             // Priority 2: wildcard catch-all — matches ANY DM. Only used when no
@@ -1316,15 +1308,25 @@ STRICT RULES — follow every single one:
           }
 
           const isUnlockEvent = triggerType === "postback" && triggerValue.startsWith("UNLOCK_CONTENT_")
-          const isFollowGate = content.check_follow === true && !isUnlockEvent
+
+          // Real follow check (Instagram User Profile API). Only asked when the rule has the gate on.
+          // "unknown" (field missing, no consent yet, error) keeps the old honour-system behaviour.
+          const followStatus = content.check_follow === true ? await checkFollowStatus(user.access_token, senderId) : "unknown"
+
+          // Verified NOT following, and they tapped "I Followed!": do not unlock. Keep the button and ask kindly.
+          const stillLocked = isUnlockEvent && followStatus === "not_following"
+          // Already verified as a follower: no need to gate them at all, send the content straight away.
+          const isFollowGate = content.check_follow === true && !isUnlockEvent && followStatus !== "following"
 
           // Follow-gate is always a single locked-content card, never a sequence —
           // steps only apply to the normal (non-gated) reply content.
-          const sendContent = isFollowGate
+          const sendContent = isFollowGate || stillLocked
             ? {
                 card: {
-                  title: "🔒 Content Locked",
-                  subtitle: `Please follow @${user.username} to see this!`,
+                  title: stillLocked ? "Almost there" : "🔒 Content Locked",
+                  subtitle: stillLocked
+                    ? `We could not see that you follow @${user.username} yet. Please follow first, then tap the button again.`
+                    : `Please follow @${user.username} to see this!`,
                   buttons: [
                     { type: "web_url", url: `https://instagram.com/${user.username}`, title: "Follow Us" },
                     { type: "postback", title: "I Followed! ✅", payload: `UNLOCK_CONTENT_${match.id}` },
@@ -1362,6 +1364,8 @@ STRICT RULES — follow every single one:
               triggerText: triggerValue,
               matched: true,
               actionStatus: "sent",
+              // Transparent in the run log: this unlock was not verified by Instagram.
+              errorMessage: isUnlockEvent && content.check_follow === true && followStatus === "unknown" ? "Follow not verified (honour system)" : stillLocked ? "Follow gate: not following yet, content kept locked" : null,
             })
 
             const { data: outConv } = await supabase

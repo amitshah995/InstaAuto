@@ -803,7 +803,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         </div>
         <div className="text-left flex-1">
           <p className={`text-sm font-bold ${checkFollow ? 'text-green-600' : 'text-foreground'}`}>Follow Gate</p>
-          <p className="text-[11px] text-muted-foreground">Only reply to your followers</p>
+          <p className="text-[11px] text-muted-foreground">Only reply to your followers. We check with Instagram when it allows; if it cannot confirm, the gate works on the honour system.</p>
         </div>
         <div className={`w-5 h-5 rounded-full border-2 transition-all ${
           checkFollow ? 'border-green-600 bg-green-600' : 'border-border'
@@ -855,7 +855,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         {checkFollow && (
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground font-medium">Gate:</span>
-            <span className="text-amber-500 dark:text-amber-400 font-semibold">Followers only</span>
+            <span className="text-amber-500 dark:text-amber-400 font-semibold">Followers only (honour system if Instagram cannot verify)</span>
           </div>
         )}
       </div>
