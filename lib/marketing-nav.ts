@@ -183,6 +183,7 @@ export const FOOTER_COLUMNS: { title: string; links: { label: string; href: stri
   { title: "Legal", links: [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
+    { label: "Refund Policy", href: "/refund-policy" },
     { label: "Data Deletion", href: "/delete-data" },
   ] },
 ]

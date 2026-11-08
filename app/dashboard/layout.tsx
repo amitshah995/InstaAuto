@@ -8,6 +8,7 @@ import { Loader2, Compass, Copy, Check, MoreVertical, AlertTriangle } from "luci
 import { useRouter } from "next/navigation"
 import { ActingBanner } from "@/components/team/ActingBanner"
 import { SendHealthBanner } from "@/components/dashboard/SendHealthBanner"
+import { UsageBanner } from "@/components/billing/UsageBanner"
 
 export default function DashboardLayout({
     children,
@@ -96,6 +97,7 @@ export default function DashboardLayout({
         <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-300 relative">
             <ActingBanner />
             <SendHealthBanner />
+            <UsageBanner />
             {/* Google-style Top Navigation Bar */}
             <TopNavbar
                 username={username || "User"}

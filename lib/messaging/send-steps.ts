@@ -1,6 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { expandLinksForUser } from "@/lib/links/store"
 import { expandTokens } from "@/lib/links/core"
+import { getEntitlement, releaseDm, reserveDm, type Entitlement } from "@/lib/billing/usage"
 import { classifyFailure, withRetry, type MetaError } from "@/lib/messaging/retry"
 import { DM_WINDOW_MS, PRIVATE_REPLY_WINDOW_MS, recordFailedSend } from "@/lib/messaging/failed-sends"
 
@@ -74,7 +75,7 @@ export async function postGraphMessage(
   }
 }
 
-export type SendResult = { text: string; ok: boolean; messageId?: string; error?: string }
+export type SendResult = { text: string; ok: boolean; messageId?: string; error?: string; quota?: boolean }
 
 export type SendCtx = {
   userId: number
@@ -125,6 +126,8 @@ export async function sendSteps(
 
   const results: SendResult[] = []
   let allOk = true
+  // Plan lookup once per sequence (not per step). Only metered when we know whose account this is.
+  const entitlement: Entitlement | null = ctx ? await getEntitlement(ctx.userId) : null
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]
@@ -169,9 +172,22 @@ export async function sendSteps(
       textLog = finalText
     }
 
+    // Quota: reserve one DM before sending (atomic). When the plan limit is reached, stop with a
+    // friendly message instead of sending; nothing is retried because the limit resets later.
+    if (ctx && entitlement) {
+      const q = await reserveDm(ctx.userId, entitlement)
+      if (!q.allowed) {
+        results.push({ text: textLog, ok: false, error: q.message, quota: true })
+        allOk = false
+        break
+      }
+    }
+
     // Retry transient Meta errors briefly inline (webhook stays fast: ~2s worst case), permanent ones fail at once.
     const sent = await postGraphMessage(accessToken, apiBody)
     if (!sent.ok) {
+      // A DM that never went out is not billed.
+      if (ctx && entitlement) await releaseDm(ctx.userId)
       const errText = sent.networkError ? "Network error talking to Instagram" : JSON.stringify(sent.error)
       console.error(`[v0] 🔴 Step ${i + 1}/${steps.length} send failed after ${sent.attempts} attempt(s):`, sent.networkError ? "network" : errText)
       results.push({ text: textLog, ok: false, error: errText })

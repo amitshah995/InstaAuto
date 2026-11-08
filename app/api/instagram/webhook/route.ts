@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import crypto from "crypto"
-import { sendSteps } from "@/lib/messaging/send-steps"
+import { postGraphMessage, sendSteps } from "@/lib/messaging/send-steps"
+import { releaseDm, reserveAiRun, reserveDm } from "@/lib/billing/usage"
 import { runFlow } from "@/lib/messaging/flow-runner"
 import { isOncePerPerson, onceKey } from "@/lib/automations/once"
 
@@ -738,7 +739,7 @@ export async function POST(request: NextRequest) {
 
               if (nextQuestion) {
                 await supabase.from("conversations").update({ active_flow_step: nextIndex }).eq("id", conv.id)
-                await sendSteps(user.access_token, { id: senderId }, senderId, { message: nextQuestion.prompt })
+                await sendSteps(user.access_token, { id: senderId }, senderId, { message: nextQuestion.prompt }, { userId: user.id })
               } else {
                 await supabase
                   .from("conversations")
@@ -747,7 +748,7 @@ export async function POST(request: NextRequest) {
                 if (flowAutomation.response_content.closing_message) {
                   await sendSteps(user.access_token, { id: senderId }, senderId, {
                     message: flowAutomation.response_content.closing_message,
-                  })
+                  }, { userId: user.id })
                 }
               }
 
@@ -896,6 +897,20 @@ export async function POST(request: NextRequest) {
                 const gatewaySecret = process.env.GATEWAY_SECRET
                 if (!gatewaySecret) {
                   console.log("[v0] ❌ GATEWAY_SECRET not set")
+                  continue
+                }
+
+                // Plan AI limit (daily). Over the limit: skip the AI fallback silently (no reply is sent).
+                const aiQuota = await reserveAiRun(user.id)
+                if (!aiQuota.allowed) {
+                  await logRun(supabase, {
+                    userId: user.id,
+                    eventType: "dm",
+                    triggerText: triggerValue,
+                    matched: false,
+                    actionStatus: "skipped",
+                    errorMessage: aiQuota.message,
+                  })
                   continue
                 }
 
@@ -1137,11 +1152,22 @@ STRICT RULES — follow every single one:
                   message: { text: aiReply },
                 }
 
-                const sendRes = await fetch(
-                  `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(user.access_token)}`,
-                  { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(aiApiBody) },
-                )
-                const sendJson = await sendRes.json()
+                // Plan DM limit, then send with the shared retry helper (transient Meta errors are retried).
+                const dmQuota = await reserveDm(user.id)
+                if (!dmQuota.allowed) {
+                  await logRun(supabase, {
+                    userId: user.id,
+                    eventType: "dm",
+                    triggerText: triggerValue,
+                    matched: false,
+                    actionStatus: "skipped",
+                    errorMessage: dmQuota.message,
+                  })
+                  continue
+                }
+                const aiSent = await postGraphMessage(user.access_token, aiApiBody)
+                if (!aiSent.ok) await releaseDm(user.id) // failed sends are not billed
+                const sendJson = { error: aiSent.ok ? null : (aiSent.error ?? { message: "Network error talking to Instagram" }) }
                 if (sendJson.error) {
                   console.error("[v0] 🔴 AI Reply Send Failed:", sendJson.error)
                   await logRun(supabase, {
