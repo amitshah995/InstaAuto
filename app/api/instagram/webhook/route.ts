@@ -5,7 +5,11 @@ import { sendSteps } from "@/lib/messaging/send-steps"
 import { runFlow } from "@/lib/messaging/flow-runner"
 import { isOncePerPerson, onceKey } from "@/lib/automations/once"
 
-const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || "your_verify_token"
+// No default token: a guessable fallback would let anyone subscribe. If this env var is unset, verification fails.
+const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || ""
+
+// Long delayed-reply sequences and AI "typing" waits can exceed the default function time limit.
+export const maxDuration = 60
 
 // Escapes regex special characters so a keyword like "10% off" or "a+b"
 // can't crash new RegExp() or match unintended patterns.
@@ -87,7 +91,7 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get("hub.verify_token")
   const challenge = searchParams.get("hub.challenge")
 
-  if (mode === "subscribe" && token === WEBHOOK_VERIFY_TOKEN && challenge) {
+  if (WEBHOOK_VERIFY_TOKEN && mode === "subscribe" && token === WEBHOOK_VERIFY_TOKEN && challenge) {
     return new NextResponse(challenge, { status: 200 })
   }
   return NextResponse.json({ error: "Invalid token" }, { status: 403 })
@@ -100,21 +104,23 @@ export async function POST(request: NextRequest) {
     const appSecret = process.env.INSTAGRAM_APP_SECRET
     const rawBody = await request.text()
 
-    if (appSecret) {
-      // App secret is configured (production-ready) — signature is REQUIRED, not optional.
-      if (!signature) {
-        console.error("[v0] ❌ Missing webhook signature (INSTAGRAM_APP_SECRET is set)")
-        return NextResponse.json({ error: "Missing signature" }, { status: 403 })
-      }
-      const expectedSig = "sha256=" + crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex")
-      if (signature !== expectedSig) {
-        console.error("[v0] ❌ Invalid webhook signature")
-        return NextResponse.json({ error: "Invalid signature" }, { status: 403 })
-      }
-    } else {
-      // No app secret set yet (e.g. Meta app not configured yet) — allow through for local/dev testing,
-      // but make it loud so this never goes unnoticed in production logs.
-      console.warn("[v0] ⚠️ INSTAGRAM_APP_SECRET not set — webhook signature NOT verified")
+    // FAIL CLOSED: without the app secret we cannot tell Meta from an attacker, and a forged event
+    // would make a customer's account send DMs. So refuse everything until it is configured.
+    if (!appSecret) {
+      console.error("[DMSpark] INSTAGRAM_APP_SECRET is not set: refusing webhook event")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+    if (!signature) {
+      console.error("[DMSpark] Missing webhook signature")
+      return NextResponse.json({ error: "Missing signature" }, { status: 403 })
+    }
+    const expectedSig = "sha256=" + crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex")
+    const sigA = Buffer.from(signature)
+    const sigB = Buffer.from(expectedSig)
+    // Constant-time compare so the signature can't be guessed byte by byte.
+    if (sigA.length !== sigB.length || !crypto.timingSafeEqual(sigA, sigB)) {
+      console.error("[DMSpark] Invalid webhook signature")
+      return NextResponse.json({ error: "Invalid signature" }, { status: 403 })
     }
 
     let body: any
