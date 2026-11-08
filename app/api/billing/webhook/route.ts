@@ -58,11 +58,13 @@ export async function POST(request: NextRequest) {
         // Row missing (e.g. created outside our route): rebuild it from the notes we attached at creation.
         const plan = planForRazorpayPlan(entity.plan_id) ?? "free"
         userId = String(notes.user_id)
+        // QA fix: DO NOTHING on conflict. The user already has a row for a DIFFERENT (newer) subscription, so this is a
+        // stale event for a superseded one (e.g. the old subscription's "cancelled" arriving after a re-subscribe).
+        // The old DO UPDATE let it overwrite the live paid subscription and silently downgrade a paying customer.
         await rawQuery(
           `INSERT INTO subscriptions (user_id, plan_id, status, razorpay_subscription_id, razorpay_plan_id, current_period_end)
            VALUES ($1,$2,$3,$4,$5,$6)
-           ON CONFLICT (user_id) DO UPDATE SET plan_id=$2, status=$3, razorpay_subscription_id=$4, razorpay_plan_id=$5,
-             current_period_end=COALESCE($6, subscriptions.current_period_end), updated_at=now()`,
+           ON CONFLICT (user_id) DO NOTHING`,
           [userId, plan, status, entity.id, entity.plan_id ?? null, periodEnd],
         )
       }

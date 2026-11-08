@@ -35,7 +35,11 @@ function doPost(e) {
   var ids = sheet.getRange(2, COLUMNS.length, Math.max(sheet.getLastRow() - 1, 1), 1).getValues().flat();
   if (ids.indexOf(body.event_id) !== -1) return out('duplicate');
 
-  sheet.appendRow(COLUMNS.map(function (c) { return body[c] === undefined ? '' : body[c]; }));
+  // Write as plain text: comments and answers come from other people, and a value like =IMPORTDATA(...) must never run as a formula.
+  var row = COLUMNS.map(function (c) { return body[c] === undefined ? '' : String(body[c]); });
+  var range = sheet.getRange(sheet.getLastRow() + 1, 1, 1, COLUMNS.length);
+  range.setNumberFormat('@');
+  range.setValues([row]);
   return out('ok');
 }
 

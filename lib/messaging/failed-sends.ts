@@ -98,7 +98,7 @@ export async function getSendHealth(userId: string | number): Promise<SendHealth
 export async function dismissFailedSends(userId: string | number): Promise<void> {
   await rawQuery(
     `UPDATE failed_sends SET status = 'dismissed', updated_at = now()
-      WHERE user_id = $1 AND status IN ('dead','expired','open')`,
+      WHERE user_id = $1 AND status IN ('dead','expired')`, // QA fix: never dismiss 'open' rows, the scheduler only retries status='open', so dismissing them silently dropped pending retries
     [userId],
   )
 }

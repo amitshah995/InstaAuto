@@ -23,8 +23,13 @@ export async function POST(request: NextRequest) {
 
   // One live subscription at a time: changing plans = cancel first (keeps proration out of scope).
   const existing = await getSubscription(auth.userId)
-  if (existing && effectivePlanId(existing) !== "free" && !existing.cancel_at_cycle_end) {
-    return NextResponse.json({ error: "You already have an active plan. Cancel it first to switch." }, { status: 409 })
+  // QA fix: also block while a cancelled plan is still inside its paid period. Starting checkout resets the row to
+  // 'created' (free), which used to drop the customer to Free immediately, losing time they had paid for, and orphan the old subscription.
+  if (existing && effectivePlanId(existing) !== "free") {
+    return NextResponse.json(
+      { error: existing.cancel_at_cycle_end ? "Your current plan is already scheduled to end. You can choose a new plan after it ends." : "You already have an active plan. Cancel it first to switch." },
+      { status: 409 },
+    )
   }
 
   try {
