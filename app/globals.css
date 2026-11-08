@@ -123,6 +123,55 @@
   --color-dmspark-red: #ea4335;
   --color-dmspark-yellow: #fbbc04;
   --color-dmspark-green: #34a853;
+  /* Celra landing tokens (scoped by .celra-landing below) */
+  --color-c-bg: var(--c-bg);
+  --color-c-surface: var(--c-surface);
+  --color-c-soft: var(--c-soft);
+  --color-c-ink: var(--c-ink);
+  --color-c-muted: var(--c-muted);
+  --color-c-line: var(--c-line);
+  --color-c-brand: var(--c-brand);
+  --color-c-brand-soft: var(--c-brand-soft);
+  --color-c-accent: var(--c-accent);
+  --color-c-accent-ink: var(--c-accent-ink);
+  --font-display: var(--font-outfit), "Geist", system-ui, sans-serif;
+}
+
+/* ---------------------------------------------------- */
+/* CELRA LANDING PALETTE: deep teal + one coral accent  */
+/* Contrast (AA): ink/bg 13:1, muted/bg 6:1, brand/bg 7:1, accent-ink/accent 5.7:1 */
+/* ---------------------------------------------------- */
+.celra-landing {
+  --c-bg: #FBFAF6;
+  --c-surface: #FFFFFF;
+  --c-soft: #F1EFE8;
+  --c-ink: #0E2A33;
+  --c-muted: #46606A;
+  --c-line: #D9E0DE;
+  --c-brand: #0B5C6E;
+  --c-brand-soft: #E1F0F1;
+  --c-accent: #FF6F4D;
+  --c-accent-ink: #0E2A33;
+}
+.dark .celra-landing {
+  --c-bg: #071A20;
+  --c-surface: #0D2830;
+  --c-soft: #0A2128;
+  --c-ink: #E9F4F5;
+  --c-muted: #A3BDC3;
+  --c-line: #1E4048;
+  --c-brand: #46C8D0;
+  --c-brand-soft: #0F3640;
+  --c-accent: #FF8466;
+  --c-accent-ink: #1A0F0B;
+}
+@keyframes celra-pop { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes celra-dots { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+.celra-pop { animation: celra-pop .5s cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--d, 0s); }
+.celra-dot { animation: celra-dots 1.2s infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .celra-pop, .celra-dot { animation: none !important; }
+  .celra-landing * { scroll-behavior: auto !important; transition-duration: 0s !important; }
 }
 
 @layer base {

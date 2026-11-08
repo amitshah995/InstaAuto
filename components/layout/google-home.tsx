@@ -1,224 +1,298 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
-import { TopNavbar } from "@/components/layout/top-navbar"
-import { DMSparkGoogleLogo } from "@/components/ui/dmspark-logo"
-import { InstagramReelsIcon } from "@/components/ui/instagram-reels-icon"
-import { Search, Zap, Instagram, MessageCircle, Shield, Clock, ArrowRight, X, ExternalLink, Sparkles, Check, Mic, Camera } from "lucide-react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
+import { useTheme } from "next-themes"
+import { ArrowRight, Cake, Check, ClipboardCheck, KeyRound, MessageSquareText, MessagesSquare, Moon, ShieldCheck, Sun, UserCheck, Plug } from "lucide-react"
+import { CelraLogo } from "@/components/ui/celra-logo"
+import { BRAND_NAME } from "@/lib/site"
+
+const instagramAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID}&redirect_uri=${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}&response_type=code&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments#weblink`
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-c-brand focus-visible:ring-offset-2 focus-visible:ring-offset-c-bg"
+
+const steps = [
+  {
+    icon: Plug,
+    title: "Instagram connect karo",
+    body: "Sign in with Instagram's own login. We never ask for your password.",
+  },
+  {
+    icon: MessageSquareText,
+    title: "Reply likho",
+    body: "Pick a reel, choose a word like “price”, and write the DM you want sent.",
+  },
+  {
+    icon: MessagesSquare,
+    title: "Baaki Celra sambhaalega",
+    body: "When someone comments that word, they get your DM. You can pause it any time.",
+  },
+]
+
+const trust = [
+  {
+    icon: ShieldCheck,
+    title: "Official Instagram API",
+    body: "No scraping, no password sharing. You log in on Instagram itself.",
+  },
+  {
+    icon: KeyRound,
+    title: "You write every message",
+    body: "We send only what you wrote. Nothing is made up on your behalf.",
+  },
+  {
+    icon: UserCheck,
+    title: "Only people who reached out",
+    body: "DMs go to people who commented on your reel or messaged you first.",
+  },
+]
+
+const faqs = [
+  {
+    q: `Is ${BRAND_NAME} free?`,
+    a: `${BRAND_NAME} is free to use while it is in beta. We will tell you clearly before anything changes, and nothing is charged without your yes.`,
+  },
+  {
+    q: "Do I need a special Instagram account?",
+    a: "Yes. Your account must be an Instagram Business or Creator account (you can switch for free in Instagram settings).",
+  },
+  {
+    q: "Is it safe for my account?",
+    a: `${BRAND_NAME} uses the official Instagram API and Instagram's own login. Follow Instagram's messaging rules when you write your automations, and keep your messages useful and honest.`,
+  },
+  {
+    q: "Will it message random people?",
+    a: "No. A DM goes out only to someone who commented your keyword on your reel, or who messaged you first.",
+  },
+  {
+    q: "How do I stop or delete my data?",
+    a: "Pause or delete any automation inside the dashboard. To remove your data completely, use the data deletion page below.",
+  },
+]
+
+function ThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const dark = mounted && resolvedTheme === "dark"
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(dark ? "light" : "dark")}
+      aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
+      className={`h-10 w-10 rounded-full grid place-items-center text-c-muted hover:text-c-ink hover:bg-c-soft transition-colors cursor-pointer ${focusRing}`}
+    >
+      {dark ? <Sun className="h-5 w-5" aria-hidden /> : <Moon className="h-5 w-5" aria-hidden />}
+    </button>
+  )
+}
+
+/** Small HTML/CSS illustration: a comment on a reel turns into a DM. Example only. */
+function CommentToDmDemo() {
+  return (
+    <figure
+      className="relative w-full max-w-[420px] mx-auto lg:mx-0 lg:ml-auto"
+      aria-label="Example: a comment saying price on a reel, and the DM sent back automatically"
+    >
+      <div className="rounded-3xl border border-c-line bg-c-surface p-4 sm:p-5 shadow-[0_20px_50px_-24px_rgba(11,92,110,0.35)]">
+        {/* the reel + comment */}
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 shrink-0 rounded-xl bg-c-brand-soft grid place-items-center text-c-brand" aria-hidden>
+            <Cake className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-c-ink truncate">Chocolate cake, 1 kg</p>
+            <p className="text-xs text-c-muted">Your reel · 3 new comments</p>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2.5">
+          <div className="flex items-start gap-2.5 opacity-70">
+            <span className="h-7 w-7 shrink-0 rounded-full bg-c-soft grid place-items-center text-[11px] font-semibold text-c-muted" aria-hidden>S</span>
+            <p className="text-sm text-c-muted pt-0.5"><span className="font-semibold">sana_m</span> Looks so good!</p>
+          </div>
+          <div className="celra-pop flex items-start gap-2.5 rounded-2xl bg-c-brand-soft px-3 py-2.5" style={{ ["--d" as string]: "0.2s" }}>
+            <span className="h-7 w-7 shrink-0 rounded-full bg-c-brand text-c-bg grid place-items-center text-[11px] font-bold" aria-hidden>R</span>
+            <p className="text-sm text-c-ink pt-0.5"><span className="font-semibold">riya.k</span> price?</p>
+          </div>
+        </div>
+
+        {/* connector */}
+        <div className="my-4 flex items-center gap-3 text-xs font-medium text-c-muted" aria-hidden>
+          <span className="h-px flex-1 bg-c-line" />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-c-line px-2.5 py-1">
+            <span className="h-2 w-2 rounded-full bg-c-accent" />
+            {BRAND_NAME} sends a DM
+          </span>
+          <span className="h-px flex-1 bg-c-line" />
+        </div>
+
+        {/* the DM */}
+        <div className="celra-pop rounded-2xl rounded-bl-md bg-c-brand text-c-bg px-4 py-3 text-sm leading-relaxed max-w-[92%]" style={{ ["--d" as string]: "1s" }}>
+          <p>Hi Riya! Chocolate cake 1 kg is ₹850. Order here: <span className="underline underline-offset-2">your-shop.link/cake</span></p>
+        </div>
+        <p className="mt-2 text-[11px] text-c-muted flex items-center gap-1">
+          <Check className="h-3 w-3" aria-hidden /> Sent automatically
+        </p>
+      </div>
+      <figcaption className="mt-3 text-center lg:text-right text-xs text-c-muted">Example only. You write your own message.</figcaption>
+    </figure>
+  )
+}
 
 export function GoogleSearchHome() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchFocused, setSearchFocused] = useState(false)
-
-  const searchRef = useRef<HTMLDivElement>(null)
-  const searchInputRef = useRef<HTMLInputElement>(null)
-
-  const instagramAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID}&redirect_uri=${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}&response_type=code&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments#weblink`
-  // Animated rotating search placeholders
-  const placeholders = [
-    "Try: 'price' to auto-send catalog in DMs...",
-    "Try: 'link' to auto-reply to post comments...",
-    "Connect Instagram to auto-reply to comments with a DM...",
-    "Type any keyword to create instant reply funnels...",
-  ]
-  const [placeholderIndex, setPlaceholderIndex] = useState(0)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPlaceholderIndex((prev) => (prev + 1) % placeholders.length)
-    }, 3200)
-    return () => clearInterval(interval)
-  }, [placeholders.length])
-
-  // Keyboard shortcut Ctrl+K
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault()
-        searchInputRef.current?.focus()
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [])
-
-  // Close search dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setSearchFocused(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  const featurePills = [
-    { label: "Instant Comment Auto-Reply", icon: <Zap className="w-3.5 h-3.5 text-amber-500" /> },
-    { label: "Follower Growth Gate", icon: <Shield className="w-3.5 h-3.5 text-[#D62976]" /> },
-    { label: "Replies While You Sleep", icon: <Clock className="w-3.5 h-3.5 text-emerald-500" /> },
-    { label: "Direct Message Funnels", icon: <MessageCircle className="w-3.5 h-3.5 text-indigo-500" /> },
-  ]
-
   return (
-    <div className="h-screen w-full bg-background text-foreground flex flex-col justify-between overflow-hidden select-none">
-      {/* Top Navbar */}
-      <TopNavbar isConnected={false} />
+    <div className="celra-landing min-h-screen w-full bg-c-bg text-c-ink">
+      <a
+        href="#main"
+        className={`sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-c-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold ${focusRing}`}
+      >
+        Skip to content
+      </a>
 
-      {/* Main Google Search Body — Perfectly Optically Centered in Viewport */}
-      <main className="flex-1 flex flex-col items-center justify-center -mt-6 sm:-mt-10 px-4 w-full max-w-3xl mx-auto text-center">
-
-        {/* Google-Style Centered Logo with SEO h1 */}
-        <div className="mb-4 md:mb-5 group cursor-pointer transition-transform duration-300 hover:scale-105 active:scale-95 select-none">
-          <h1 className="sr-only">DMSpark — Instagram comment to DM automation</h1>
-          <DMSparkGoogleLogo size="xl" showIcon={true} layout="vertical" />
+      <header className="sticky top-0 z-40 border-b border-c-line bg-c-bg/90 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <Link href="/" aria-label={`${BRAND_NAME} home`} className={`flex items-center rounded-lg text-c-ink ${focusRing}`}>
+            <CelraLogo variant="full" size={34} />
+          </Link>
+          <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
+            <a href="#how" className={`hidden sm:inline-flex h-10 items-center rounded-full px-4 text-sm font-medium text-c-muted hover:text-c-ink ${focusRing}`}>How it works</a>
+            <a href="#faq" className={`hidden sm:inline-flex h-10 items-center rounded-full px-4 text-sm font-medium text-c-muted hover:text-c-ink ${focusRing}`}>FAQ</a>
+            <ThemeToggle />
+          </nav>
         </div>
+      </header>
 
-        {/* Clean, Elegant Subtitle */}
-        <div className="flex items-center justify-center gap-2 mb-6 md:mb-8 text-xs md:text-sm text-muted-foreground font-medium select-none">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span>Instagram Comment & DM Automation</span>
-          <span className="text-muted-foreground/40">•</span>
-          <span className="text-muted-foreground/80">24/7 Autopilot</span>
-        </div>
-
-        {/* Google-style Search Bar with Dropdown */}
-        <div className="w-full max-w-2xl relative" ref={searchRef}>
-          <div
-            className={`flex items-center w-full h-12 md:h-14 rounded-full border bg-background px-4 md:px-6 gap-3 transition-all duration-300 ${
-              searchFocused
-                ? "border-[#D62976] shadow-xl shadow-[#D62976]/10 ring-4 ring-[#D62976]/15 scale-[1.01]"
-                : "border-border/90 shadow-sm hover:shadow-md hover:border-border"
-            }`}
-          >
-            <Search className={`w-5 h-5 shrink-0 transition-all duration-300 ${searchFocused ? "text-[#D62976] scale-110" : "text-muted-foreground/50"}`} />
-            
-            <div className="relative flex-1 h-full flex items-center">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                className="w-full h-full bg-transparent border-none outline-none text-sm md:text-base text-foreground z-10"
-              />
-              {!searchQuery && (
-                <span
-                  key={placeholderIndex}
-                  className="absolute inset-0 flex items-center text-sm md:text-base text-muted-foreground/50 pointer-events-none select-none truncate animate-in fade-in slide-in-from-bottom-1 duration-500"
-                >
-                  {placeholders[placeholderIndex]}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1.5 shrink-0">
-              {searchQuery && (
-                <button
-                  onClick={() => {
-                    setSearchQuery("")
-                    searchInputRef.current?.focus()
-                  }}
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer mr-0.5"
-                  title="Clear"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-              {/* Official Instagram Reels Icon */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchFocused(true)
-                  searchInputRef.current?.focus()
-                }}
-                className="group/reel p-1.5 rounded-full hover:bg-secondary/80 transition-all duration-300 cursor-pointer"
-                title="Search with Instagram Reels & Posts"
-              >
-                <InstagramReelsIcon gradient={true} className="w-5 h-5 group-hover/reel:scale-115 transition-transform" />
-              </button>
-            </div>
-          </div>
-
-          {/* Search Dropdown on Focus — Connect Prompt */}
-          {searchFocused && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-background/98 backdrop-blur-md border border-border rounded-2xl shadow-2xl z-50 overflow-hidden p-5 text-left animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-[#D62976]" />
-                <span className="text-xs font-bold text-foreground">
-                  {searchQuery ? `Auto-Reply Trigger: "${searchQuery}"` : "Instant Instagram Automation"}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-                Connect your Instagram account to start auto-replying to comments and sending automated DMs whenever users comment {searchQuery ? `"${searchQuery}"` : "your keywords"}!
-              </p>
+      <main id="main">
+        {/* HERO */}
+        <section className="mx-auto grid max-w-6xl gap-10 px-4 pb-14 pt-6 sm:px-6 sm:pt-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-14 lg:pb-24 lg:pt-20">
+          <div className="text-center lg:text-left">
+            <p className="inline-flex items-center gap-2 rounded-full border border-c-line bg-c-surface px-3 py-1 text-xs font-medium text-c-muted">
+              <span className="h-1.5 w-1.5 rounded-full bg-c-accent" aria-hidden />
+              Instagram comment to DM, free during beta
+            </p>
+            <h1 className="mt-4 font-display text-[2.35rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl">
+              <span className="sr-only">{BRAND_NAME}: </span>
+              Comment karo,
+              <br />
+              <span className="text-c-brand">DM aa jaayega.</span>
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-base sm:text-lg leading-relaxed text-c-muted lg:mx-0">
+              {BRAND_NAME} sends the price, link or details to anyone who comments on your reel, automatically, through the official Instagram API.
+            </p>
+            <div className="mt-6 sm:mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start">
               <a
                 href={instagramAuthUrl}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#D62976] hover:bg-[#B8225F] text-white text-xs font-bold transition-all shadow-md shadow-blue-500/15 cursor-pointer"
+                className={`group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-c-accent px-7 text-base font-semibold text-c-accent-ink shadow-sm transition-transform hover:-translate-y-0.5 active:translate-y-0 ${focusRing}`}
               >
-                <Instagram className="w-4 h-4" />
-                <span>Connect Instagram to Launch</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                Connect Instagram
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
               </a>
+              <Link
+                href="/instagram-audit"
+                className={`inline-flex h-12 items-center justify-center rounded-full border border-c-brand px-7 text-base font-semibold text-c-brand transition-colors hover:bg-c-brand-soft ${focusRing}`}
+              >
+                Free Instagram Audit
+              </Link>
             </div>
-          )}
-        </div>
+            <p className="mt-4 text-sm text-c-muted">No password needed. Pause or stop any time.</p>
+          </div>
+          <CommentToDmDemo />
+        </section>
 
-        {/* Action Buttons (from Landing Page: Connect Instagram & WhatsApp) */}
-        <div className="flex items-center gap-3 mt-7 md:mt-8 flex-wrap justify-center">
-          <a
-            href={instagramAuthUrl}
-            className="group flex items-center gap-2 h-11 md:h-12 px-6 md:px-7 rounded-full ig-gradient text-white text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20 active:scale-95 cursor-pointer"
-          >
-            <Instagram className="w-4 h-4 transition-transform group-hover:scale-110" />
-            <span>Connect Instagram</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-          </a>
+        {/* HOW IT WORKS */}
+        <section id="how" className="scroll-mt-20 border-y border-c-line bg-c-soft">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
+            <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Teen step mein shuru</h2>
+            <p className="mt-2 text-c-muted">Three steps, no technical setup.</p>
+            <ol className="mt-8 grid gap-4 md:grid-cols-3">
+              {steps.map((s, i) => (
+                <li key={s.title} className="rounded-2xl border border-c-line bg-c-surface p-5">
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-c-brand-soft text-c-brand">
+                      <s.icon className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="font-display text-sm font-semibold text-c-muted">Step {i + 1}</span>
+                  </div>
+                  <h3 className="mt-4 font-display text-xl font-semibold">{s.title}</h3>
+                  <p className="mt-1.5 leading-relaxed text-c-muted">{s.body}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
 
-          {/* Free audit: works as a no-commitment entry point. (The old "Connect WhatsApp" button
-              and fake sandbox were removed: WhatsApp is not a launched feature.) */}
-          <Link
-            href="/instagram-audit"
-            className="group flex items-center gap-2 h-11 md:h-12 px-6 md:px-7 rounded-full bg-secondary/80 hover:bg-secondary border border-border/80 text-sm font-semibold text-foreground transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
-          >
-            <span>Free Instagram Audit</span>
-          </Link>
-        </div>
+        {/* TRUST */}
+        <section aria-labelledby="trust-h" className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
+          <h2 id="trust-h" className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Safe aur simple</h2>
+          <ul className="mt-8 grid gap-6 md:grid-cols-3">
+            {trust.map((t) => (
+              <li key={t.title} className="flex gap-4">
+                <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-c-brand-soft text-c-brand">
+                  <t.icon className="h-5 w-5" aria-hidden />
+                </span>
+                <div>
+                  <h3 className="font-display text-lg font-semibold">{t.title}</h3>
+                  <p className="mt-1 leading-relaxed text-c-muted">{t.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-        {/* Feature Pills Row */}
-        <div className="flex flex-wrap items-center justify-center gap-2.5 mt-8 md:mt-10 max-w-2xl">
-          {featurePills.map((pill, i) => (
-            <span
-              key={i}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-secondary/60 hover:bg-secondary border border-border/60 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors select-none"
+        {/* AUDIT */}
+        <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6 lg:pb-20">
+          <div className="flex flex-col items-start gap-5 rounded-3xl bg-c-brand p-6 text-c-bg sm:flex-row sm:items-center sm:justify-between sm:p-9">
+            <div className="max-w-xl">
+              <div className="flex items-center gap-2 text-sm font-medium opacity-90">
+                <ClipboardCheck className="h-4 w-4" aria-hidden /> Free for Business and Creator accounts
+              </div>
+              <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight sm:text-3xl">Pehle apna Instagram check karo</h2>
+              <p className="mt-2 leading-relaxed opacity-90">
+                Connect Instagram and get a score for your profile, posting and engagement, with clear fixes.
+              </p>
+            </div>
+            <Link
+              href="/instagram-audit"
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-c-bg px-6 font-semibold text-c-ink outline-none focus-visible:ring-2 focus-visible:ring-c-accent focus-visible:ring-offset-2 focus-visible:ring-offset-c-brand"
             >
-              {pill.icon}
-              {pill.label}
-            </span>
-          ))}
-        </div>
+              Start the free audit <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section id="faq" className="scroll-mt-20 mx-auto max-w-3xl px-4 pb-16 sm:px-6 lg:pb-24">
+          <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Aksar puchhe jaane wale sawaal</h2>
+          <div className="mt-6 divide-y divide-c-line border-y border-c-line">
+            {faqs.map((f) => (
+              <details key={f.q} className="group py-1">
+                <summary className={`flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 rounded-lg py-3 font-display text-lg font-medium [&::-webkit-details-marker]:hidden ${focusRing}`}>
+                  {f.q}
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-c-soft text-c-brand transition-transform group-open:rotate-45" aria-hidden>
+                    <span className="text-lg leading-none">+</span>
+                  </span>
+                </summary>
+                <p className="pb-4 pr-10 leading-relaxed text-c-muted">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
       </main>
 
-      {/* Clean Google-Style Footer with Meta Review Compliance */}
-      <footer className="w-full shrink-0 border-t border-border/60 py-3 px-4 md:px-8 text-[11px] sm:text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2 select-none text-center sm:text-left">
-        <div className="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-2">
-          <span>© 2026 DMSpark</span>
-          <span className="hidden sm:inline">•</span>
-          <span className="text-[10px] sm:text-xs text-muted-foreground/75">Not affiliated with Meta Platforms Inc. or Instagram</span>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 font-medium text-[11px] sm:text-xs">
-          <Link href="/privacy" className="hover:text-foreground transition-colors hover:underline">
-            Privacy Policy
-          </Link>
-          <span className="text-muted-foreground/40">•</span>
-          <Link href="/terms" className="hover:text-foreground transition-colors hover:underline">
-            Terms of Service
-          </Link>
-          <span className="text-muted-foreground/40">•</span>
-          <Link href="/delete-data" className="hover:text-foreground transition-colors hover:underline">
-            Data Deletion
-          </Link>
+      <footer className="border-t border-c-line">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-8 text-sm text-c-muted sm:px-6 md:flex-row md:justify-between">
+          <div className="flex flex-col items-center gap-1 md:items-start">
+            <span className="text-c-ink font-medium">© 2026 {BRAND_NAME}</span>
+            <span className="text-xs text-center md:text-left">Not affiliated with Meta Platforms Inc. or Instagram.</span>
+          </div>
+          <nav aria-label="Legal" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 font-medium">
+            <Link href="/instagram-audit" className={`rounded py-2 hover:text-c-ink hover:underline ${focusRing}`}>Free Audit</Link>
+            <Link href="/privacy" className={`rounded py-2 hover:text-c-ink hover:underline ${focusRing}`}>Privacy Policy</Link>
+            <Link href="/terms" className={`rounded py-2 hover:text-c-ink hover:underline ${focusRing}`}>Terms of Service</Link>
+            <Link href="/delete-data" className={`rounded py-2 hover:text-c-ink hover:underline ${focusRing}`}>Data Deletion</Link>
+          </nav>
         </div>
       </footer>
     </div>

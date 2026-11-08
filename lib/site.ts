@@ -26,3 +26,10 @@ export function getSiteHost(): string {
  * To switch to a domain address (for example support@yourdomain.com), change only this line and redeploy.
  */
 export const SUPPORT_EMAIL = "virtualrevolution02@gmail.com"
+
+/**
+ * The ONE place for the product name (provisional: "Celra", said "SEL-ra", from Latin "celer" = swift).
+ * Rename here; landing page copy, metadata and the logo's accessible label read this constant.
+ * (The logo's wordmark itself is outlined art: re-export public/celra-logo.svg if the name changes.)
+ */
+export const BRAND_NAME = "Celra"
