@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { isServiceAuthorized } from "@/lib/security/service-auth"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { createReelsContainer, getContainerStatus, publishContainer } from "@/lib/instagram-publishing"
 
@@ -6,11 +7,8 @@ import { createReelsContainer, getContainerStatus, publishContainer } from "@/li
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms))
 
 export async function GET(request: NextRequest) {
-    // Security check: FAIL CLOSED. If CRON_SECRET is not set, nobody gets in
-    // (before, a missing secret left this endpoint open to the internet).
-    const cronSecret = process.env.CRON_SECRET
-    const authHeader = request.headers.get('authorization')
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    // Security check: FAIL CLOSED. If no secret is configured, nobody gets in. Constant-time compare.
+    if (!isServiceAuthorized(request.headers)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
