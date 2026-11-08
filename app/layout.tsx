@@ -1,23 +1,24 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono, Outfit } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
-import { getSiteUrl } from "@/lib/site"
+import { getSiteUrl, BRAND_NAME } from "@/lib/site"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: "swap" })
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: {
-    default: "DMSpark — Instagram comment to DM automation",
-    template: "%s | DMSpark - Instagram Automation",
+    default: `${BRAND_NAME}: Instagram comment to DM automation`,
+    template: `%s | ${BRAND_NAME}`,
   },
   description:
-    "DMSpark auto-replies to Instagram comments and DMs with keyword triggers, using the official Instagram API. Includes a free Instagram audit.",
+    `${BRAND_NAME} sends the price, link or details to anyone who comments on your reel, automatically, through the official Instagram API. Includes a free Instagram audit.`,
   keywords: [
     // Brand keywords — exact match variations
     "DMSpark",
@@ -29,13 +30,11 @@ export const metadata: Metadata = {
     "DMSPARK",
     "dmspark in",
     "dmSpark",
-    // Brand + product keywords
-    "dmspark insta automation",
+    // Brand + product keywords 
     "dmspark instagram automation",
     "dmspark auto reply",
     "dmspark auto dm",
-    "dmspark bot",
-    "dm spark insta automation",
+    "dmspark bot", 
     "dm spark instagram",
     "dm spark auto reply",
     "dm spark tool",
@@ -54,50 +53,36 @@ export const metadata: Metadata = {
     "Instagram keyword trigger",
     "auto DM Instagram",
     "Instagram business automation",
-    "social media automation",
-    "insta automation",
-    "insta auto reply",
-    "insta bot",
-    "insta dm automation",
+    "social media automation",    
     "instagram comment auto reply",
     "instagram auto comment reply",
     "instagram auto message",
     "instagram automation tool free",
     "instagram automation India",
-    "best instagram automation tool",
     "instagram auto reply bot",
     "instagram dm bot",
     "instagram auto dm sender",
     "instagram follower growth tool",
     "instagram autopilot",
   ],
-  authors: [{ name: "DMSpark", url: "https://www.dmspark.in" }],
-  creator: "DMSpark",
-  publisher: "DMSpark",
+  authors: [{ name: BRAND_NAME }],
+  creator: BRAND_NAME,
+  publisher: BRAND_NAME,
   // No root-level canonical: each page sets its own, otherwise every page would claim the homepage as canonical.
   openGraph: {
     type: "website",
     locale: "en_US",
     url: getSiteUrl(),
-    siteName: "DMSpark",
-    title: "DMSpark — Instagram comment to DM automation",
+    siteName: BRAND_NAME,
+    title: `${BRAND_NAME}: Instagram comment to DM automation`,
     description:
-      "Auto-reply to Instagram comments and DMs with keyword triggers, using the official Instagram API.",
-    images: [
-      {
-        url: "/logo.png",
-        width: 512,
-        height: 512,
-        alt: "DMSpark",
-      },
-    ],
+      "Turn every comment into a DM. Celra sends the price, link or details to people who comment on your reel, using the official Instagram API.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "DMSpark — Instagram comment to DM automation",
+    title: `${BRAND_NAME}: Instagram comment to DM automation`,
     description:
-      "DMSpark auto-replies to Instagram comments and DMs with keyword triggers.",
-    images: ["/logo.png"],
+      "Turn every comment into a DM. Send the price, link or details automatically.",
   },
   robots: {
     index: true,
@@ -111,9 +96,9 @@ export const metadata: Metadata = {
     },
   },
   other: {
-    "application-name": "DMSpark",
-    "msapplication-TileColor": "#1a73e8",
-    "theme-color": "#1a73e8",
+    "application-name": BRAND_NAME,
+    "msapplication-TileColor": "#0B5C6E",
+    "theme-color": "#0B5C6E",
   },
   icons: {
     icon: [
@@ -132,7 +117,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${_geist.className} font-sans antialiased`}>
+      <body className={`${_geist.className} ${outfit.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
