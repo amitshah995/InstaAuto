@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { isServiceAuthorized } from "@/lib/security/service-auth"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { createReelsContainer, getContainerStatus, publishContainer } from "@/lib/instagram-publishing"
 
@@ -19,8 +20,7 @@ const delay = (ms: number) => new Promise(res => setTimeout(res, ms))
 export async function POST(request: NextRequest) {
     try {
         // 1. Auth
-        const apiSecret = request.headers.get("x-api-secret")
-        if (apiSecret !== process.env.API_SECRET_KEY) {
+        if (!isServiceAuthorized(request.headers)) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 

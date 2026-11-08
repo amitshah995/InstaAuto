@@ -7,6 +7,7 @@ import { WelcomeScreen } from "@/components/ui/welcome-screen"
 import { Loader2, Compass, Copy, Check, MoreVertical, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ActingBanner } from "@/components/team/ActingBanner"
+import { SendHealthBanner } from "@/components/dashboard/SendHealthBanner"
 
 export default function DashboardLayout({
     children,
@@ -94,6 +95,7 @@ export default function DashboardLayout({
     return (
         <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-300 relative">
             <ActingBanner />
+            <SendHealthBanner />
             {/* Google-style Top Navigation Bar */}
             <TopNavbar
                 username={username || "User"}

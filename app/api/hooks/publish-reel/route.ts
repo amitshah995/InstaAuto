@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { isServiceAuthorized } from "@/lib/security/service-auth"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { getContainerStatus, publishContainer } from "@/lib/instagram-publishing"
 
@@ -11,8 +12,7 @@ export const maxDuration = 60
  */
 export async function POST(request: NextRequest) {
     try {
-        const apiSecret = request.headers.get("x-api-secret")
-        if (apiSecret !== process.env.API_SECRET_KEY) {
+        if (!isServiceAuthorized(request.headers)) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 

@@ -1,6 +1,8 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { expandLinksForUser } from "@/lib/links/store"
 import { expandTokens } from "@/lib/links/core"
+import { classifyFailure, withRetry, type MetaError } from "@/lib/messaging/retry"
+import { DM_WINDOW_MS, PRIVATE_REPLY_WINDOW_MS, recordFailedSend } from "@/lib/messaging/failed-sends"
 
 /**
  * Shared DM sending for the webhook and the scheduled-message cron.
@@ -16,6 +18,60 @@ export const MESSAGING_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export function schedulerEnabled() {
   return process.env.SCHEDULER_ENABLED === "1"
+}
+
+export interface GraphSendResult {
+  ok: boolean
+  messageId?: string
+  status?: number
+  error?: MetaError | null
+  networkError?: boolean
+  attempts: number
+}
+
+/**
+ * POSTs one message to the Instagram Graph API with retry for transient errors only
+ * (429, 5xx, network, Meta rate-limit codes). Permanent errors return immediately.
+ * Used by sendSteps and by the scheduler's stored-failure retry.
+ * The token only travels in the request URL and is never logged.
+ */
+export async function postGraphMessage(
+  accessToken: string,
+  apiBody: unknown,
+  opts: { maxAttempts?: number } = {},
+): Promise<GraphSendResult> {
+  const r = await withRetry<{ messageId?: string }>(
+    async () => {
+      try {
+        const res = await fetch(
+          `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(accessToken)}`,
+          { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) },
+        )
+        const json: any = await res.json().catch(() => ({}))
+        const retryAfter = Number(res.headers.get("retry-after"))
+        if (json?.error || !res.ok) {
+          return {
+            ok: false,
+            status: res.status,
+            error: (json?.error as MetaError) ?? { message: `HTTP ${res.status}` },
+            retryAfterSec: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
+          }
+        }
+        return { ok: true, value: { messageId: json.message_id }, status: res.status }
+      } catch {
+        return { ok: false, networkError: true }
+      }
+    },
+    { maxAttempts: opts.maxAttempts ?? 3 },
+  )
+  return {
+    ok: r.outcome.ok,
+    messageId: r.outcome.value?.messageId,
+    status: r.outcome.status,
+    error: r.outcome.error,
+    networkError: r.outcome.networkError,
+    attempts: r.attempts,
+  }
 }
 
 export type SendResult = { text: string; ok: boolean; messageId?: string; error?: string }
@@ -113,25 +169,36 @@ export async function sendSteps(
       textLog = finalText
     }
 
-    try {
-      const res = await fetch(
-        `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(accessToken)}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody) },
-      )
-      const json = await res.json()
-      if (json.error) {
-        console.error(`[v0] 🔴 Step ${i + 1}/${steps.length} send failed:`, JSON.stringify(json.error))
-        results.push({ text: textLog, ok: false, error: JSON.stringify(json.error) })
-        allOk = false
-        break // stop the sequence on first failure — don't send later steps out of order
-      }
-      results.push({ text: textLog, ok: true, messageId: json.message_id })
-    } catch (e) {
-      console.error(`[v0] 🔴 Step ${i + 1}/${steps.length} network error:`, e)
-      results.push({ text: textLog, ok: false, error: String(e) })
+    // Retry transient Meta errors briefly inline (webhook stays fast: ~2s worst case), permanent ones fail at once.
+    const sent = await postGraphMessage(accessToken, apiBody)
+    if (!sent.ok) {
+      const errText = sent.networkError ? "Network error talking to Instagram" : JSON.stringify(sent.error)
+      console.error(`[v0] 🔴 Step ${i + 1}/${steps.length} send failed after ${sent.attempts} attempt(s):`, sent.networkError ? "network" : errText)
+      results.push({ text: textLog, ok: false, error: errText })
       allOk = false
-      break
+      // Persist it so the creator sees it and transient failures are retried by the scheduler.
+      if (ctx) {
+        const cls = classifyFailure({ status: sent.status, error: sent.error, networkError: sent.networkError })
+        // Private replies to a comment live 7 days; plain DMs only inside the 24h window.
+        const isPrivateReply = i === 0 && !!(firstRecipient && firstRecipient.comment_id)
+        const windowUntil = ctx.windowUntil ?? new Date(Date.now() + (isPrivateReply ? PRIVATE_REPLY_WINDOW_MS : DM_WINDOW_MS))
+        await recordFailedSend({
+          userId: ctx.userId,
+          recipient: apiBody.recipient,
+          psid,
+          apiBody,
+          restSteps: steps.slice(i + 1),
+          preview: textLog,
+          classification: cls,
+          errorCode: sent.error?.code,
+          errorSubcode: sent.error?.error_subcode,
+          errorMessage: sent.error?.message,
+          windowUntil,
+        })
+      }
+      break // stop the sequence on first failure — don't send later steps out of order
     }
+    results.push({ text: textLog, ok: true, messageId: sent.messageId })
   }
 
   return { ok: allOk, results }
