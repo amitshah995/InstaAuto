@@ -70,7 +70,9 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     defaults: {
       triggers: ["free", "code"],
       type: "text",
-      messageText: "Here's your code: WELCOME10 🎉",
+      // [Brackets] must be replaced by the owner: the create form blocks "Next" while any remain,
+      // so a made-up coupon can never be sent to real people.
+      messageText: "Thanks for following! Here's your freebie: [your code or link] 🎉",
       checkFollow: true,
       name: "Follow-Gate Freebie",
     },
@@ -195,7 +197,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   {
     id: "sell-from-dm-flow",
     title: "Sell from a DM keyword",
-    description: "One message with a coupon, a short delay, then a reminder — built visually in Flow Builder.",
+    description: "A short welcome, then a question about what they want — built visually in Flow Builder. Add your own offer or link in the Flow Builder.",
     triggerSource: "dm",
     goal: "Drive traffic",
     kind: "flow",
@@ -204,9 +206,9 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
       triggerValue: "shop, buy",
       startNodeId: "msg1",
       nodes: {
-        msg1: { type: "message", text: "Hey! Tap below to get your coupon code for 10% off your first purchase 🎉", delay_seconds: 0, next: "msg2" },
-        msg2: { type: "message", text: "Your code is: HAPPY10 — shop now before it expires!", delay_seconds: 3, next: "msg3" },
-        msg3: { type: "message", text: "Just a reminder in case you missed it — your 10% off code is still active 👀", delay_seconds: 10, next: null },
+        // No coupon code and no urgency wording on purpose: add your own real offer or link in the Flow Builder.
+        msg1: { type: "message", text: "Hey! Thanks for messaging us 🎉 (this is an automatic reply)", delay_seconds: 0, next: "msg2" },
+        msg2: { type: "message", text: "Tell us which product you're interested in and we'll send you the details.", delay_seconds: 3, next: null },
       },
     },
   },

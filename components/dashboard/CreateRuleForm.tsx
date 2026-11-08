@@ -162,7 +162,9 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   }
 
   const canProceedStep2 = () => {
-    if (strict && type === "text" && hasPlaceholders(messageText)) {
+    // Block while [placeholders] remain: always in strict (audit) mode, and for any template that ships with them.
+    const templateHasPlaceholders = !!d?.messageText && hasPlaceholders(d.messageText)
+    if ((strict || templateHasPlaceholders) && type === "text" && hasPlaceholders(messageText)) {
       toast.error("Replace the [bracketed] parts", { description: "Put your real link, price or brand name instead of the [brackets]." })
       return false
     }
