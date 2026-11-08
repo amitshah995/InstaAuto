@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next"
 import { getSiteUrl } from "@/lib/site"
 import { TOOLS } from "@/lib/tools/registry"
 import { FLOW_TEMPLATES } from "@/lib/flows/templates"
+import { POSTS } from "@/lib/blog/posts"
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = getSiteUrl()
@@ -49,6 +50,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.7,
+    })),
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(POSTS[0].date),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    },
+    ...POSTS.map((p) => ({
+      url: `${baseUrl}/blog/${p.slug}`,
+      lastModified: new Date(p.date),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
     })),
     {
       url: `${baseUrl}/privacy`,
