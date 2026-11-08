@@ -1,5 +1,8 @@
 import Link from "next/link"
+import { SUPPORT_EMAIL } from "@/lib/site"
 import { ArrowLeft, Shield, Eye, Database, Trash2, Globe, Mail, Lock, AlertTriangle } from "lucide-react"
+
+export const metadata = { title: "Privacy Policy", description: "How DMSpark collects, uses and deletes your data.", alternates: { canonical: "./" } }
 
 export default function PrivacyPolicy() {
   return (
@@ -28,7 +31,7 @@ export default function PrivacyPolicy() {
           <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
             Privacy Policy
           </h1>
-          <p className="text-slate-400 text-xs font-medium">Last updated: June 2026 • Version 2.0</p>
+          <p className="text-slate-400 text-xs font-medium">Last updated: November 2026 • Version 2.1</p>
         </div>
 
         {/* Introduction */}
@@ -75,7 +78,7 @@ export default function PrivacyPolicy() {
             </ul>
             <div className="text-xs text-amber-500/90 font-medium bg-amber-500/5 p-3 rounded-lg border border-amber-500/10 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
-              <span><span className="font-bold text-amber-500">Zero Data Monetization:</span> We do not sell, rent, share, or trade your personal data, access credentials, or customer messaging logs with any third parties.</span>
+              <span><span className="font-bold text-amber-500">Zero Data Monetization:</span> We do not sell or rent your personal data. We share data only with the service providers that run DMSpark for us (hosting, database, AI and analytics, listed below) and with Instagram/Meta to send your messages.</span>
             </div>
           </div>
 
@@ -91,8 +94,8 @@ export default function PrivacyPolicy() {
               We fully respect your ownership of your data. You hold absolute control over your connected accounts:
             </p>
             <ul className="list-disc list-inside space-y-2 text-xs text-slate-400 pl-2">
-              <li><span className="text-slate-200 font-semibold">Immediate Revocation:</span> You can disconnect your Instagram page directly from your DMSpark dashboard settings at any time.</li>
-              <li><span className="text-slate-200 font-semibold">Full Database Purge:</span> When you disconnect an account or request account deletion, all active credentials, webhook log caches, and custom triggers associated with your account are immediately and permanently purged from our databases.</li>
+              <li><span className="text-slate-200 font-semibold">Revocation:</span> You can remove DMSpark at any time in Instagram under Settings, Apps and Websites. This revokes our access.</li>
+              <li><span className="text-slate-200 font-semibold">Data deletion:</span> When Instagram sends us a data deletion request, or you email us to request deletion, we delete your account record, access token, automations, conversations, contacts, tracked links, shop pages, reports and related records. Logging out of the dashboard only ends your browser session.</li>
             </ul>
             <p className="text-xs text-slate-400">
               For step-by-step instructions on purging your account, please visit our dedicated{" "}
@@ -121,14 +124,29 @@ export default function PrivacyPolicy() {
             </p>
           </div>
 
+          {/* Card 5: data we also store, providers, AI, retention (added to match what the app really does) */}
+          <div className="p-6 rounded-2xl border border-slate-800/60 bg-slate-900/40 backdrop-blur-md space-y-4">
+            <h2 className="text-lg font-bold text-white tracking-tight">5. What else we store, who processes it, and for how long</h2>
+            <ul className="list-disc list-inside space-y-2 text-xs text-slate-400 pl-2">
+              <li><span className="text-slate-200 font-semibold">Messages and contacts:</span> the text of DMs and comments your automations handle, and contact details (name, email, phone, custom fields) of people you collect through DM flows. You are the owner of that information and responsible for having a lawful basis and consent to collect it.</li>
+              <li><span className="text-slate-200 font-semibold">Links, shop pages and reports:</span> tracked links you create (clicks are stored with a hashed visitor value, not a raw IP address), public shop pages, follower counts over time, and public report pages you choose to share.</li>
+              <li><span className="text-slate-200 font-semibold">Audit and tools:</span> if you use the free audit or tools and give your email or phone, we store it to deliver the result and, only if you agree, to contact you.</li>
+              <li><span className="text-slate-200 font-semibold">Team access:</span> if you invite a team member, they can act on your account until you remove them.</li>
+            </ul>
+            <p className="text-xs text-slate-400 leading-relaxed"><span className="text-slate-200 font-semibold">Service providers.</span> Hosting (Vercel), database and file storage (Supabase), usage analytics (Vercel Analytics, which does not use cookies), and AI processing (Anthropic) when you use AI features such as the AI audit report, the hashtag tool or AI replies. For those features, the relevant post captions, keywords or message text are sent to the AI provider to produce the result.</p>
+            <p className="text-xs text-slate-400 leading-relaxed"><span className="text-slate-200 font-semibold">Cookies.</span> We use one essential first-party cookie to keep you signed in, and browser storage for your preferences. We do not use advertising cookies.</p>
+            <p className="text-xs text-slate-400 leading-relaxed"><span className="text-slate-200 font-semibold">Retention.</span> We keep your data while your account is connected. Deletion requests are completed within 30 days. Security logs and backups may persist for a short additional period.</p>
+            <p className="text-xs text-slate-400 leading-relaxed"><span className="text-slate-200 font-semibold">Grievances (India).</span> For privacy complaints or requests to access or correct your data, write to the support email below and we will respond within 30 days.</p>
+          </div>
+
           {/* Contact Card */}
           <div className="p-6 rounded-2xl border border-slate-850 bg-gradient-to-br from-slate-900/80 to-slate-950/80 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="space-y-1">
               <h3 className="text-sm font-bold text-white">Have privacy-related questions?</h3>
-              <p className="text-xs text-slate-400">Our security compliance team is here to assist you.</p>
+              <p className="text-xs text-slate-400">Write to us for privacy questions, data access or deletion requests, or grievances.</p>
             </div>
             <a 
-              href="mailto:virtualrevolution02@gmail.com" 
+              href={`mailto:${SUPPORT_EMAIL}`} 
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-slate-200 hover:scale-105 transition-all duration-200"
             >
               <Mail className="w-4 h-4" /> Contact Support
