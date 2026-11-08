@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Loader2, Plus, Trash2, Upload, Film, Link as LinkIcon, CheckCircle, FileJson, Instagram, Search } from "lucide-react"
+import { Loader2, Plus, Trash2, Upload, Film, Link as LinkIcon, CheckCircle, FileJson, AtSign, Search } from "lucide-react"
 import { toast } from "sonner"
 
 interface ContentItem {
@@ -538,7 +538,7 @@ export function ContentPool({ userId }: ContentPoolProps) {
                                         </>
                                     )}
 
-                                    <div className="flex items-center gap-2 mt-4 border border-green-500/20 bg-green-500/10 p-2 rounded">
+                                    <div className="flex items-center gap-2 mt-4 border border-brand/20 bg-brand/10 p-2 rounded">
                                         <input
                                             type="checkbox"
                                             checked={isSafeMode}
@@ -546,7 +546,7 @@ export function ContentPool({ userId }: ContentPoolProps) {
                                             className="w-4 h-4 accent-green-500 cursor-pointer"
                                         />
                                         <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-green-400">Enable Safe Mode (Remix)</span>
+                                            <span className="text-sm font-bold text-brand">Enable Safe Mode (Remix)</span>
                                             <span className="text-[10px] text-neutral-400">Zooms & Adjusts speed to bypass 'Duplicate Content' filters. (Slower)</span>
                                         </div>
                                     </div>
@@ -559,7 +559,7 @@ export function ContentPool({ userId }: ContentPoolProps) {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={selectAllMedia}
-                                                    className="h-6 text-xs text-blue-400 hover:text-blue-300 hover:bg-transparent p-0"
+                                                    className="h-6 text-xs text-brand hover:text-brand hover:bg-transparent p-0"
                                                 >
                                                     {selectedIgMedia.length === igMedia.length ? "Deselect All" : "Select All"}
                                                 </Button>
@@ -571,7 +571,7 @@ export function ContentPool({ userId }: ContentPoolProps) {
                                                         onClick={() => toggleIgSelection(m.id)}
                                                         className={`
                                                     aspect-square relative cursor-pointer rounded-md overflow-hidden border-2
-                                                    ${selectedIgMedia.includes(m.id) ? 'border-blue-500' : 'border-transparent'}
+                                                    ${selectedIgMedia.includes(m.id) ? 'border-brand' : 'border-transparent'}
                                                 `}
                                                     >
                                                         {m.media_type === "VIDEO" || m.media_type === "REELS" ? (
@@ -580,7 +580,7 @@ export function ContentPool({ userId }: ContentPoolProps) {
                                                             <img src={m.media_url || m.thumbnail_url} alt="" className="w-full h-full object-cover" />
                                                         )}
                                                         {selectedIgMedia.includes(m.id) && (
-                                                            <div className="absolute inset-0 bg-blue-500/30 flex items-center justify-center">
+                                                            <div className="absolute inset-0 bg-brand/30 flex items-center justify-center">
                                                                 <CheckCircle className="text-white w-8 h-8 shadow-lg" />
                                                             </div>
                                                         )}
@@ -688,7 +688,7 @@ export function ContentPool({ userId }: ContentPoolProps) {
                                         size="icon"
                                         variant="ghost"
                                         onClick={() => handleDelete(item.id)}
-                                        className="text-neutral-500 hover:text-red-400 hover:bg-red-500/10"
+                                        className="text-neutral-500 hover:text-destructive hover:bg-destructive/10"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
@@ -714,7 +714,7 @@ function MediaGrid({ media, selected, onToggle }: { media: ExternalMedia[], sele
                         onClick={() => onToggle(item.id)}
                         className={`
                             aspect-square relative cursor-pointer rounded-md overflow-hidden border-2
-                            ${isSelected ? 'border-blue-500' : 'border-transparent'}
+                            ${isSelected ? 'border-brand' : 'border-transparent'}
                         `}
                     >
                         {item.media_type === "VIDEO" || item.media_type === "REELS" ? (
@@ -723,7 +723,7 @@ function MediaGrid({ media, selected, onToggle }: { media: ExternalMedia[], sele
                             <img src={item.media_url || item.thumbnail_url} alt="" className="w-full h-full object-cover" />
                         )}
                         {isSelected && (
-                            <div className="absolute inset-0 bg-blue-500/30 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-brand/30 flex items-center justify-center">
                                 <CheckCircle className="text-white w-8 h-8 shadow-lg" />
                             </div>
                         )}

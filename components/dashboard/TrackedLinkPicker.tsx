@@ -70,7 +70,7 @@ export function TrackedLinkPicker({
   return (
     <div className="flex flex-wrap items-center gap-2 text-[11px]">
       {current ? (
-        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-1 text-emerald-600">
+        <span className="inline-flex items-center gap-1 rounded-md bg-brand/10 px-2 py-1 text-brand">
           <BarChart3 className="h-3 w-3" /> Tracked: {current.title} · {current.clicks_total ?? 0} clicks
         </span>
       ) : looksLikeUrl ? (

@@ -34,10 +34,10 @@ export function UsageBanner() {
         : `You have used all AI runs for today on your ${d.plan.name} plan. AI replies resume tomorrow.`
 
   return (
-    <div role="status" className="flex flex-wrap items-center justify-center gap-3 bg-sky-100 px-3 py-2 text-xs font-medium text-sky-900">
+    <div role="status" className="flex flex-wrap items-center justify-center gap-3 bg-brand-soft px-3 py-2 text-xs font-medium text-brand">
       <Gauge className="h-3.5 w-3.5 shrink-0" />
       <span>{text}</span>
-      <Link href="/dashboard/billing" className="rounded-full bg-sky-900/10 px-2.5 py-0.5 font-semibold hover:bg-sky-900/20">
+      <Link href="/dashboard/billing" className="rounded-full bg-brand/10 px-2.5 py-0.5 font-semibold hover:bg-brand/20">
         View plans
       </Link>
     </div>

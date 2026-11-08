@@ -15,7 +15,7 @@ export interface QuotaProps {
 }
 
 export function UsageMeter({ label, quota, resetNote }: { label: string; quota: QuotaProps; resetNote: string }) {
-  const tone = quota.state === "limit" ? "text-destructive" : quota.state === "warn" ? "text-amber-700" : "text-muted-foreground"
+  const tone = quota.state === "limit" ? "text-destructive" : quota.state === "warn" ? "text-warn" : "text-muted-foreground"
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between text-sm">

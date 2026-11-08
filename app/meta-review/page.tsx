@@ -1,10 +1,12 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { getSiteUrl } from "@/lib/site"
+import { BRAND_NAME } from "@/lib/site"
+import { PageShell } from "@/components/marketing/page-shell"
 
 export const metadata: Metadata = {
-  title: "Meta App Review — how DMSpark uses Instagram permissions",
-  description: "What each Instagram permission is used for in DMSpark, what data we keep and how to test the app.",
+  title: `Meta App Review — how ${BRAND_NAME} uses Instagram permissions`,
+  description: `What each Instagram permission is used for in ${BRAND_NAME}, what data we keep and how to test the app.`,
 }
 
 const PERMISSIONS = [
@@ -16,19 +18,20 @@ const PERMISSIONS = [
 export default function MetaReviewPage() {
   const base = getSiteUrl()
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-12 font-sans text-neutral-900">
+    <PageShell strip={false}>
+    <div className="text-c-ink mx-auto max-w-3xl space-y-8 px-4 py-12  min-h-[60vh]">
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold">How DMSpark uses Instagram permissions</h1>
-        <p className="text-neutral-600">A plain summary for reviewers and for users who want to know what the app does with their account.</p>
+        <h1 className="text-3xl font-bold">How {BRAND_NAME} uses Instagram permissions</h1>
+        <p className="text-c-muted">A plain summary for reviewers and for users who want to know what the app does with their account.</p>
       </header>
 
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Permissions and why we need them</h2>
         <ul className="space-y-3">
           {PERMISSIONS.map((p) => (
-            <li key={p.name} className="rounded-xl border border-neutral-200 p-4">
+            <li key={p.name} className="rounded-xl border border-c-line p-4">
               <code className="text-sm font-semibold">{p.name}</code>
-              <p className="mt-1 text-sm text-neutral-600">{p.use}</p>
+              <p className="mt-1 text-sm text-c-muted">{p.use}</p>
             </li>
           ))}
         </ul>
@@ -36,7 +39,7 @@ export default function MetaReviewPage() {
 
       <section className="space-y-2">
         <h2 className="text-xl font-semibold">Rules the app follows</h2>
-        <ul className="list-disc space-y-1 pl-5 text-neutral-700">
+        <ul className="list-disc space-y-1 pl-5 text-c-muted">
           <li>A DM is sent only after the person comments or messages the account first.</li>
           <li>The 24-hour messaging window is respected; no promotional DMs outside it.</li>
           <li>The account owner can pause or delete any automation at any time.</li>
@@ -46,7 +49,7 @@ export default function MetaReviewPage() {
 
       <section className="space-y-2">
         <h2 className="text-xl font-semibold">Test it yourself (reviewer steps)</h2>
-        <ol className="list-decimal space-y-1 pl-5 text-neutral-700">
+        <ol className="list-decimal space-y-1 pl-5 text-c-muted">
           <li>Open <a className="underline" href={base}>{base}</a> and log in with Instagram.</li>
           <li>Go to Automations → create a rule with keyword <code>link</code> on any post.</li>
           <li>From a second account, comment “link” on that post.</li>
@@ -56,11 +59,12 @@ export default function MetaReviewPage() {
 
       <section className="space-y-2">
         <h2 className="text-xl font-semibold">Your data</h2>
-        <p className="text-neutral-700">
+        <p className="text-c-muted">
           Read our <Link className="underline" href="/privacy">Privacy Policy</Link>, <Link className="underline" href="/terms">Terms</Link> and the{" "}
           <Link className="underline" href="/delete-data">data deletion page</Link>.
         </p>
       </section>
-    </main>
+    </div>
+    </PageShell>
   )
 }

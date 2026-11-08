@@ -31,6 +31,8 @@ import {
   MousePointerClick
 } from "lucide-react"
 import Link from "next/link"
+import { BRAND_NAME, getSiteHost } from "@/lib/site"
+import { CelraLogo } from "@/components/ui/celra-logo"
 
 export default function HowToUsePage() {
   const [isVisible, setIsVisible] = useState(false)
@@ -59,9 +61,9 @@ export default function HowToUsePage() {
     {
       num: 1,
       stepLabel: "01",
-      title: "Connect Instagram Profile",
+      title: "Connect your account Profile",
       desc: "Connect your Instagram Creator or Business account in seconds through Meta OAuth verification.",
-      icon: <UserCheck className="w-5 h-5 text-blue-500" />,
+      icon: <UserCheck className="w-5 h-5 text-brand" />,
       action: "Integrate Now",
       href: "/dashboard"
     },
@@ -70,7 +72,7 @@ export default function HowToUsePage() {
       stepLabel: "02",
       title: "Set Keyword Triggers",
       desc: "Specify exact keyword matches (like 'coupon', 'price') that watch comments or story tags.",
-      icon: <Zap className="w-5 h-5 text-amber-500" />,
+      icon: <Zap className="w-5 h-5 text-warn" />,
       action: "Configure Keywords",
       href: "/dashboard/flow-builder"
     },
@@ -79,7 +81,7 @@ export default function HowToUsePage() {
       stepLabel: "03",
       title: "Construct Responses",
       desc: "Design templates with links, dynamic discount coupon codes, and automated reply text blocks.",
-      icon: <MessageSquare className="w-5 h-5 text-emerald-500" />,
+      icon: <MessageSquare className="w-5 h-5 text-brand" />,
       action: "Write DM Templates",
       href: "/dashboard/automations"
     },
@@ -88,7 +90,7 @@ export default function HowToUsePage() {
       stepLabel: "04",
       title: "Monitor Performance",
       desc: "Watch analytics capture automated messages sent, conversion triggers, and target reach charts.",
-      icon: <Sparkles className="w-5 h-5 text-violet-500" />,
+      icon: <Sparkles className="w-5 h-5 text-brand" />,
       action: "Analyze Traffic",
       href: "/dashboard/analytics"
     }
@@ -99,24 +101,24 @@ export default function HowToUsePage() {
     <div className="flex-1 p-2 flex flex-col gap-1.5 overflow-hidden text-left">
       <div>
         <div className="flex items-center gap-1 mb-0.5">
-          <Sparkles className="w-2 h-2 text-[#D62976]" />
-          <span className="text-[5px] font-bold text-[#D62976] uppercase tracking-widest">Good Morning</span>
+          <Sparkles className="w-2 h-2 text-brand" />
+          <span className="text-[5px] font-bold text-brand uppercase tracking-widest">Good Morning</span>
         </div>
-        <p className="font-black text-[8px] text-slate-800 leading-tight">Welcome back, <span className="text-[#D62976]">user</span></p>
+        <p className="font-black text-[8px] text-slate-800 leading-tight">Welcome back, <span className="text-brand">user</span></p>
         <p className="text-[5px] text-slate-400 flex items-center gap-0.5 mt-0.5">
-          <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Your automations are running smoothly.
+          <span className="w-1 h-1 rounded-full bg-brand animate-pulse" /> Your automations are running smoothly.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-1">
         {[
-          { label: "Automations", val: "12", color: "#D62976", icon: <Zap className="w-2 h-2" /> },
-          { label: "Messages", val: "1.4K", color: "#D62976", icon: <Send className="w-2 h-2" /> },
-          { label: "Triggers", val: "8", color: "#D62976", icon: <Activity className="w-2 h-2" /> },
-          { label: "Audience", val: "320", color: "#D62976", icon: <Users className="w-2 h-2" /> },
+          { label: "Automations", val: "12", color: "var(--chart-1)", icon: <Zap className="w-2 h-2" /> },
+          { label: "Messages", val: "1.4K", color: "var(--chart-1)", icon: <Send className="w-2 h-2" /> },
+          { label: "Triggers", val: "8", color: "var(--chart-1)", icon: <Activity className="w-2 h-2" /> },
+          { label: "Audience", val: "320", color: "var(--chart-1)", icon: <Users className="w-2 h-2" /> },
         ].map((s, i) => (
           <div key={i} className="bg-white p-1.5 rounded border border-slate-200/60 shadow-sm">
             <div className="flex items-center justify-between mb-0.5">
-              <span className="p-0.5 rounded bg-blue-50 text-[#D62976]">{s.icon}</span>
+              <span className="p-0.5 rounded bg-brand-soft text-brand">{s.icon}</span>
               <span className="text-[4px] font-bold text-slate-400 uppercase">Active</span>
             </div>
             <div className="text-[9px] font-black text-slate-800 leading-tight">{s.val}</div>
@@ -127,9 +129,9 @@ export default function HowToUsePage() {
       <div className="bg-white p-1.5 rounded border border-slate-200/60 shadow-sm flex-1">
         <div className="flex items-center justify-between border-b border-slate-100 pb-0.5 mb-1">
           <span className="text-[5px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-0.5">
-            <TrendingUp className="w-2 h-2 text-blue-500" /> Recent Activity
+            <TrendingUp className="w-2 h-2 text-brand" /> Recent Activity
           </span>
-          <span className="text-[4px] text-[#D62976] font-bold">View All</span>
+          <span className="text-[4px] text-brand font-bold">View All</span>
         </div>
         {[
           { user: "@shop_lover", msg: "Auto-reply sent", time: "2m ago" },
@@ -137,8 +139,8 @@ export default function HowToUsePage() {
         ].map((a, i) => (
           <div key={i} className="flex items-center justify-between py-0.5 text-[5px]">
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-blue-50 flex items-center justify-center">
-                <MessageCircle className="w-1.5 h-1.5 text-blue-500" />
+              <div className="w-3 h-3 rounded-full bg-brand-soft flex items-center justify-center">
+                <MessageCircle className="w-1.5 h-1.5 text-brand" />
               </div>
               <div>
                 <span className="font-bold text-slate-700">{a.user}</span>
@@ -155,20 +157,20 @@ export default function HowToUsePage() {
   const ConnectScreen = () => (
     <div className="flex-1 p-2 flex items-center justify-center">
       <div className="bg-white rounded-xl border border-slate-200 p-3 text-center space-y-2 shadow-lg w-full max-w-[160px] animate-in zoom-in-95 duration-300">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#fbbc04] via-[#ea4335] to-[#833ab4] p-0.5 mx-auto">
+        <div className="w-8 h-8 rounded-full bg-brand p-0.5 mx-auto">
           <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-            <UserCheck className="w-3.5 h-3.5 text-[#D62976]" />
+            <UserCheck className="w-3.5 h-3.5 text-brand" />
           </div>
         </div>
         <div>
-          <h4 className="text-[8px] font-extrabold text-slate-800">Connect Instagram</h4>
+          <h4 className="text-[8px] font-extrabold text-slate-800">Connect your account</h4>
           <p className="text-[5.5px] text-slate-500 font-medium mt-0.5 leading-relaxed">
             Link your Business or Creator account to enable DM automation.
           </p>
         </div>
-        <div className="h-5 w-full rounded-lg bg-[#D62976] flex items-center justify-center gap-1 text-white text-[6px] font-bold shadow-md relative">
+        <div className="h-5 w-full rounded-lg bg-primary flex items-center justify-center gap-1 text-primary-foreground text-[6px] font-bold shadow-md relative">
           Connect Account <ArrowRight className="w-2 h-2" />
-          <MousePointerClick className="w-2.5 h-2.5 text-blue-200 absolute -bottom-1 -right-1 animate-bounce" />
+          <MousePointerClick className="w-2.5 h-2.5 text-brand absolute -bottom-1 -right-1 animate-bounce" />
         </div>
         <p className="text-[4px] text-slate-400 font-bold uppercase tracking-wider">Secured via Meta OAuth 2.0</p>
       </div>
@@ -179,10 +181,10 @@ export default function HowToUsePage() {
     <div className="flex-1 p-2 flex flex-col gap-1.5 overflow-hidden text-left">
       <div className="flex items-center justify-between">
         <div>
-          <p className="font-black text-[8px] text-slate-800 flex items-center gap-0.5"><Zap className="w-2 h-2 text-amber-500" /> Automations</p>
+          <p className="font-black text-[8px] text-slate-800 flex items-center gap-0.5"><Zap className="w-2 h-2 text-warn" /> Automations</p>
           <p className="text-[5px] text-slate-400">3 active rules</p>
         </div>
-        <div className="h-4 px-1.5 rounded-md bg-[#D62976] text-white text-[5px] font-bold flex items-center gap-0.5 shadow-sm">+ New Rule</div>
+        <div className="h-4 px-1.5 rounded-md bg-primary text-primary-foreground text-[5px] font-bold flex items-center gap-0.5 shadow-sm">+ New Rule</div>
       </div>
       <div className="flex gap-0.5 bg-slate-100 p-0.5 rounded-md">
         {["Comments", "DMs", "Stories"].map((t, i) => (
@@ -190,16 +192,16 @@ export default function HowToUsePage() {
         ))}
       </div>
       {[
-        { keyword: "coupon", reply: "50% discount code: DMSPARK50", status: "Active" },
+        { keyword: "coupon", reply: "50% discount code: CELRA50", status: "Active" },
         { keyword: "price", reply: "Check our latest catalog!", status: "Active" },
-        { keyword: "info", reply: "Visit www.dmspark.in", status: "Paused" },
+        { keyword: "info", reply: `Visit ${getSiteHost()}`, status: "Paused" },
       ].map((rule, i) => (
         <div key={i} className="bg-white rounded-lg border border-slate-200/60 p-1.5 shadow-sm">
           <div className="flex items-center justify-between mb-0.5">
             <span className="text-[6px] font-extrabold text-slate-700 flex items-center gap-0.5">
-              <Zap className="w-2 h-2 text-amber-500" /> &quot;{rule.keyword}&quot;
+              <Zap className="w-2 h-2 text-warn" /> &quot;{rule.keyword}&quot;
             </span>
-            <span className={`text-[4px] px-1 py-0.5 rounded-full font-bold ${rule.status === "Active" ? "bg-emerald-50 text-emerald-500 border border-emerald-200" : "bg-slate-100 text-slate-400 border border-slate-200"}`}>
+            <span className={`text-[4px] px-1 py-0.5 rounded-full font-bold ${rule.status === "Active" ? "bg-brand-soft text-brand border border-brand" : "bg-slate-100 text-slate-400 border border-slate-200"}`}>
               {rule.status}
             </span>
           </div>
@@ -216,7 +218,7 @@ export default function HowToUsePage() {
         <div className="bg-white rounded-xl rounded-tl-none p-1.5 border border-slate-200/50 shadow-sm max-w-[80%]">
           <p className="text-[6px] font-black text-slate-800">@insta_shopper</p>
           <p className="text-[7px] text-slate-600 font-semibold mt-0.5 flex items-center gap-0.5">
-            coupon <Flame className="w-2 h-2 text-orange-500 fill-orange-500" />
+            coupon <Flame className="w-2 h-2 text-warn fill-current" />
           </p>
         </div>
       </div>
@@ -228,13 +230,13 @@ export default function HowToUsePage() {
         </div>
       </div>
       <div className="flex items-start gap-1 justify-end">
-        <div className="bg-[#D62976] text-white rounded-xl rounded-tr-none p-1.5 shadow-md max-w-[85%]">
+        <div className="bg-primary text-primary-foreground rounded-xl rounded-tr-none p-1.5 shadow-md max-w-[85%]">
           <div className="flex items-center gap-0.5 mb-0.5">
-            <img src="/logo.png" alt="DMSpark" className="w-2 h-2 object-contain brightness-0 invert" />
-            <span className="text-[5px] font-black uppercase tracking-wider opacity-85">DMSpark</span>
+            <CelraLogo variant="mark" size={8} />
+            <span className="text-[5px] font-black uppercase tracking-wider opacity-85">{BRAND_NAME}</span>
           </div>
           <p className="text-[7px] font-semibold leading-relaxed">
-            Here&apos;s your 50% discount code: <span className="font-black">DMSPARK50</span> 🎟️
+            Here&apos;s your 50% discount code: <span className="font-black">CELRA50</span> 🎟️
           </p>
           <div className="mt-1 pt-1 border-t border-white/20">
             <span className="text-[5px] font-black uppercase tracking-wider bg-white/10 px-1 py-0.5 rounded flex items-center justify-between">
@@ -242,12 +244,12 @@ export default function HowToUsePage() {
             </span>
           </div>
         </div>
-        <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center p-0.5 border border-blue-200/30 shrink-0">
-          <img src="/logo.png" alt="" className="w-full h-full object-contain rounded-full" />
+        <div className="w-4 h-4 rounded-full bg-brand-soft flex items-center justify-center p-0.5 border border-brand/30 shrink-0">
+          <CelraLogo variant="mark" size={28} className="h-full w-full" />
         </div>
       </div>
-      <div className="self-center bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-emerald-600 text-[5px] font-black uppercase flex items-center gap-0.5 animate-pulse">
-        <Heart className="w-2 h-2 text-red-500 fill-red-500" /> Auto-Reply Delivered!
+      <div className="self-center bg-brand-soft border border-brand px-2 py-0.5 rounded-full text-brand text-[5px] font-black uppercase flex items-center gap-0.5 animate-pulse">
+        <Heart className="w-2 h-2 text-destructive fill-current" /> Auto-Reply Delivered!
       </div>
     </div>
   )
@@ -260,9 +262,9 @@ export default function HowToUsePage() {
       </div>
       <div className="grid grid-cols-3 gap-1">
         {[
-          { label: "Replies", val: "1.4K", color: "text-blue-600" },
-          { label: "Audience", val: "320", color: "text-pink-500" },
-          { label: "Rate", val: "33%", color: "text-emerald-500" },
+          { label: "Replies", val: "1.4K", color: "text-brand" },
+          { label: "Audience", val: "320", color: "text-brand" },
+          { label: "Rate", val: "33%", color: "text-brand" },
         ].map((s, i) => (
           <div key={i} className="bg-white p-1 rounded border border-slate-200/50 shadow-sm">
             <div className="text-[4px] text-slate-400 font-bold uppercase">{s.label}</div>
@@ -274,14 +276,8 @@ export default function HowToUsePage() {
       <div className="bg-white rounded border border-slate-200/50 shadow-sm p-1.5 h-[45px]">
         <div className="text-[4.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">Automation Flow</div>
         <svg viewBox="0 0 200 40" className="w-full h-[24px]" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="miniGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#D62976" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#D62976" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <polygon fill="url(#miniGrad)" points="0,40 0,30 30,25 60,28 90,15 120,20 150,8 180,12 200,5 200,40" />
-          <polyline fill="none" stroke="#D62976" strokeWidth="2" strokeLinecap="round" points="0,30 30,25 60,28 90,15 120,20 150,8 180,12 200,5" />
+          <polygon fill="var(--chart-1)" fillOpacity="0.12" points="0,40 0,30 30,25 60,28 90,15 120,20 150,8 180,12 200,5 200,40" />
+          <polyline fill="none" stroke="var(--chart-1)" strokeWidth="2" strokeLinecap="round" points="0,30 30,25 60,28 90,15 120,20 150,8 180,12 200,5" />
         </svg>
       </div>
       {/* Traffic + Activity */}
@@ -291,19 +287,19 @@ export default function HowToUsePage() {
           <div className="w-8 h-8 relative">
             <svg viewBox="0 0 36 36" className="w-full h-full">
               <circle cx="18" cy="18" r="12" fill="none" stroke="#e2e8f0" strokeWidth="4" />
-              <circle cx="18" cy="18" r="12" fill="none" stroke="#D62976" strokeWidth="4" strokeDasharray="45 75" strokeDashoffset="0" strokeLinecap="round" />
-              <circle cx="18" cy="18" r="12" fill="none" stroke="#7c3aed" strokeWidth="4" strokeDasharray="30 90" strokeDashoffset="-45" strokeLinecap="round" />
+              <circle cx="18" cy="18" r="12" fill="none" stroke="var(--chart-1)" strokeWidth="4" strokeDasharray="45 75" strokeDashoffset="0" strokeLinecap="round" />
+              <circle cx="18" cy="18" r="12" fill="none" stroke="var(--chart-2)" strokeWidth="4" strokeDasharray="30 90" strokeDashoffset="-45" strokeLinecap="round" />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center text-[5px] font-black text-slate-700">12</div>
           </div>
           <div className="flex items-center gap-1 mt-0.5">
-            <span className="flex items-center gap-0.5 text-[3.5px] text-slate-500"><span className="w-1 h-1 rounded-full bg-[#D62976]" />Comments</span>
-            <span className="flex items-center gap-0.5 text-[3.5px] text-slate-500"><span className="w-1 h-1 rounded-full bg-violet-500" />DMs</span>
+            <span className="flex items-center gap-0.5 text-[3.5px] text-slate-500"><span className="w-1 h-1 rounded-full bg-primary" />Comments</span>
+            <span className="flex items-center gap-0.5 text-[3.5px] text-slate-500"><span className="w-1 h-1 rounded-full bg-primary" />DMs</span>
           </div>
         </div>
         <div className="bg-white rounded border border-slate-200/50 shadow-sm p-1 flex-1">
           <div className="text-[4px] font-bold text-slate-400 uppercase mb-0.5 flex items-center gap-0.5">
-            <span className="w-1 h-1 rounded-full bg-red-400 animate-ping" /> Live Log
+            <span className="w-1 h-1 rounded-full bg-destructive animate-ping" /> Live Log
           </div>
           {["@user_101 → DM Sent", "@deal_fan → Coupon", "@buyer99 → Reply"].map((l, i) => (
             <div key={i} className="text-[4px] text-slate-500 font-semibold py-0.5 border-b border-slate-50 last:border-0 truncate">{l}</div>
@@ -325,8 +321,8 @@ export default function HowToUsePage() {
     return (
       <div className="w-[65px] border-r border-slate-200 bg-white p-1.5 shrink-0 flex flex-col text-left">
         <div className="flex items-center gap-1 mb-2 pb-1.5 border-b border-slate-100">
-          <img src="/logo.png" alt="Logo" className="w-3.5 h-3.5 object-contain" />
-          <span className="font-black text-[6.5px] text-[#D62976] leading-none">DMSpark</span>
+          <CelraLogo variant="mark" size={14} />
+          <span className="font-black text-[6.5px] text-brand leading-none">{BRAND_NAME}</span>
         </div>
         <div className="space-y-0.5 flex-1">
           {navItems.map((item, i) => (
@@ -334,7 +330,7 @@ export default function HowToUsePage() {
               key={i}
               className={`flex items-center gap-1 px-1 py-0.5 rounded text-[5.5px] font-bold transition-all ${
                 activeIdx === item.idx
-                  ? "bg-[#D62976] text-white shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-slate-400 hover:text-slate-600"
               }`}
             >
@@ -364,7 +360,7 @@ export default function HowToUsePage() {
   }
 
   const stepLabels = [
-    "Overview: Your DMSpark Dashboard",
+    `Overview: Your ${BRAND_NAME} Dashboard`,
     "Step 01: Connect via Meta OAuth",
     "Step 02: Configure keyword triggers",
     "Step 03: Automated DM reply templates",
@@ -397,8 +393,8 @@ export default function HowToUsePage() {
           <span className="text-xs font-bold text-primary/80 uppercase tracking-widest flex items-center gap-1.5 mb-1">
             <Compass className="w-3.5 h-3.5 text-primary animate-spin" style={{ animationDuration: '10s' }} /> Interactive Guide
           </span>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">
-            How to Use DMSpark
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            How to Use {BRAND_NAME}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm font-medium">
             Click any step to preview real app screens in Mobile or Laptop mode.
@@ -412,9 +408,9 @@ export default function HowToUsePage() {
             className="text-xs font-bold gap-1.5 h-9 bg-card/50 border-border/80 rounded-full"
           >
             {isPlaying ? (
-              <><Pause className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Pause</>
+              <><Pause className="w-3.5 h-3.5 text-warn fill-current" /> Pause</>
             ) : (
-              <><Play className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500 animate-pulse" /> Resume</>
+              <><Play className="w-3.5 h-3.5 text-brand fill-current animate-pulse" /> Resume</>
             )}
           </Button>
         </div>
@@ -432,12 +428,12 @@ export default function HowToUsePage() {
               onClick={() => handleStepSelect(0)}
               className={`p-4 bg-card/60 backdrop-blur-md cursor-pointer transition-all duration-300 col-span-1 md:col-span-2 group relative overflow-hidden border-2 ${
                 animationStep === 0
-                  ? 'border-primary shadow-lg ring-2 ring-primary/10 -translate-y-0.5 bg-gradient-to-br from-primary/[0.03] to-violet-500/[0.03]'
+                  ? 'border-primary shadow-lg ring-2 ring-primary/10 -translate-y-0.5 bg-brand-soft'
                   : 'border-border/60 hover:border-border hover:-translate-y-0.5'
               }`}
             >
               {animationStep === 0 && (
-                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-primary/10 to-transparent pointer-events-none" />
+                <div className="absolute top-0 right-0 w-16 h-16 bg-brand-soft pointer-events-none" />
               )}
               <div className="flex items-start justify-between">
                 <div>
@@ -447,13 +443,13 @@ export default function HowToUsePage() {
                     </span>
                     {animationStep === 0 && (
                       <span className="flex h-1.5 w-1.5 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand" />
                       </span>
                     )}
                   </div>
                   <h3 className="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors">
-                    DMSpark Automation Engine Overview
+                    {BRAND_NAME} Automation Engine Overview
                   </h3>
                   <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed font-semibold">
                     See your real Dashboard with live stats, automation counters, and activity feeds. Toggle between Mobile and Laptop views!
@@ -471,7 +467,7 @@ export default function HowToUsePage() {
                   onClick={() => handleStepSelect(step.num)}
                   className={`p-4 bg-card/60 backdrop-blur-md cursor-pointer transition-all duration-300 flex flex-col justify-between group relative overflow-hidden border-2 ${
                     isActiveStep
-                      ? 'border-primary shadow-lg ring-2 ring-primary/10 -translate-y-0.5 bg-gradient-to-br from-primary/[0.03] to-violet-500/[0.03]'
+                      ? 'border-primary shadow-lg ring-2 ring-primary/10 -translate-y-0.5 bg-brand-soft'
                       : 'border-border/60 hover:border-border hover:-translate-y-0.5'
                   }`}
                 >
@@ -483,8 +479,8 @@ export default function HowToUsePage() {
                         </span>
                         {isActiveStep && (
                           <span className="flex h-1.5 w-1.5 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand" />
                           </span>
                         )}
                       </div>
@@ -533,7 +529,7 @@ export default function HowToUsePage() {
 
         {/* Right: Device Simulator */}
         <Card className={`lg:col-span-2 p-5 bg-card/60 backdrop-blur-md border-border shadow-md flex flex-col justify-between relative overflow-hidden min-h-[520px] transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.01] via-transparent to-violet-500/[0.01] pointer-events-none rounded-xl" />
+          <div className="absolute inset-0 bg-brand-soft pointer-events-none rounded-xl" />
 
           <div className="space-y-4 flex flex-col h-full justify-between relative z-10">
 
@@ -579,7 +575,7 @@ export default function HowToUsePage() {
                   {/* Mobile Header */}
                   <div className="flex items-center gap-2 border-b border-slate-100 py-2 pt-4 px-3 shrink-0 bg-white z-10">
                     <Menu className="w-3 h-3 text-slate-400" />
-                    <span className="font-black text-[8px] text-[#D62976]">DMSpark</span>
+                    <span className="font-black text-[8px] text-brand">{BRAND_NAME}</span>
                   </div>
 
                   {/* Screen Content */}
@@ -590,10 +586,10 @@ export default function HowToUsePage() {
                   {/* Footer */}
                   <div className="border-t border-slate-100 p-2 flex items-center justify-between text-[6px] text-slate-400 font-bold shrink-0 bg-white">
                     <span className="flex items-center gap-0.5">
-                      <Heart className="w-2 h-2 text-red-400 fill-red-400" /> 1.2k
+                      <Heart className="w-2 h-2 text-destructive fill-current" /> 1.2k
                     </span>
-                    <span className="text-emerald-500 flex items-center gap-0.5">
-                      <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Live
+                    <span className="text-brand flex items-center gap-0.5">
+                      <span className="w-1 h-1 rounded-full bg-brand animate-pulse" /> Live
                     </span>
                   </div>
                 </div>
@@ -606,12 +602,12 @@ export default function HowToUsePage() {
                       {/* Browser Chrome */}
                       <div className="h-6 bg-slate-100 border-b border-slate-200/60 px-3 flex items-center gap-2 shrink-0">
                         <div className="flex gap-1 shrink-0">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#ea4335]" />
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#fbbc04]" />
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#34a853]" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                         </div>
                         <div className="bg-white rounded border border-slate-200/60 px-2 py-0.5 text-[7px] text-slate-400 w-40 mx-auto text-center font-bold">
-                          www.dmspark.in/dashboard
+                          {getSiteHost()}/dashboard
                         </div>
                       </div>
 

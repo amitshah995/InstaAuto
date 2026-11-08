@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useRef, useCallback } from "react"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
-import { Zap, Users, Send, Activity, Loader2, MessageCircle, ArrowUpRight, Search, TrendingUp, Trash2, Film, Image, Layers, X, Check, ExternalLink, Mic, Camera, Shield, Clock } from "lucide-react"
+import { Zap, Users, Send, Activity, Loader2, MessageCircle, ArrowUpRight, Search, TrendingUp, Trash2, Film, Image, Layers, X, Check, ExternalLink, Mic, Camera, Clapperboard, Shield, Clock } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { DMSparkGoogleLogo } from "@/components/ui/dmspark-logo"
+import { BRAND_NAME } from "@/lib/site"
+import { CelraLogo } from "@/components/ui/celra-logo"
 import { CelebrationAnimation } from "@/components/ui/celebration-animation"
-import { InstagramReelsIcon } from "@/components/ui/instagram-reels-icon"
 
 interface DashboardStats {
     metrics: {
@@ -257,22 +257,22 @@ export default function DashboardPage() {
             label: "New Automation",
             shortLabel: "Automate",
             href: "/dashboard/automations?create=true",
-            icon: <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 group-hover:scale-125 group-hover:rotate-12 transition-all duration-300" />,
-            hoverClass: "hover:border-amber-500/40 hover:bg-amber-500/5 hover:text-amber-600 dark:hover:text-amber-400",
+            icon: <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-warn group-hover:scale-125 group-hover:rotate-12 transition-all duration-300" />,
+            hoverClass: "hover:border-primary/40 hover:bg-primary/5 hover:text-foreground",
         },
         {
             label: "Open Inbox",
             shortLabel: "Inbox",
             href: "/dashboard/inbox",
-            icon: <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#D62976] group-hover:scale-125 group-hover:-translate-y-0.5 transition-all duration-300" />,
-            hoverClass: "hover:border-[#D62976]/40 hover:bg-[#D62976]/5 hover:text-[#D62976]",
+            icon: <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand group-hover:scale-125 group-hover:-translate-y-0.5 transition-all duration-300" />,
+            hoverClass: "hover:border-brand/40 hover:bg-brand/5 hover:text-brand",
         },
         {
             label: "View Analytics",
             shortLabel: "Analytics",
             href: "/dashboard/analytics",
-            icon: <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 group-hover:scale-125 group-hover:translate-x-0.5 transition-all duration-300" />,
-            hoverClass: "hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-600 dark:hover:text-emerald-400",
+            icon: <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand group-hover:scale-125 group-hover:translate-x-0.5 transition-all duration-300" />,
+            hoverClass: "hover:border-brand/40 hover:bg-brand/5 hover:text-brand dark:hover:text-brand",
         },
     ]
 
@@ -291,16 +291,16 @@ export default function DashboardPage() {
                 selectedMedia ? 'pt-8 md:pt-10 pb-12 justify-start' : 'justify-center pb-20 sm:pb-28 pt-2 sm:-mt-6'
             }`}>
 
-                {/* Google-Style DMSpark Brand Logo (Adapts size when automation panel is open so it NEVER clips) */}
-                <div className={`group cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 select-none ${
+                {/* Celra brand logo (Adapts size when automation panel is open so it NEVER clips) */}
+                <div className={`group transition-all duration-300 select-none ${
                     selectedMedia ? 'mb-2 md:mb-3' : 'mb-4 md:mb-5'
                 }`}>
-                    <DMSparkGoogleLogo size={selectedMedia ? "lg" : "xl"} showIcon={true} layout="vertical" />
+                    <CelraLogo variant="full" size={selectedMedia ? 48 : 64} className="text-foreground" />
                 </div>
 
                 {/* Clean, Elegant Single Line Greeting & Status (Mobile Responsive) */}
                 <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-5 md:mb-8 text-xs md:text-sm text-muted-foreground font-medium select-none max-w-full px-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    <span className="w-2 h-2 rounded-full bg-brand animate-pulse shrink-0" />
                     <span className="truncate max-w-[200px] sm:max-w-none">{greeting}, <strong className="text-foreground font-semibold">@{username}</strong></span>
                     <span className="hidden sm:inline text-muted-foreground/40">•</span>
                     <span className="hidden sm:inline text-muted-foreground/80">Search posts to automate</span>
@@ -310,10 +310,10 @@ export default function DashboardPage() {
                 <div className="w-full max-w-2xl relative" ref={searchRef}>
                     <div className={`flex items-center w-full h-12 md:h-14 rounded-full border bg-background px-4 md:px-6 gap-3 transition-all duration-300 ${
                         searchFocused 
-                            ? 'border-[#D62976] shadow-xl shadow-[#D62976]/10 ring-4 ring-[#D62976]/15 scale-[1.01]' 
+                            ? 'border-brand shadow-xl shadow-black/5 ring-4 ring-brand/15 scale-[1.01]' 
                             : 'border-border/90 shadow-sm hover:shadow-md hover:border-border'
                     }`}>
-                        <Search className={`w-5 h-5 shrink-0 transition-all duration-300 ${searchFocused ? 'text-[#D62976] scale-110' : 'text-muted-foreground/50'}`} />
+                        <Search className={`w-5 h-5 shrink-0 transition-all duration-300 ${searchFocused ? 'text-brand scale-110' : 'text-muted-foreground/50'}`} />
                         <div className="relative flex-1 h-full flex items-center">
                             <input
                                 ref={searchInputRef}
@@ -353,7 +353,7 @@ export default function DashboardPage() {
                                 className="group/reel p-1.5 rounded-full hover:bg-secondary/80 transition-all duration-300 cursor-pointer"
                                 title="Browse your Instagram Reels & Posts"
                             >
-                                <InstagramReelsIcon gradient={true} className="w-5 h-5 group-hover/reel:scale-115 transition-transform" />
+                                <Clapperboard className="w-5 h-5 group-hover/reel:scale-110 transition-transform" />
                             </button>
                         </div>
                     </div>
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                                 <div className="p-8 text-center">
                                     <div className="relative w-8 h-8 mx-auto mb-3">
                                         <div className="w-8 h-8 rounded-full border-2 border-primary/20 animate-ping absolute inset-0" />
-                                        <Loader2 className="w-8 h-8 text-[#D62976] animate-spin" />
+                                        <Loader2 className="w-8 h-8 text-brand animate-spin" />
                                     </div>
                                     <p className="text-xs text-muted-foreground font-medium animate-pulse">Loading your posts & reels...</p>
                                 </div>
@@ -385,7 +385,7 @@ export default function DashboardPage() {
                                         <p className="text-xs text-muted-foreground font-semibold">
                                             {searchQuery ? `${filteredMedia.length} results found` : `Your Posts & Reels (${filteredMedia.length})`}
                                         </p>
-                                        <span className="text-[10px] text-[#D62976] font-medium bg-[#D62976]/10 px-2 py-0.5 rounded-full">
+                                        <span className="text-[10px] text-brand font-medium bg-brand/10 px-2 py-0.5 rounded-full">
                                             Click any post to automate
                                         </span>
                                     </div>
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                                             </div>
                                             {/* Details */}
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm text-foreground font-semibold truncate group-hover/item:text-[#D62976] transition-colors">
+                                                <p className="text-sm text-foreground font-semibold truncate group-hover/item:text-brand transition-colors">
                                                     {m.caption || "Untitled Post"}
                                                 </p>
                                                 <div className="flex items-center gap-2 mt-0.5">
@@ -430,7 +430,7 @@ export default function DashboardPage() {
                                                 </div>
                                             </div>
                                             {/* Arrow pill */}
-                                            <span className="w-8 h-8 rounded-full bg-secondary/80 flex items-center justify-center text-muted-foreground group-hover/item:bg-[#D62976] group-hover/item:text-white transition-all duration-200 shrink-0">
+                                            <span className="w-8 h-8 rounded-full bg-secondary/80 flex items-center justify-center text-muted-foreground group-hover/item:bg-primary group-hover/item:text-primary-foreground transition-all duration-200 shrink-0">
                                                 <Zap className="w-4 h-4" />
                                             </span>
                                         </button>
@@ -487,7 +487,7 @@ export default function DashboardPage() {
                                             href={selectedMedia.permalink}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-1 text-xs text-[#D62976] hover:underline"
+                                            className="flex items-center gap-1 text-xs text-brand hover:underline"
                                         >
                                             View on Instagram <ExternalLink className="w-3 h-3" />
                                         </a>
@@ -504,7 +504,7 @@ export default function DashboardPage() {
                             {/* Automation Setup Form */}
                             <div className="p-4 space-y-4 text-left">
                                 <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                                    <Zap className="w-4 h-4 text-[#D62976]" />
+                                    <Zap className="w-4 h-4 text-brand" />
                                     Set Up Automation
                                 </h3>
 
@@ -516,7 +516,7 @@ export default function DashboardPage() {
                                         placeholder="e.g. Price Query Auto-Reply"
                                         value={autoName}
                                         onChange={(e) => setAutoName(e.target.value)}
-                                        className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-[#D62976] focus:ring-1 focus:ring-[#D62976]/20 transition-all"
+                                        className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition-all"
                                     />
                                 </div>
 
@@ -528,12 +528,12 @@ export default function DashboardPage() {
                                         placeholder="price, how much, cost, rate (comma-separated)"
                                         value={autoKeywords}
                                         onChange={(e) => setAutoKeywords(e.target.value)}
-                                        className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-[#D62976] focus:ring-1 focus:ring-[#D62976]/20 transition-all"
+                                        className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition-all"
                                     />
                                     {autoKeywords && (
                                         <div className="flex flex-wrap gap-1.5 mt-2">
                                             {autoKeywords.split(",").filter(k => k.trim()).map((k, i) => (
-                                                <span key={i} className="px-2 py-0.5 rounded-md bg-[#D62976]/8 text-[#D62976] text-xs font-medium">
+                                                <span key={i} className="px-2 py-0.5 rounded-md bg-brand/10 text-brand text-xs font-medium">
                                                     {k.trim()}
                                                 </span>
                                             ))}
@@ -549,7 +549,7 @@ export default function DashboardPage() {
                                         value={autoMessage}
                                         onChange={(e) => setAutoMessage(e.target.value)}
                                         rows={3}
-                                        className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-[#D62976] focus:ring-1 focus:ring-[#D62976]/20 transition-all resize-none"
+                                        className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition-all resize-none"
                                     />
                                     <p className="text-[11px] text-muted-foreground mt-1 text-right">{autoMessage.length}/500</p>
                                 </div>
@@ -558,7 +558,7 @@ export default function DashboardPage() {
                                 <button
                                     onClick={handleCreateAutomation}
                                     disabled={creating || !autoKeywords.trim() || !autoMessage.trim()}
-                                    className="w-full h-11 rounded-full bg-[#D62976] hover:bg-[#B8225F] text-white text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                                    className="w-full h-11 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
                                 >
                                     {creating ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -575,7 +575,7 @@ export default function DashboardPage() {
             {/* Clean Google-Style Footer with Meta Review Compliance */}
             <footer className="w-full shrink-0 border-t border-border/60 py-3 px-4 md:px-8 text-[11px] sm:text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2 select-none text-center sm:text-left">
                 <div className="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-2">
-                    <span>© 2026 DMSpark</span>
+                    <span>© 2026 {BRAND_NAME}</span>
                     <span className="hidden sm:inline">•</span>
                     <span className="text-[10px] sm:text-xs text-muted-foreground/75">Not affiliated with Meta Platforms Inc. or Instagram</span>
                 </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { Search, Loader2, UserCircle, Instagram, ShieldCheck } from "lucide-react"
+import { Search, Loader2, UserCircle, AtSign, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Conversation } from "@/types/db"
 
@@ -68,8 +68,8 @@ export function ConversationList({ userId, currentUsername, selectedId, onSelect
                         <h2 className="text-lg font-bold text-foreground tracking-tight">Live Inbox</h2>
                         <p className="text-[11px] text-muted-foreground">Human Support & DM Hub</p>
                     </div>
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-brand text-[10px] font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
                         Live
                     </div>
                 </div>
@@ -77,8 +77,8 @@ export function ConversationList({ userId, currentUsername, selectedId, onSelect
                 {/* Asset Selection Banner - Explicitly demonstrates asset selection for Meta Reviewer */}
                 <div className="mb-3 p-2.5 rounded-xl border border-primary/20 bg-primary/5 flex items-center justify-between">
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-                            <Instagram className="w-4 h-4" />
+                        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-primary-foreground shrink-0 shadow-sm">
+                            <AtSign className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
                             <div className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
@@ -90,7 +90,7 @@ export function ConversationList({ userId, currentUsername, selectedId, onSelect
                         </div>
                     </div>
                     <span className="text-[9px] bg-secondary px-1.5 py-0.5 rounded border border-border text-muted-foreground font-mono">
-                        IG Account
+                        Instagram account
                     </span>
                 </div>
 

@@ -19,8 +19,8 @@ export function EngagementCalculator() {
   const [v, setV] = useState({ followers: "10000", likes: "300", comments: "20", saves: "", shares: "" })
   const set = (k: keyof typeof v) => (x: string) => setV({ ...v, [k]: x })
   const r = engagement({ followers: toNum(v.followers), likes: toNum(v.likes), comments: toNum(v.comments), saves: toNum(v.saves), shares: toNum(v.shares) })
-  const verdict = { low: ["Needs work", "#ff3b52"], below: ["Below target", "#f5b301"], good: ["Good", "#3ddc6b"], excellent: ["Excellent", "#3ddc6b"] } as const
-  const [vl, vc] = r.level ? verdict[r.level] : ["Enter your numbers", "#9a9aa6"]
+  const verdict = { low: ["Needs work", "var(--au-red)"], below: ["Below target", "var(--au-amber)"], good: ["Good", "var(--au-green)"], excellent: ["Excellent", "var(--au-green)"] } as const
+  const [vl, vc] = r.level ? verdict[r.level] : ["Enter your numbers", "var(--au-muted)"]
   return (
     <>
       <Panel title="Your numbers">
@@ -42,7 +42,7 @@ export function EngagementCalculator() {
         {r.erPct !== null && r.level && (
           <p className="au-muted" style={{ fontSize: 14 }}>
             {r.level === "low" || r.level === "below"
-              ? <><TrendingDown size={14} style={{ display: "inline", marginRight: 6 }} />To reach the working target you would need about <b style={{ color: "#fff" }}>{int(r.neededPerPost)}</b> interactions per post.</>
+              ? <><TrendingDown size={14} style={{ display: "inline", marginRight: 6 }} />To reach the working target you would need about <b style={{ color: "var(--au-text)" }}>{int(r.neededPerPost)}</b> interactions per post.</>
               : <><TrendingUp size={14} style={{ display: "inline", marginRight: 6 }} />You are at or above the working target for accounts your size. Keep doing what works.</>}
           </p>
         )}
@@ -81,14 +81,14 @@ export function CommentToDmCalculator() {
         <div className="au-stats">
           <Tile label="Buying comments" value={int(r.intentComments)} />
           <Tile label="DMs sent by hand" value={int(r.manual.dms)} />
-          <Tile label="DMs sent automatically" value={int(r.auto.dms)} color="#ff6e80" />
-          <Tile label="Extra sales" value={r.extraSales} color="#3ddc6b" />
+          <Tile label="DMs sent automatically" value={int(r.auto.dms)} color="var(--au-brand)" />
+          <Tile label="Extra sales" value={r.extraSales} color="var(--au-green)" />
         </div>
         <div className="au-grid2">
           <div className="au-tile"><p className="au-muted" style={{ fontSize: 13 }}>Revenue by hand</p><b className="au-head" style={{ fontSize: 24 }}>{inr(r.manual.revenue)}</b></div>
-          <div className="au-tile"><p className="au-muted" style={{ fontSize: 13 }}>Revenue with automatic replies</p><b className="au-head" style={{ fontSize: 24, color: "#3ddc6b" }}>{inr(r.auto.revenue)}</b></div>
+          <div className="au-tile"><p className="au-muted" style={{ fontSize: 13 }}>Revenue with automatic replies</p><b className="au-head" style={{ fontSize: 24, color: "var(--au-green)" }}>{inr(r.auto.revenue)}</b></div>
         </div>
-        <p style={{ fontSize: 15 }}>Possible extra revenue: <b className="au-head" style={{ color: "#3ddc6b", fontSize: 20 }}>{inr(Math.max(0, r.extraRevenue))}</b> per month.</p>
+        <p style={{ fontSize: 15 }}>Possible extra revenue: <b className="au-head" style={{ color: "var(--au-green)", fontSize: 20 }}>{inr(Math.max(0, r.extraRevenue))}</b> per month.</p>
         <p className="au-muted" style={{ fontSize: 12 }}>These are estimates from the assumptions above, not a promise of results.</p>
       </Panel>
       <Lead slug="comment-to-dm-calculator" context={`${v.posts} posts/mo, ${v.comments} comments/post | extra revenue ${inr(Math.max(0, r.extraRevenue))}/mo`} />
@@ -120,10 +120,10 @@ export function DmRoiCalculator() {
       </Panel>
       <Panel title="Your monthly result">
         <div className="au-stats">
-          <Tile label="Hours saved" value={r.hoursSaved} color="#ff6e80" />
+          <Tile label="Hours saved" value={r.hoursSaved} color="var(--au-brand)" />
           <Tile label="Time value saved" value={inr(r.timeValue)} />
-          <Tile label="Net gain after tool cost" value={inr(r.net)} color={r.net >= 0 ? "#3ddc6b" : "#ff3b52"} />
-          <Tile label="Return on tool cost" value={r.roi === null ? "-" : `${r.roi}x`} color="#f5b301" sub={r.paybackDays ? `Pays back in ~${r.paybackDays} days` : undefined} />
+          <Tile label="Net gain after tool cost" value={inr(r.net)} color={r.net >= 0 ? "var(--au-green)" : "var(--au-red)"} />
+          <Tile label="Return on tool cost" value={r.roi === null ? "-" : `${r.roi}x`} color="var(--au-amber)" sub={r.paybackDays ? `Pays back in ~${r.paybackDays} days` : undefined} />
         </div>
         <p className="au-muted" style={{ fontSize: 12 }}>Estimates from the numbers you entered. Net gain = time value + extra sales - tool cost.</p>
       </Panel>

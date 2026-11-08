@@ -1,7 +1,9 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from "react"
-import { Instagram, Shield, Check, Sparkles, ArrowRight } from "lucide-react"
+import {  Shield, Check, Sparkles, ArrowRight } from "lucide-react"
+import { BRAND_NAME } from "@/lib/site"
+import { CelraLogo } from "@/components/ui/celra-logo"
 
 interface WelcomeScreenProps {
   username: string
@@ -10,7 +12,7 @@ interface WelcomeScreenProps {
 }
 
 /**
- * Premium "Welcome to DMSpark" screen shown after Instagram login.
+ * Premium `Welcome to ${BRAND_NAME}` screen shown after Instagram login.
  * Shows the user's profile picture, username, and a celebratory welcome.
  * Stays for ~4 seconds with confetti particles, then transitions to dashboard.
  */
@@ -75,9 +77,7 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
     window.addEventListener("resize", resize)
 
     const colors = [
-      "#515BD4", "#DD2A7B", "#FEDA77", "#F58529",
-      "#E1306C", "#833AB4", "#F77737", "#FFD700",
-      "#00E5FF", "#A142F4",
+      "#0B5C6E", "#FF6F4D", "#46C8D0", "#FF8466", "#0E2A33", "#5FA3AF", "#B5D3D7", "#FFB4A1",
     ]
 
     interface ConfettiParticle {
@@ -217,15 +217,9 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
         <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-10" />
       )}
 
-      {/* Subtle gradient background */}
+      {/* Flat Celra background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#D62976]/5 via-transparent to-[#8134AF]/5" />
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl"
-          style={{
-            background: "radial-gradient(circle, rgba(26,115,232,0.15) 0%, rgba(52,168,83,0.1) 50%, transparent 70%)",
-          }}
-        />
+        <div className="absolute inset-0 bg-brand-soft" />
       </div>
 
       {/* Main Content */}
@@ -245,13 +239,7 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
             {/* Profile Picture with animated ring */}
             <div className="relative animate-in zoom-in-75 fade-in duration-700">
               {/* Outer glowing ring */}
-              <div
-                className="absolute -inset-2 rounded-full opacity-60"
-                style={{
-                  background: "linear-gradient(135deg, #E8590C 0%, #D62976 50%, #8134AF 100%)",
-                  animation: "spin 4s linear infinite",
-                }}
-              />
+              <div className="absolute -inset-2 rounded-full border-2 border-brand/60" />
               {/* White gap ring */}
               <div className="absolute -inset-[5px] rounded-full bg-background" />
               {/* Profile picture */}
@@ -263,25 +251,25 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#833AB4] via-[#E1306C] to-[#F77737] flex items-center justify-center">
-                    <Instagram className="w-10 h-10 text-white" />
+                  <div className="w-full h-full bg-brand-soft flex items-center justify-center">
+                    <CelraLogo variant="mark" size={48} />
                   </div>
                 )}
               </div>
               {/* Verified badge */}
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#D62976] flex items-center justify-center border-[3px] border-background shadow-lg animate-in zoom-in-50 duration-500 delay-300">
-                <Check className="w-4 h-4 text-white" />
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center border-[3px] border-background animate-in zoom-in-50 duration-500 delay-300">
+                <Check className="w-4 h-4 text-primary-foreground" />
               </div>
             </div>
 
             {/* Welcome Text */}
             <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-              <p className="text-xs font-semibold text-emerald-500 flex items-center justify-center gap-1.5 tracking-wide uppercase">
+              <p className="text-xs font-semibold text-brand flex items-center justify-center gap-1.5 tracking-wide uppercase">
                 <Sparkles className="w-3.5 h-3.5" />
                 Account Connected Successfully
               </p>
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-                Welcome to DMSpark! 🎉
+                Welcome to {BRAND_NAME}! 🎉
               </h1>
               <p className="text-base font-semibold text-foreground/80">
                 @{username}
@@ -299,7 +287,7 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/60 text-xs font-medium text-muted-foreground"
                   style={{ animationDelay: `${600 + i * 100}ms` }}
                 >
-                  <Check className="w-3 h-3 text-emerald-500" />
+                  <Check className="w-3 h-3 text-brand" />
                   {feature}
                 </span>
               ))}
@@ -309,7 +297,7 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
             <div className="w-full max-w-xs space-y-2 animate-in fade-in duration-700 delay-700">
               <div className="h-1 bg-secondary/80 rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#E8590C] via-[#D62976] to-[#8134AF]"
+                  className="h-full rounded-full bg-primary"
                   style={{
                     width: `${progressWidth}%`,
                     transition: "width 3.5s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -336,19 +324,11 @@ export function WelcomeScreen({ username, userId, onComplete }: WelcomeScreenPro
             {/* Powered by badge */}
             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/40 font-medium">
               <Shield className="w-3 h-3" />
-              <span>Secured by Official Meta Instagram API</span>
+              <span>Connected through the official Instagram API</span>
             </div>
           </>
         )}
       </div>
-
-      {/* CSS for spinning gradient ring */}
-      <style jsx>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   )
 }

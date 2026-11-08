@@ -69,7 +69,7 @@ export default function ReportsPage() {
         <CardHeader className="flex-row items-end justify-between space-y-0">
           <CardTitle className="text-base">Followers {last !== undefined && <span className="ml-2 text-2xl font-bold">{last.toLocaleString("en-IN")}</span>}</CardTitle>
           {first !== undefined && last !== undefined && data.series.length > 1 && (
-            <span className={`text-sm font-semibold ${last - first >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+            <span className={`text-sm font-semibold ${last - first >= 0 ? "text-brand" : "text-destructive"}`}>
               {last - first >= 0 ? "+" : ""}{last - first}
             </span>
           )}
@@ -89,7 +89,7 @@ export default function ReportsPage() {
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Share2 className="h-4 w-4" /> Share with a client</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {!data.setup ? (
-            <p className="text-sm text-amber-600">Sharing is not set up yet — run migration 24 in Supabase.</p>
+            <p className="text-sm text-warn">Sharing is not set up yet — run migration 24 in Supabase.</p>
           ) : !data.share ? (
             <Button onClick={() => post({ enabled: true })} disabled={saving}>Create share link</Button>
           ) : (

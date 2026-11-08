@@ -6,6 +6,7 @@ import { FLOW_TEMPLATES, templateBySlug } from "@/lib/flows/templates"
 import { simulate } from "@/lib/flows/engine"
 import { PhoneChat } from "@/components/flows/phone-chat"
 import { ArrowLeft, Zap } from "lucide-react"
+import { BRAND_NAME } from "@/lib/site"
 
 export const dynamicParams = false
 
@@ -78,7 +79,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
 
         <section className="au-card" style={{ display: "grid", gap: 10, justifyItems: "start" }}>
           <span className="au-icon red"><Zap size={16} /></span>
-          <h3 className="au-head" style={{ fontSize: 18 }}>Use this flow with DMSpark</h3>
+          <h3 className="au-head" style={{ fontSize: 18 }}>Use this flow with {BRAND_NAME}</h3>
           <p className="au-muted" style={{ fontSize: 14 }}>Connect your Instagram professional account, build this flow in the visual builder and test it before it goes live.</p>
           <Link href="/" className="au-btn" style={{ padding: "11px 24px", fontSize: 15 }}>Get started</Link>
         </section>

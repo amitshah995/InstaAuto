@@ -4,39 +4,7 @@ import { useEffect, useState } from "react"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import {
-  Instagram,
-  Settings,
-  Trash2,
-  CheckCircle2,
-  AlertCircle,
-  ShieldCheck,
-  Loader2,
-  ArrowRight,
-  ExternalLink,
-  Copy,
-  Check,
-  KeyRound,
-  MessageSquare,
-  MessagesSquare,
-  Video,
-  BarChart3,
-  Lock,
-  Zap,
-  Info,
-  Layers,
-  Database,
-  RefreshCw,
-  Send,
-  HelpCircle,
-  Clock,
-  Shield,
-  Activity,
-  ChevronRight,
-  FileText,
-  UserCheck,
-  Bot
-} from "lucide-react"
+import { AtSign, Settings, Trash2, CheckCircle2, AlertCircle, ShieldCheck, Loader2, ArrowRight, ExternalLink, Copy, Check, KeyRound, MessageSquare, MessagesSquare, Video, BarChart3, Lock, Zap, Info, Layers, Database, RefreshCw, Send, HelpCircle, Clock, Shield, Activity, ChevronRight, FileText, UserCheck, Bot } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
@@ -44,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { TeamPanel } from "@/components/team/TeamPanel"
 import { WebhooksPanel } from "@/components/dashboard/WebhooksPanel"
+import { BRAND_NAME } from "@/lib/site"
 
 export default function SettingsPage() {
   const { username, userId, logout, isLoading: sessionLoading } = useInstagramSession()
@@ -155,48 +124,48 @@ export default function SettingsPage() {
       name: "instagram_business_basic",
       label: "Basic Profile & Discovery",
       desc: "Authenticates Instagram Creator/Business accounts, reads public profile info, and resolves Business Account IDs.",
-      icon: <Instagram className="w-4 h-4 text-pink-500" />,
-      color: "border-pink-500/30 bg-pink-500/5",
+      icon: <AtSign className="w-4 h-4 text-brand" />,
+      color: "border-brand/30 bg-brand/5",
       badge: "Core Identity"
     },
     {
       name: "instagram_business_manage_messages",
       label: "Direct Messaging & Ice Breakers",
       desc: "Receives incoming direct messages via webhooks and delivers real-time automated keyword responses and live inbox management.",
-      icon: <MessageSquare className="w-4 h-4 text-blue-500" />,
-      color: "border-blue-500/30 bg-blue-500/5",
+      icon: <MessageSquare className="w-4 h-4 text-brand" />,
+      color: "border-brand/30 bg-brand/5",
       badge: "Messaging Engine"
     },
     {
       name: "instagram_business_manage_comments",
       label: "Comments & Post Engagement",
       desc: "Detects user comments on published Reels/Posts and triggers instant automated public replies and comment-to-DM funnels.",
-      icon: <MessagesSquare className="w-4 h-4 text-purple-500" />,
-      color: "border-purple-500/30 bg-purple-500/5",
+      icon: <MessagesSquare className="w-4 h-4 text-brand" />,
+      color: "border-brand/30 bg-brand/5",
       badge: "Public Triggers"
     },
     {
       name: "Human Agent (Feature Tag)",
       label: "Live Human Support & 7-Day Messaging",
       desc: "Allows live customer support agents to manually resolve customer issues within an extended 7-day window using the official human_agent tag.",
-      icon: <UserCheck className="w-4 h-4 text-cyan-500" />,
-      color: "border-cyan-500/30 bg-cyan-500/5",
+      icon: <UserCheck className="w-4 h-4 text-brand" />,
+      color: "border-brand/30 bg-brand/5",
       badge: "Customer Support"
     },
     {
       name: "instagram_business_content_publish",
       label: "Reels & Media Publishing",
       desc: "Allows automated scheduling and publishing of video Reels directly to your connected Instagram Business timeline.",
-      icon: <Video className="w-4 h-4 text-emerald-500" />,
-      color: "border-emerald-500/30 bg-emerald-500/5",
+      icon: <Video className="w-4 h-4 text-brand" />,
+      color: "border-brand/30 bg-brand/5",
       badge: "Publisher"
     },
     {
       name: "instagram_business_manage_insights",
       label: "Insights & Performance Telemetry",
       desc: "Fetches automation delivery metrics, engagement counts, and conversation analytics for reporting dashboards.",
-      icon: <BarChart3 className="w-4 h-4 text-amber-500" />,
-      color: "border-amber-500/30 bg-amber-500/5",
+      icon: <BarChart3 className="w-4 h-4 text-warn" />,
+      color: "border-primary/30 bg-primary/5",
       badge: "Analytics"
     }
   ]
@@ -206,22 +175,19 @@ export default function SettingsPage() {
 
       {/* Ambient background glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden -z-10" aria-hidden>
-        <div className="absolute -top-28 -left-28 w-96 h-96 bg-blue-500/[0.06] rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
-        <div className="absolute top-1/3 -right-24 w-96 h-96 bg-purple-500/[0.06] rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
-        <div className="absolute bottom-20 left-1/4 w-80 h-80 bg-emerald-500/[0.05] rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }} />
       </div>
       
       {/* Hero Header Section */}
       <div className={`flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-border/80 pb-6 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         <div className="space-y-2">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/25 text-blue-600 dark:text-blue-400 text-[11px] font-extrabold uppercase tracking-wider shadow-sm">
-              <ShieldCheck className="w-3.5 h-3.5" /> Meta Certified Architecture • v2026
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand/10 border border-brand/25 text-brand text-[11px] font-extrabold uppercase tracking-wider shadow-sm">
+              <ShieldCheck className="w-3.5 h-3.5" /> Official Instagram API
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Graph API v24.0 Live
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand/10 border border-brand/25 text-brand text-[10px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-brand animate-pulse" /> Graph API v24.0 Live
             </span>
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-bold">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-brand text-[10px] font-bold">
               <Lock className="w-3 h-3" /> OAuth 2.0 Security
             </span>
           </div>
@@ -254,7 +220,7 @@ export default function SettingsPage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Layers className="w-3.5 h-3.5 text-blue-500" /> Meta Scopes (5)
+            <Layers className="w-3.5 h-3.5 text-brand" /> Meta Scopes (5)
           </button>
           <button
             onClick={() => setActiveTab("compliance")}
@@ -264,7 +230,7 @@ export default function SettingsPage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Shield className="w-3.5 h-3.5 text-emerald-500" /> Legal & DAR
+            <Shield className="w-3.5 h-3.5 text-brand" /> Legal & DAR
           </button>
         </div>
       </div>
@@ -285,13 +251,13 @@ export default function SettingsPage() {
             {/* Instagram Account Identity Card */}
             <Card className={`border-border bg-card/90 backdrop-blur-md shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '150ms' : '0ms', transitionDuration: '700ms' }}>
               
-              {/* Header Gradient Banner */}
-              <div className="h-24 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] relative flex items-center justify-between px-5">
+              {/* Header banner */}
+              <div className="h-24 bg-brand relative flex items-center justify-between px-5">
                 <div className="flex items-center gap-2 bg-black/35 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
-                  <Instagram className="w-4 h-4 text-white" />
+                  <AtSign className="w-4 h-4 text-white" />
                   <span className="text-xs font-bold text-white tracking-wider">Instagram Graph API</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-emerald-500 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md">
+                <div className="flex items-center gap-1.5 bg-primary text-primary-foreground text-[10px] font-extrabold px-2.5 py-1 rounded-full">
                   <CheckCircle2 className="w-3 h-3" /> OAuth 2.0
                 </div>
               </div>
@@ -300,14 +266,14 @@ export default function SettingsPage() {
                 
                 {/* Profile Avatar with Verified Ring */}
                 <div className="relative group">
-                  <div className="w-22 h-22 rounded-full border-4 border-card bg-secondary flex items-center justify-center shadow-xl overflow-hidden shrink-0 ring-4 ring-emerald-500/25 transition-transform group-hover:scale-105 duration-300">
+                  <div className="w-22 h-22 rounded-full border-4 border-card bg-secondary flex items-center justify-center shadow-xl overflow-hidden shrink-0 ring-4 ring-brand/25 transition-transform group-hover:scale-105 duration-300">
                     {profilePictureUrl ? (
                       <img src={profilePictureUrl} alt={username || "User"} className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-3xl font-black text-foreground">{(username || "U").charAt(0).toUpperCase()}</span>
                     )}
                   </div>
-                  <div className="absolute bottom-1 right-1 p-1.5 bg-emerald-500 rounded-full border-2 border-card text-white shadow-md" title="Active Connection">
+                  <div className="absolute bottom-1 right-1 p-1.5 bg-brand rounded-full border-2 border-card text-brand-foreground shadow-md" title="Active Connection">
                     <Check className="w-3 h-3 stroke-[3]" />
                   </div>
                 </div>
@@ -321,15 +287,15 @@ export default function SettingsPage() {
                       className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
                       title="Copy handle"
                     >
-                      {copiedUsername ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedUsername ? <Check className="w-3.5 h-3.5 text-brand" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                   <div className="flex items-center justify-center gap-2 flex-wrap">
                     <span className="px-2.5 py-0.5 rounded-full bg-secondary border border-border/70 text-foreground text-[10px] font-bold uppercase tracking-wider shadow-xs">
                       Instagram Business
                     </span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Active Connection
+                    <span className="text-brand font-extrabold text-[10px] flex items-center gap-1 bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" /> Active Connection
                     </span>
                   </div>
                 </div>
@@ -341,13 +307,13 @@ export default function SettingsPage() {
                   <div className="bg-secondary/50 p-3 rounded-2xl border border-border/60 space-y-1.5 shadow-2xs">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                        <KeyRound className="w-3.5 h-3.5 text-blue-500" /> App-Scoped User ID (IGSID)
+                        <KeyRound className="w-3.5 h-3.5 text-brand" /> App-Scoped User ID (IGSID)
                       </span>
                       <button
                         onClick={handleCopyId}
-                        className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+                        className="text-[10px] font-extrabold text-brand hover:underline flex items-center gap-1 cursor-pointer transition-colors"
                       >
-                        {copiedId ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        {copiedId ? <Check className="w-3 h-3 text-brand" /> : <Copy className="w-3 h-3" />}
                         <span>{copiedId ? "Copied!" : "Copy"}</span>
                       </button>
                     </div>
@@ -361,13 +327,13 @@ export default function SettingsPage() {
                     <div className="bg-secondary/40 p-2.5 rounded-xl border border-border/50">
                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Token Lifespan</span>
                       <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5 mt-1">
-                        <RefreshCw className="w-3 h-3 text-emerald-500" /> 60-Day Long-Lived
+                        <RefreshCw className="w-3 h-3 text-brand" /> 60-Day Long-Lived
                       </span>
                     </div>
                     <div className="bg-secondary/40 p-2.5 rounded-xl border border-border/50">
                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Token Storage</span>
                       <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5 mt-1">
-                        <Lock className="w-3 h-3 text-blue-500" /> Encrypted at rest
+                        <Lock className="w-3 h-3 text-brand" /> Encrypted at rest
                       </span>
                     </div>
                   </div>
@@ -410,7 +376,7 @@ export default function SettingsPage() {
                 )}
                 
                 <p className="text-[10px] text-muted-foreground mt-2.5 font-medium leading-relaxed">
-                  Logging out only ends this browser session. To delete your data, see the Delete my data page (/delete-data) or remove DMSpark in Instagram Settings → Apps and Websites.
+                  Logging out only ends this browser session. To delete your data, see the Delete my data page (/delete-data) or remove {BRAND_NAME} in Instagram Settings → Apps and Websites.
                 </p>
               </CardContent>
             </Card>
@@ -421,27 +387,27 @@ export default function SettingsPage() {
             <Card className={`border-border bg-card/90 backdrop-blur-md shadow-sm p-5 space-y-3.5 hover:shadow-md transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '300ms' : '0ms', transitionDuration: '700ms' }}>
               <div className="flex items-center justify-between border-b border-border/70 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500">
+                  <div className="p-1.5 rounded-xl bg-brand/10 border border-brand/20 text-brand">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
                     <h3 className="font-extrabold text-foreground text-sm">Data Handling & Privacy</h3>
-                    <p className="text-[10px] text-muted-foreground font-semibold">Meta App Review Compliance</p>
+                    <p className="text-[10px] text-muted-foreground font-semibold">Meta Platform policies</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-                  Compliant
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-brand/10 text-brand border border-brand/25">
+                  Followed
                 </span>
               </div>
 
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center bg-secondary/40 p-2 rounded-lg border border-border/40">
                   <span className="font-semibold text-muted-foreground">Data deletion:</span>
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">On request</span>
+                  <span className="text-[10px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20">On request</span>
                 </div>
                 <div className="flex justify-between items-center bg-secondary/40 p-2 rounded-lg border border-border/40">
                   <span className="font-semibold text-muted-foreground">Payload Signature Guard:</span>
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">HMAC-SHA256</span>
+                  <span className="text-[10px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20">HMAC-SHA256</span>
                 </div>
               </div>
 
@@ -451,7 +417,7 @@ export default function SettingsPage() {
                   className="w-full inline-flex items-center justify-between p-2.5 rounded-xl bg-secondary/60 hover:bg-secondary border border-border text-foreground font-bold text-xs transition-all hover:scale-[1.01] group"
                 >
                   <span className="flex items-center gap-2">
-                    <Trash2 className="w-3.5 h-3.5 text-red-500" /> User Data Deletion Protocol
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" /> User Data Deletion Protocol
                   </span>
                   <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                 </Link>
@@ -460,7 +426,7 @@ export default function SettingsPage() {
                   className="w-full inline-flex items-center justify-between p-2.5 rounded-xl bg-secondary/60 hover:bg-secondary border border-border text-foreground font-bold text-xs transition-all hover:scale-[1.01] group"
                 >
                   <span className="flex items-center gap-2">
-                    <Lock className="w-3.5 h-3.5 text-blue-500" /> Public Privacy Policy
+                    <Lock className="w-3.5 h-3.5 text-brand" /> Public Privacy Policy
                   </span>
                   <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                 </Link>
@@ -476,7 +442,7 @@ export default function SettingsPage() {
             <Card className={`border-border bg-card/90 backdrop-blur-md shadow-sm p-6 space-y-4 hover:shadow-md transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '200ms' : '0ms', transitionDuration: '700ms' }}>
               <div className="flex items-center justify-between border-b border-border/70 pb-3 flex-wrap gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500">
+                  <div className="p-2 rounded-xl bg-brand/10 border border-brand/20 text-brand">
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
@@ -484,13 +450,13 @@ export default function SettingsPage() {
                     <p className="text-xs text-muted-foreground font-medium">Official terms, privacy notices, and App Review guidelines</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-brand/10 text-brand border border-brand/20">
                   Privacy Policy
                 </span>
               </div>
 
               <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-                DMSpark follows the Meta Platform Terms and Instagram Messaging Policies. These pages are public:
+                {BRAND_NAME} follows the Meta Platform Terms and Instagram Messaging Policies. These pages are public:
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
@@ -498,7 +464,7 @@ export default function SettingsPage() {
                   href="/privacy" 
                   className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-border bg-secondary/40 hover:bg-secondary text-center transition-all hover:scale-[1.02] group shadow-2xs"
                 >
-                  <Lock className="w-4 h-4 text-blue-500 mb-1.5 group-hover:scale-110 transition-transform" />
+                  <Lock className="w-4 h-4 text-brand mb-1.5 group-hover:scale-110 transition-transform" />
                   <span className="text-xs font-extrabold text-foreground">Privacy Policy</span>
                   <span className="text-[9px] text-muted-foreground font-medium mt-0.5">Meta Required</span>
                 </Link>
@@ -507,7 +473,7 @@ export default function SettingsPage() {
                   href="/terms" 
                   className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-border bg-secondary/40 hover:bg-secondary text-center transition-all hover:scale-[1.02] group shadow-2xs"
                 >
-                  <FileText className="w-4 h-4 text-purple-500 mb-1.5 group-hover:scale-110 transition-transform" />
+                  <FileText className="w-4 h-4 text-brand mb-1.5 group-hover:scale-110 transition-transform" />
                   <span className="text-xs font-extrabold text-foreground">Terms of Service</span>
                   <span className="text-[9px] text-muted-foreground font-medium mt-0.5">Service Agreement</span>
                 </Link>
@@ -516,7 +482,7 @@ export default function SettingsPage() {
                   href="/delete-data" 
                   className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-border bg-secondary/40 hover:bg-secondary text-center transition-all hover:scale-[1.02] group shadow-2xs"
                 >
-                  <Trash2 className="w-4 h-4 text-emerald-500 mb-1.5 group-hover:scale-110 transition-transform" />
+                  <Trash2 className="w-4 h-4 text-brand mb-1.5 group-hover:scale-110 transition-transform" />
                   <span className="text-xs font-extrabold text-foreground">Data Deletion</span>
                   <span className="text-[9px] text-muted-foreground font-medium mt-0.5">Callback & Guide</span>
                 </Link>
@@ -527,7 +493,7 @@ export default function SettingsPage() {
                   rel="noreferrer"
                   className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-border bg-secondary/40 hover:bg-secondary text-center transition-all hover:scale-[1.02] group shadow-2xs"
                 >
-                  <ExternalLink className="w-4 h-4 text-amber-500 mb-1.5 group-hover:scale-110 transition-transform" />
+                  <ExternalLink className="w-4 h-4 text-warn mb-1.5 group-hover:scale-110 transition-transform" />
                   <span className="text-xs font-extrabold text-foreground">Meta Console</span>
                   <span className="text-[9px] text-muted-foreground font-medium mt-0.5">Developer Portal</span>
                 </a>
@@ -538,7 +504,7 @@ export default function SettingsPage() {
             <Card className={`border-border bg-card/90 backdrop-blur-md shadow-sm p-6 space-y-4 hover:shadow-md transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '300ms' : '0ms', transitionDuration: '700ms' }}>
               <div className="flex items-center justify-between border-b border-border/70 pb-3 flex-wrap gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500">
+                  <div className="p-2 rounded-xl bg-brand/10 border border-brand/20 text-brand">
                     <Layers className="w-5 h-5" />
                   </div>
                   <div>
@@ -566,7 +532,7 @@ export default function SettingsPage() {
                         <div className="text-[10px] text-muted-foreground font-mono truncate">{scope.name}</div>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand/10 text-brand border border-brand/20 shrink-0">
                       Configured
                     </span>
                   </div>
@@ -593,7 +559,7 @@ export default function SettingsPage() {
                   Detailed technical justification for each scope requested during Meta App Review.
                 </p>
               </div>
-              <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 w-fit">
+              <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-brand/10 text-brand border border-brand/25 w-fit">
                 All 5 Scopes Active
               </span>
             </div>
@@ -638,13 +604,13 @@ export default function SettingsPage() {
             <div className="border-b border-border/70 pb-4">
               <h2 className="text-xl font-black text-foreground">Data Access Renewal (DAR) & Security Assessment</h2>
               <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                Technical overview of how DMSpark handles Meta's security, privacy, and user consent obligations.
+                Technical overview of how {BRAND_NAME} handles Meta's security, privacy, and user consent obligations.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 rounded-2xl bg-secondary/40 border border-border/60 space-y-2">
-                <div className="flex items-center gap-2 text-blue-500">
+                <div className="flex items-center gap-2 text-brand">
                   <Database className="w-4 h-4" />
                   <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">Data Minimization</h4>
                 </div>
@@ -654,7 +620,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="p-4 rounded-2xl bg-secondary/40 border border-border/60 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-500">
+                <div className="flex items-center gap-2 text-brand">
                   <Lock className="w-4 h-4" />
                   <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">Secure Token Storage</h4>
                 </div>
@@ -664,7 +630,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="p-4 rounded-2xl bg-secondary/40 border border-border/60 space-y-2">
-                <div className="flex items-center gap-2 text-purple-500">
+                <div className="flex items-center gap-2 text-brand">
                   <Trash2 className="w-4 h-4" />
                   <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">Automated Deletion</h4>
                 </div>
@@ -674,14 +640,14 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 flex items-center justify-between flex-wrap gap-3">
+            <div className="p-4 rounded-2xl bg-brand/5 border border-brand/20 flex items-center justify-between flex-wrap gap-3">
               <div className="space-y-0.5">
                 <h5 className="text-xs font-extrabold text-foreground">Need to review data deletion documentation?</h5>
                 <p className="text-[11px] text-muted-foreground">Detailed instructions for manual and automated user data deletion.</p>
               </div>
               <Link
                 href="/delete-data"
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs transition-all shadow-xs"
+                className="px-4 py-2 rounded-xl bg-brand hover:bg-brand/90 text-brand-foreground font-extrabold text-xs transition-all shadow-xs"
               >
                 View Deletion Protocol
               </Link>

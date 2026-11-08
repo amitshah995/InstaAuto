@@ -95,7 +95,7 @@ export function WebhooksPanel() {
         {error && <p className="text-destructive">{error}</p>}
 
         {newSecret && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
+          <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-foreground">
             <p className="font-medium">Copy your signing secret now. It is shown only once.</p>
             <div className="mt-2 flex items-center gap-2">
               <code className="break-all rounded bg-white px-2 py-1">{newSecret}</code>
@@ -158,7 +158,7 @@ export function WebhooksPanel() {
               {deliveries.map((d) => (
                 <li key={d.id} className="flex justify-between gap-2">
                   <span>{EVENT_LABELS[d.event] || d.event} · {new Date(d.created_at).toLocaleString("en-IN")}</span>
-                  <span className={d.status === "delivered" ? "text-emerald-700" : d.status === "dead" ? "text-destructive" : "text-amber-700"}>
+                  <span className={d.status === "delivered" ? "text-brand" : d.status === "dead" ? "text-destructive" : "text-warn"}>
                     {d.status}{d.last_status_code ? ` (${d.last_status_code})` : ""}{d.attempts > 1 ? ` · ${d.attempts} tries` : ""}{d.status !== "delivered" && d.last_error ? ` · ${d.last_error}` : ""}
                   </span>
                 </li>

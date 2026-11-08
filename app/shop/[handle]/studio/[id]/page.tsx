@@ -34,13 +34,13 @@ export default async function PostPage({ params }: { params: Params }) {
   try { found = await getPublicPost(decodeURIComponent(handle), id) } catch (e) { console.error("[shop] post page error:", (e as Error)?.message) }
   if (!found) notFound()
   return (
-    <main className="min-h-screen text-foreground">
+    <div className="min-h-screen text-foreground">
       <ShopHeader handle={found.handle} displayName={found.displayName} bio={null} avatarUrl={found.avatarUrl} bannerUrl={found.bannerUrl} />
       <div className="mx-auto max-w-xl px-4 pb-16">
         <ShopTabs handle={found.handle} active="studio" />
         <PostCard post={found.post} handle={found.handle} permalink />
         <p className="mt-6 text-center text-sm"><a href={`/@${found.handle}/studio`} className="font-semibold underline underline-offset-4">More from @{found.handle}</a></p>
       </div>
-    </main>
+    </div>
   )
 }

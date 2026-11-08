@@ -17,11 +17,11 @@ function Caption({ text }: { text: string }) {
 
 /** Soft pastel backgrounds that rotate through the product cards so the strip looks lively. */
 const TINTS = [
-  "linear-gradient(135deg,#ffe3f1,#ffd1e8)",
-  "linear-gradient(135deg,#e6e0ff,#d5ccff)",
-  "linear-gradient(135deg,#ffeccc,#ffdca0)",
-  "linear-gradient(135deg,#d9f3ff,#bfe6ff)",
-  "linear-gradient(135deg,#dcf8e6,#c2f0d3)",
+  "var(--c-brand-soft)",
+  "var(--c-cream)",
+  "var(--c-soft)",
+  "var(--c-brand-soft)",
+  "var(--c-cream)",
 ]
 
 const day = (iso: string) => {
@@ -76,10 +76,10 @@ export default function PostCard({ post, handle, permalink }: { post: PublicPost
                         <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5">
                           <span className="shop-price text-[17px] font-extrabold">{formatINR(p.price_inr)}</span>
                           {p.mrp_inr && p.mrp_inr > p.price_inr && <span className="text-xs text-foreground/50 line-through">{formatINR(p.mrp_inr)}</span>}
-                          {off && <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[11px] font-bold text-white">{off}% off</span>}
+                          {off && <span className="rounded-full bg-c-accent px-1.5 py-0.5 text-[11px] font-bold text-c-accent-ink">{off}% off</span>}
                         </span>
                       ) : null}
-                      <span className="shop-btn mt-1.5 inline-block rounded-full px-4 py-1.5 text-[12px] font-bold shadow">Shop now</span>
+                      <span className="shop-btn mt-1.5 inline-block rounded-full px-4 py-1.5 text-[12px] font-bold ">Shop now</span>
                     </span>
                   </a>
                   <span className="absolute right-0.5 top-0.5"><ReportButton slug={p.slug} /></span>

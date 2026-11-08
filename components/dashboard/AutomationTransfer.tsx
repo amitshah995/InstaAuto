@@ -5,7 +5,7 @@ import { Download, Upload, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import type { Automation } from "@/lib/types"
 
-const FORMAT = "dmspark-automations"
+const FORMAT = "celra-automations"
 const MAX_IMPORT = 50
 
 /** Export all rules to a JSON file, or import such a file (also works to copy rules to another account). */
@@ -40,7 +40,7 @@ export function AutomationTransfer({
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `dmspark-automations-${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `celra-automations-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -50,7 +50,7 @@ export function AutomationTransfer({
     setBusy(true)
     try {
       const data = JSON.parse(await file.text())
-      if (data?.format !== FORMAT || !Array.isArray(data.automations)) throw new Error("This is not a DMSpark automations file.")
+      if (!(typeof data?.format === "string" && data.format.endsWith("-automations")) || !Array.isArray(data.automations)) throw new Error("This is not a Celra automations file.")
       const list = data.automations.slice(0, MAX_IMPORT)
       let ok = 0
       let linkRules = 0

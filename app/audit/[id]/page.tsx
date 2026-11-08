@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { AuditShell } from "@/components/audit/audit-theme"
-import { Loader2, Zap, Briefcase, CheckCircle2, Instagram, Target, ClipboardCheck, Clock, Gauge, Hash, TrendingDown, TrendingUp, CalendarDays, BarChart3, PieChart, Crown, ExternalLink, Activity, AlertTriangle } from "lucide-react"
+import { Loader2, Zap, Briefcase, CheckCircle2, AtSign, Target, ClipboardCheck, Clock, Gauge, Hash, TrendingDown, TrendingUp, CalendarDays, BarChart3, PieChart, Crown, ExternalLink, Activity, AlertTriangle } from "lucide-react"
 import { Bars, Donut, LineChart } from "@/components/audit/charts"
 import { AiReportSection } from "@/components/audit/ai-report"
 import { ScoreHistory } from "@/components/audit/ScoreHistory"
@@ -19,7 +19,7 @@ interface View {
   createdAt: string
 }
 
-const GRADE_COLOR = (score: number) => (score >= 70 ? "#3ddc6b" : score >= 40 ? "#f5b301" : "#ff3b52")
+const GRADE_COLOR = (score: number) => (score >= 70 ? "var(--au-green)" : score >= 40 ? "var(--au-amber)" : "var(--au-red)")
 
 function ScoreBadge({ score, grade }: { score: number; grade: string }) {
   const c = GRADE_COLOR(score)
@@ -62,7 +62,7 @@ function LeadForm({ auditId, defaultInterest }: { auditId: string; defaultIntere
 
   if (state === "done") {
     return (
-      <p style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#3ddc6b" }}>
+      <p style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--au-green)" }}>
         <CheckCircle2 size={16} /> Thanks! We will reach out soon.
       </p>
     )
@@ -95,7 +95,7 @@ function LeadForm({ auditId, defaultInterest }: { auditId: string; defaultIntere
 }
 
 const KIND_LABEL: Record<MediaKind, string> = { reel: "Reel", carousel: "Carousel", image: "Photo", video: "Video", other: "Post" }
-const KIND_COLOR: Record<MediaKind, string> = { reel: "#d6246e", carousel: "#4aa8ff", image: "#f5b301", video: "#9b6bff", other: "#8b8b97" }
+const KIND_COLOR: Record<MediaKind, string> = { reel: "var(--au-coral)", carousel: "var(--au-blue)", image: "var(--au-amber)", video: "var(--au-ink)", other: "var(--au-muted)" }
 const fmt = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 10_000 ? `${(n / 1000).toFixed(1)}K` : n.toLocaleString("en-US"))
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 const inter = (m: PostPoint) => (m.likes ?? 0) + m.comments
@@ -115,14 +115,14 @@ function Panel({ title, icon, badge, sub, children, style }: { title: string; ic
 
 function Avatar({ url, name }: { url?: string; name: string }) {
   const [bad, setBad] = useState(false)
-  const box: React.CSSProperties = { width: 88, height: 88, borderRadius: "50%", padding: 3, background: "linear-gradient(135deg,#f09433,#ff3b52 55%,#c13584)", flex: "none" }
+  const box: React.CSSProperties = { width: 88, height: 88, borderRadius: "50%", padding: 3, background: "var(--au-brand)", flex: "none" }
   return (
     <div style={box}>
       {url && !bad ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt="" onError={() => setBad(true)} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", border: "3px solid #101016" }} />
+        <img src={url} alt="" onError={() => setBad(true)} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", border: "3px solid var(--au-card)" }} />
       ) : (
-        <div className="au-head" style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#1a1a22", border: "3px solid #101016", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 800 }}>
+        <div className="au-head" style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--au-tile)", border: "3px solid var(--au-card)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 800 }}>
           {name.slice(0, 1).toUpperCase()}
         </div>
       )}
@@ -168,7 +168,7 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
 
   const below = ins && ins.deltaPct !== null && ins.deltaPct < 0
   const stateIcon = (st: "good" | "warn" | "bad") => (
-    <span className="au-icon" style={st === "good" ? undefined : { background: st === "warn" ? "rgba(245,179,1,.15)" : "rgba(255,59,82,.15)", color: st === "warn" ? "#f5b301" : "#ff3b52" }}>
+    <span className="au-icon" style={st === "good" ? undefined : { background: st === "warn" ? "color-mix(in srgb,var(--au-amber) 15%,transparent)" : "color-mix(in srgb,var(--au-red) 15%,transparent)", color: st === "warn" ? "var(--au-amber)" : "var(--au-red)" }}>
       {st === "good" ? <CheckCircle2 size={16} /> : <AlertTriangle size={15} />}
     </span>
   )
@@ -183,7 +183,7 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
               <Avatar url={profile?.pictureUrl} name={report.username} />
               <div style={{ minWidth: 0 }}>
                 <h1 className="au-head" style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.1 }}>{profile?.name || report.username}</h1>
-                <p style={{ color: "#ff6e80", fontWeight: 600, marginTop: 4 }}>@{report.username}</p>
+                <p style={{ color: "var(--au-brand)", fontWeight: 600, marginTop: 4 }}>@{report.username}</p>
                 {profile?.bio && <p className="au-muted" style={{ fontSize: 14, marginTop: 8, whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{profile.bio}</p>}
               </div>
             </div>
@@ -211,28 +211,28 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
           <>
             {/* Metric tiles */}
             <div className="au-stats">
-              <div className="au-stat"><b style={{ color: "#ff3b52" }}>{ins.erPct === null ? "-" : `${ins.erPct}%`}</b><span>Engagement rate</span></div>
-              <div className="au-stat"><b style={{ color: "#ff6e80" }}>{ins.likesHidden ? "Hidden" : fmt(ins.totalLikes)}</b><span>Likes ({ins.postsUsed} posts)</span></div>
-              <div className="au-stat"><b style={{ color: "#4aa8ff" }}>{fmt(ins.totalComments)}</b><span>Comments ({ins.postsUsed} posts)</span></div>
+              <div className="au-stat"><b style={{ color: "var(--au-red)" }}>{ins.erPct === null ? "-" : `${ins.erPct}%`}</b><span>Engagement rate</span></div>
+              <div className="au-stat"><b style={{ color: "var(--au-brand)" }}>{ins.likesHidden ? "Hidden" : fmt(ins.totalLikes)}</b><span>Likes ({ins.postsUsed} posts)</span></div>
+              <div className="au-stat"><b style={{ color: "var(--au-blue)" }}>{fmt(ins.totalComments)}</b><span>Comments ({ins.postsUsed} posts)</span></div>
               <div className="au-stat"><b>{report.stats.postsLast30d}</b><span>Posts, last 30 days</span></div>
               <div className="au-stat"><b>{ins.likesHidden ? "-" : fmt(ins.avgLikes)}</b><span>Avg. likes / post</span></div>
               <div className="au-stat"><b>{ins.avgComments}</b><span>Avg. comments / post</span></div>
-              <div className="au-stat"><b style={{ color: "#f5b301" }}>{ins.likeCommentRatio === null ? "-" : `${ins.likeCommentRatio}:1`}</b><span>Like / comment ratio</span></div>
-              <div className="au-stat"><b style={{ color: "#3ddc6b" }}>{ins.followerFollowingRatio === null ? "-" : `${ins.followerFollowingRatio}x`}</b><span>Follower / following</span></div>
+              <div className="au-stat"><b style={{ color: "var(--au-amber)" }}>{ins.likeCommentRatio === null ? "-" : `${ins.likeCommentRatio}:1`}</b><span>Like / comment ratio</span></div>
+              <div className="au-stat"><b style={{ color: "var(--au-green)" }}>{ins.followerFollowingRatio === null ? "-" : `${ins.followerFollowingRatio}x`}</b><span>Follower / following</span></div>
             </div>
 
             {/* Benchmark + signals */}
             <div className="au-grid2">
-              <Panel title="Engagement vs. working target" icon={<Target size={20} color="#ff3b52" />} badge={`${ins.tier.label} (${ins.tier.range})`}
+              <Panel title="Engagement vs. working target" icon={<Target size={20} color="var(--au-red)" />} badge={`${ins.tier.label} (${ins.tier.range})`}
                 sub="How this account's engagement rate compares with a working target for accounts of the same size.">
                 <div className="au-grid2" style={{ gap: 12 }}>
                   <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 13 }}>Account ER</p><b className="au-head" style={{ fontSize: 28 }}>{ins.erPct === null ? "-" : `${ins.erPct}%`}</b></div>
-                  <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 13 }}>Working target</p><b className="au-head" style={{ fontSize: 28, color: "#9a9aa6" }}>{ins.targetPct}%</b></div>
+                  <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 13 }}>Working target</p><b className="au-head" style={{ fontSize: 28, color: "var(--au-muted)" }}>{ins.targetPct}%</b></div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--au-line)", paddingTop: 14, fontSize: 14 }}>
                   <span className="au-muted">Benchmark status</span>
                   {ins.deltaPct === null ? <span className="au-pill">Not enough data</span> : (
-                    <span className={`au-pill ${below ? "high" : ""}`} style={below ? undefined : { background: "rgba(40,167,69,.14)", color: "#3ddc6b", border: "1px solid rgba(40,167,69,.3)" }}>
+                    <span className={`au-pill ${below ? "high" : ""}`} style={below ? undefined : { background: "color-mix(in srgb,var(--au-green) 14%,transparent)", color: "var(--au-green)", border: "1px solid color-mix(in srgb,var(--au-green) 30%,transparent)" }}>
                       {below ? <TrendingDown size={13} /> : <TrendingUp size={13} />}
                       {below ? "Below target" : "On or above target"} ({ins.deltaPct > 0 ? "+" : ""}{ins.deltaPct}%)
                     </span>
@@ -241,7 +241,7 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
                 {ins.likesHidden && <p className="au-muted" style={{ fontSize: 12 }}>Likes are hidden on this account, so engagement uses comments only.</p>}
               </Panel>
 
-              <Panel title="Account optimization signals" icon={<ClipboardCheck size={20} color="#3ddc6b" />} badge="Audit check">
+              <Panel title="Account optimization signals" icon={<ClipboardCheck size={20} color="var(--au-green)" />} badge="Audit check">
                 {ins.signals.map((sg) => (
                   <div key={sg.id} className="au-tile" style={{ display: "flex", gap: 12, alignItems: "center" }}>
                     {stateIcon(sg.state)}
@@ -253,19 +253,19 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
 
             {/* Peak / cadence / hashtags */}
             <div className="au-grid3">
-              <Panel title="Peak publishing slot" icon={<Clock size={18} color="#f5b301" />} sub={`Best average interactions per post, in your time zone (${tzLabel}).`}>
+              <Panel title="Peak publishing slot" icon={<Clock size={18} color="var(--au-amber)" />} sub={`Best average interactions per post, in your time zone (${tzLabel}).`}>
                 {tb.peakDay && tb.peakHour !== null && posts.length >= 4 ? (
                   <div className="au-tile">
                     <p className="au-muted" style={{ fontSize: 13 }}>Best day</p>
                     <b className="au-head" style={{ fontSize: 24 }}>{tb.peakDay}</b>
                     <p className="au-muted" style={{ fontSize: 13, marginTop: 10 }}>Best window</p>
-                    <b className="au-head" style={{ fontSize: 20, color: "#f5b301" }}>{hourLabel(tb.peakHour)}</b>
+                    <b className="au-head" style={{ fontSize: 20, color: "var(--au-amber)" }}>{hourLabel(tb.peakHour)}</b>
                   </div>
                 ) : <p className="au-muted" style={{ fontSize: 14 }}>Needs at least 4 recent posts.</p>}
                 <span className="au-pill" style={{ justifySelf: "start" }}>Based on {posts.length} posts</span>
               </Panel>
 
-              <Panel title="Cadence & consistency" icon={<Gauge size={18} color="#3ddc6b" />} sub="Upload regularity across your recent posts.">
+              <Panel title="Cadence & consistency" icon={<Gauge size={18} color="var(--au-green)" />} sub="Upload regularity across your recent posts.">
                 <div className="au-grid2" style={{ gap: 10 }}>
                   <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 12 }}>Cadence</p><b className="au-head" style={{ fontSize: 22 }}>{ins.cadence.perWeek}/wk</b></div>
                   <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 12 }}>Consistency</p><b className="au-head" style={{ fontSize: 22, color: ins.cadence.consistency === null ? undefined : GRADE_COLOR(ins.cadence.consistency) }}>{ins.cadence.consistency === null ? "-" : `${ins.cadence.consistency}/100`}</b></div>
@@ -273,20 +273,20 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
                 {ins.cadence.avgGapDays !== null && <p className="au-muted" style={{ fontSize: 13 }}>{ins.cadence.avgGapDays} days average between posts</p>}
               </Panel>
 
-              <Panel title="Frequent hashtags" icon={<Hash size={18} color="#ff3b52" />} sub="Tags that repeat across your recent captions.">
+              <Panel title="Frequent hashtags" icon={<Hash size={18} color="var(--au-red)" />} sub="Tags that repeat across your recent captions.">
                 {ins.hashtags.length ? (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {ins.hashtags.map((h) => <span key={h.tag} className="au-chip">{h.tag}<i>{h.count}</i></span>)}
                   </div>
                 ) : <p className="au-muted" style={{ fontSize: 14 }}>No hashtags found in recent captions.</p>}
-                <p className="au-muted" style={{ fontSize: 13 }}>Avg. caption: <b style={{ color: "#fff" }}>{ins.avgCaptionLength}</b> chars</p>
+                <p className="au-muted" style={{ fontSize: 13 }}>Avg. caption: <b style={{ color: "var(--au-text)" }}>{ins.avgCaptionLength}</b> chars</p>
               </Panel>
             </div>
 
             {/* Charts */}
             {chrono.length >= 2 && (
               <div style={{ display: "grid", gap: 16 }} className="au-chartrow">
-                <Panel title="Recent post performance" icon={<Activity size={18} color="#ff3b52" />} sub="Likes and comments across your recent published posts.">
+                <Panel title="Recent post performance" icon={<Activity size={18} color="var(--au-red)" />} sub="Likes and comments across your recent published posts.">
                   <div className="au-tabs" role="group" aria-label="Range">
                     {([["12", "Last 12"], ["25", "Last 25"], ["all", "All"]] as const).map(([k, l]) => (
                       <button key={k} className="au-tab" aria-pressed={range === k} onClick={() => setRange(k)}>{l}</button>
@@ -294,7 +294,7 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
                   </div>
                   <LineChart labels={shown.map((m) => shortDate(m.timestamp))} likes={shown.map((m) => m.likes ?? 0)} comments={shown.map((m) => m.comments)} />
                 </Panel>
-                <Panel title="Content format mix" icon={<PieChart size={18} color="#f5b301" />} sub="Audited post types.">
+                <Panel title="Content format mix" icon={<PieChart size={18} color="var(--au-amber)" />} sub="Audited post types.">
                   <Donut parts={(["reel", "image", "carousel", "video"] as MediaKind[]).map((k) => ({ label: KIND_LABEL[k] + "s", value: ins.formats.find((f) => f.kind === k)?.count ?? 0, color: KIND_COLOR[k] })).filter((p, i) => p.value > 0 || i < 3)} />
                 </Panel>
               </div>
@@ -303,10 +303,10 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
 
             {posts.length >= 4 && (
               <div className="au-grid2">
-                <Panel title="Day-of-week interaction" icon={<CalendarDays size={18} color="#ff3b52" />} sub="Average interactions per post by weekday.">
-                  <Bars items={DAY_SHORT.map((d, i) => ({ label: d, value: tb.dayAvg[i] }))} color="#b3243a" />
+                <Panel title="Day-of-week interaction" icon={<CalendarDays size={18} color="var(--au-red)" />} sub="Average interactions per post by weekday.">
+                  <Bars items={DAY_SHORT.map((d, i) => ({ label: d, value: tb.dayAvg[i] }))} color="var(--au-coral)" />
                 </Panel>
-                <Panel title="Avg. interactions by format" icon={<BarChart3 size={18} color="#4aa8ff" />} sub="Which content type earns the most per upload.">
+                <Panel title="Avg. interactions by format" icon={<BarChart3 size={18} color="var(--au-blue)" />} sub="Which content type earns the most per upload.">
                   <Bars items={ins.formats.map((f) => ({ label: KIND_LABEL[f.kind], value: f.avgInteractions, color: KIND_COLOR[f.kind] }))} />
                 </Panel>
               </div>
@@ -314,10 +314,10 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
 
             {/* Top performer */}
             {topPost && ins.top && (
-              <section className="au-card" style={{ display: "grid", gap: 16, borderColor: "rgba(255,59,82,.25)" }}>
+              <section className="au-card" style={{ display: "grid", gap: 16, borderColor: "color-mix(in srgb,var(--au-red) 25%,transparent)" }}>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <span className="au-pill" style={{ background: "#f5b301", color: "#1a1300" }}><Crown size={13} /> Top performer</span>
+                    <span className="au-pill" style={{ background: "var(--au-gold)", color: "var(--au-onk)" }}><Crown size={13} /> Top performer</span>
                     {ins.top.multipleOfAvg > 0 && <span className="au-pill high">{ins.top.multipleOfAvg}x vs avg</span>}
                   </div>
                   {topPost.permalink && <a href={topPost.permalink} target="_blank" rel="noopener noreferrer" className="au-btn ghost" style={{ padding: "8px 16px", fontSize: 13 }}>Open on Instagram <ExternalLink size={13} /></a>}
@@ -330,9 +330,9 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
                   </div>
                 </div>
                 <div className="au-grid3" style={{ gap: 10 }}>
-                  <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 12 }}>Likes</p><b className="au-head" style={{ fontSize: 22, color: "#ff3b52" }}>{topPost.likes === null ? "Hidden" : fmt(topPost.likes)}</b></div>
-                  <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 12 }}>Comments</p><b className="au-head" style={{ fontSize: 22, color: "#4aa8ff" }}>{fmt(topPost.comments)}</b></div>
-                  <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 12 }}>Post ER</p><b className="au-head" style={{ fontSize: 22, color: "#f5b301" }}>{ins.top.erPct === null ? "-" : `${ins.top.erPct}%`}</b></div>
+                  <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 12 }}>Likes</p><b className="au-head" style={{ fontSize: 22, color: "var(--au-red)" }}>{topPost.likes === null ? "Hidden" : fmt(topPost.likes)}</b></div>
+                  <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 12 }}>Comments</p><b className="au-head" style={{ fontSize: 22, color: "var(--au-blue)" }}>{fmt(topPost.comments)}</b></div>
+                  <div className="au-tile" style={{ textAlign: "center" }}><p className="au-muted" style={{ fontSize: 12 }}>Post ER</p><b className="au-head" style={{ fontSize: 22, color: "var(--au-amber)" }}>{ins.top.erPct === null ? "-" : `${ins.top.erPct}%`}</b></div>
                 </div>
               </section>
             )}
@@ -344,7 +344,7 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
         {/* Score breakdown */}
         <section className="au-card" style={{ display: "grid", gap: 14 }}>
           <h2 className="au-head" style={{ fontSize: 20, display: "flex", alignItems: "center", gap: 10 }}>
-            <Target size={20} color="#ff3b52" /> Score breakdown
+            <Target size={20} color="var(--au-red)" /> Score breakdown
           </h2>
           <div className="au-grid2">
             {report.categories.map((c) => (
@@ -361,7 +361,7 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
         {/* Findings */}
         <section className="au-card" style={{ display: "grid", gap: 12 }}>
           <h2 className="au-head" style={{ fontSize: 20, display: "flex", alignItems: "center", gap: 10 }}>
-            <ClipboardCheck size={20} color="#3ddc6b" /> Findings and fixes ({report.findings.length})
+            <ClipboardCheck size={20} color="var(--au-green)" /> Findings and fixes ({report.findings.length})
           </h2>
           {report.findings.length === 0 && <p className="au-muted" style={{ fontSize: 14 }}>No major issues found. Nice work.</p>}
           {report.findings.map((f) => (
@@ -374,7 +374,7 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
               <p style={{ fontSize: 14 }}><b>Fix:</b> {f.fix}</p>
               {/* One-tap automation recipes. Clicking opens the create form PRE-FILLED; nothing is created or sent from here. */}
               {recipesFor(f).length > 0 && (
-                <div style={{ marginTop: 6, display: "grid", gap: 8, borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 10 }}>
+                <div style={{ marginTop: 6, display: "grid", gap: 8, borderTop: "1px solid var(--au-tile)", paddingTop: 10 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <b style={{ fontSize: 13 }}>Turn this into an automation. What do people ask you for?</b>
                     <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
@@ -431,8 +431,8 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
                     <Thumb post={m} />
                     <span className="tag">{KIND_LABEL[m.kind]}</span>
                     <div className="meta">
-                      <span style={{ color: "#ff6e80" }}>{m.likes === null ? "Likes hidden" : `${fmt(m.likes)} likes`}</span>
-                      <span style={{ color: "#6cb4ff" }}>{fmt(m.comments)} {m.comments === 1 ? "comment" : "comments"}</span>
+                      <span style={{ color: "var(--au-brand)" }}>{m.likes === null ? "Likes hidden" : `${fmt(m.likes)} likes`}</span>
+                      <span style={{ color: "var(--au-blue)" }}>{fmt(m.comments)} {m.comments === 1 ? "comment" : "comments"}</span>
                     </div>
                   </Tag>
                 )
@@ -501,7 +501,7 @@ export default function AuditResultPage() {
             Audit reports are private. Connect the Instagram account that created it, or run a new audit for your own account.
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <button className="au-btn" onClick={connect}><Instagram size={18} /> Connect Instagram</button>
+            <button className="au-btn" onClick={connect}><AtSign size={18} /> Connect Instagram</button>
             <Link href="/instagram-audit" className="au-btn ghost">Run a new audit</Link>
           </div>
         </div>
@@ -512,7 +512,7 @@ export default function AuditResultPage() {
     return (
       <AuditShell>
         <div style={{ display: "flex", minHeight: "60vh", alignItems: "center", justifyContent: "center" }}>
-          <Loader2 size={32} className="animate-spin" style={{ color: "#ff3b52" }} />
+          <Loader2 size={32} className="animate-spin" style={{ color: "var(--au-red)" }} />
         </div>
       </AuditShell>
     )

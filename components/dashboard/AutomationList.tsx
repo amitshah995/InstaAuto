@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Globe, Instagram, Zap, ArrowRight, Lock, MessageCircle, Send, Compass, Eye, Pencil } from "lucide-react"
+import { Trash2, Globe, AtSign, Zap, ArrowRight, Lock, MessageCircle, Send, Compass, Eye, Pencil } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Automation } from "@/lib/types"
 import { EditRuleModal } from "@/components/dashboard/EditRuleModal"
@@ -68,7 +68,7 @@ export function AutomationList({ automations, onDelete, onUpdate, userId, onPrev
         {globalRules.length > 0 && (
           <div className="space-y-2.5">
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground ml-1">
-              <Globe className="w-3.5 h-3.5 text-blue-500" />
+              <Globe className="w-3.5 h-3.5 text-brand" />
               <span>Global Keyword Rules</span>
               <span className="text-[11px] font-normal text-muted-foreground">({globalRules.length})</span>
             </div>
@@ -82,7 +82,7 @@ export function AutomationList({ automations, onDelete, onUpdate, userId, onPrev
         {postSpecificRules.length > 0 && (
           <div className="space-y-2.5">
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground ml-1">
-              <Instagram className="w-3.5 h-3.5 text-pink-500" />
+              <AtSign className="w-3.5 h-3.5 text-brand" />
               <span>Post-Specific Automations</span>
               <span className="text-[11px] font-normal text-muted-foreground">({postSpecificRules.length})</span>
             </div>
@@ -139,13 +139,13 @@ function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router,
               <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <Instagram className="w-4 h-4 text-muted-foreground" />
+                <AtSign className="w-4 h-4 text-muted-foreground" />
               </div>
             )}
           </div>
         ) : (
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
-            <Globe className="w-4 h-4 text-blue-500" />
+          <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center border border-brand/20 shrink-0">
+            <Globe className="w-4 h-4 text-brand" />
           </div>
         )}
 
@@ -156,7 +156,7 @@ function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router,
             {confirming ? (
               <div className="flex items-center gap-1 animate-in fade-in">
                 <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} className="h-7 text-xs text-muted-foreground hover:bg-secondary">Cancel</Button>
-                <Button size="sm" onClick={() => onDelete(rule.id)} className="h-7 text-xs bg-red-500/15 text-red-600 hover:bg-red-500/25 border border-red-500/20">Delete</Button>
+                <Button size="sm" onClick={() => onDelete(rule.id)} className="h-7 text-xs bg-destructive/15 text-destructive hover:bg-destructive/25 border border-destructive/20">Delete</Button>
               </div>
             ) : (
               <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-all duration-200">
@@ -165,7 +165,7 @@ function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router,
                     variant="ghost"
                     size="icon"
                     onClick={() => onEdit(rule)}
-                    className="h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-secondary rounded-full transition-colors cursor-pointer"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors cursor-pointer"
                     title="Edit Keywords & Message"
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -176,7 +176,7 @@ function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router,
                     variant="ghost"
                     size="icon"
                     onClick={() => onPreview(rule)}
-                    className="h-8 w-8 text-muted-foreground hover:text-emerald-500 hover:bg-secondary rounded-full transition-colors cursor-pointer"
+                    className="h-8 w-8 text-muted-foreground hover:text-brand hover:bg-secondary rounded-full transition-colors cursor-pointer"
                     title="Live Preview Flow"
                   >
                     <Eye className="w-3.5 h-3.5" />
@@ -195,7 +195,7 @@ function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router,
                   variant="ghost"
                   size="icon"
                   onClick={() => setConfirming(true)}
-                  className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-secondary rounded-full transition-colors cursor-pointer"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-secondary rounded-full transition-colors cursor-pointer"
                   title="Delete"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -223,15 +223,15 @@ function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router,
             {/* Response type */}
             <div className="flex items-center gap-1.5">
               {isCard ? (
-                <Send className="w-3 h-3 text-blue-500" />
+                <Send className="w-3 h-3 text-brand" />
               ) : (
-                <MessageCircle className="w-3 h-3 text-emerald-500" />
+                <MessageCircle className="w-3 h-3 text-brand" />
               )}
               <span className="text-[11px] text-muted-foreground truncate max-w-[150px]">{responsePreview}</span>
             </div>
 
             {rule.response_content?.check_follow && (
-              <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] px-1.5 py-0">
+              <Badge variant="secondary" className="bg-primary/10 text-warn border border-primary/20 text-[10px] px-1.5 py-0">
                 <Lock className="w-2.5 h-2.5 mr-0.5" /> Follow
               </Badge>
             )}

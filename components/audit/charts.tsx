@@ -4,10 +4,10 @@ import { useState } from "react"
 
 /** Tiny dependency-free SVG charts in the audit palette. */
 
-const RED = "#ff3b52"
-const BLUE = "#4aa8ff"
-const GRID = "rgba(255,255,255,.07)"
-const AXIS = "#8b8b97"
+const RED = "var(--au-brand)"
+const BLUE = "var(--au-coral)"
+const GRID = "var(--au-line)"
+const AXIS = "var(--au-muted)"
 
 function niceMax(v: number) {
   if (v <= 0) return 10
@@ -42,12 +42,7 @@ export function LineChart({ labels, likes, comments }: { labels: string[]; likes
             <text x={L - 6} y={y(t) + 4} textAnchor="end" fontSize="10" fill={AXIS}>{t}</text>
           </g>
         ))}
-        <defs>
-          <linearGradient id="au-area" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor={RED} stopOpacity=".35" /><stop offset="1" stopColor={RED} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {n > 1 && <path d={area} fill="url(#au-area)" />}
+        {n > 1 && <path d={area} fill={RED} fillOpacity=".12" />}
         <path d={path(likes)} fill="none" stroke={RED} strokeWidth="2.5" strokeLinejoin="round" />
         <path d={path(comments)} fill="none" stroke={BLUE} strokeWidth="2" strokeDasharray="5 4" />
         {likes.map((v, i) => (
@@ -61,8 +56,8 @@ export function LineChart({ labels, likes, comments }: { labels: string[]; likes
         ))}
         {hover !== null && (
           <g pointerEvents="none">
-            <rect x={Math.min(Math.max(x(hover) - 55, L), W - R - 110)} y={T + 2} width="110" height="44" rx="8" fill="#050507" stroke={GRID} />
-            <text x={Math.min(Math.max(x(hover) - 55, L), W - R - 110) + 8} y={T + 18} fontSize="11" fill="#fff">{labels[hover]}</text>
+            <rect x={Math.min(Math.max(x(hover) - 55, L), W - R - 110)} y={T + 2} width="110" height="44" rx="8" fill="var(--au-card)" stroke={GRID} />
+            <text x={Math.min(Math.max(x(hover) - 55, L), W - R - 110) + 8} y={T + 18} fontSize="11" fill="var(--au-text)">{labels[hover]}</text>
             <text x={Math.min(Math.max(x(hover) - 55, L), W - R - 110) + 8} y={T + 31} fontSize="11" fill={RED}>Likes: {likes[hover]}</text>
             <text x={Math.min(Math.max(x(hover) - 55, L), W - R - 110) + 8} y={T + 43} fontSize="11" fill={BLUE}>Comments: {comments[hover]}</text>
           </g>
@@ -90,7 +85,7 @@ export function Donut({ parts, center, hideLegend }: { parts: { label: string; v
           acc += len
           return el
         })}
-        <text x="100" y="98" textAnchor="middle" fontSize="26" fontWeight="800" fill="#fff">{center ? center.value : total}</text>
+        <text x="100" y="98" textAnchor="middle" fontSize="26" fontWeight="800" fill="var(--au-text)">{center ? center.value : total}</text>
         <text x="100" y="116" textAnchor="middle" fontSize="11" fill={AXIS}>{center ? center.label : "posts"}</text>
       </svg>
       {!hideLegend && <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center", marginTop: 12, fontSize: 13 }}>
@@ -117,7 +112,7 @@ export function Bars({ items, color = RED }: { items: { label: string; value: nu
         return (
           <g key={it.label}>
             <rect x={L + i * bw + bw * 0.2} y={H - B - h} width={bw * 0.6} height={Math.max(h, 0)} rx="6" fill={it.color ?? color} opacity={it.value ? 0.9 : 0.25} />
-            {it.value > 0 && <text x={L + i * bw + bw / 2} y={H - B - h - 5} textAnchor="middle" fontSize="10" fill="#d4d4dc">{it.value}</text>}
+            {it.value > 0 && <text x={L + i * bw + bw / 2} y={H - B - h - 5} textAnchor="middle" fontSize="10" fill="var(--au-muted)">{it.value}</text>}
             <text x={L + i * bw + bw / 2} y={H - 8} textAnchor="middle" fontSize="10" fill={AXIS}>{it.label}</text>
           </g>
         )

@@ -65,16 +65,8 @@ export default function InboxPage() {
                 transition: "opacity 0.55s cubic-bezier(0.23,1,0.32,1), transform 0.55s cubic-bezier(0.23,1,0.32,1)",
             }}
         >
-            {/* Subtle ambient glow */}
-            <div
-                className="pointer-events-none absolute -inset-4 -z-10 rounded-3xl"
-                style={{
-                    background: "radial-gradient(ellipse 60% 45% at 50% 0%, hsl(var(--primary) / 0.08) 0%, transparent 70%)",
-                    filter: "blur(28px)",
-                }}
-            />
 
-            <div className="h-[calc(100vh-2rem)] rounded-2xl overflow-hidden border border-border bg-card/30 backdrop-blur-xl shadow-xl flex relative">
+            <div className="h-[calc(100vh-2rem)] rounded-2xl overflow-hidden border border-border bg-card flex relative">
                 {/* Left Sidebar: Conversation List */}
                 <div className={cn(
                     "w-full md:w-[350px] flex-shrink-0 border-r border-border bg-card/20 absolute md:static inset-0 z-10 transition-transform duration-300 md:translate-x-0 h-full",

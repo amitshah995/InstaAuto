@@ -76,9 +76,9 @@ export default function WhatsAppAnalyticsPage() {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
                 <div className="relative">
-                    <div className="absolute inset-0 w-14 h-14 rounded-full border-2 border-emerald-500/30 animate-ping" />
+                    <div className="absolute inset-0 w-14 h-14 rounded-full border-2 border-brand/30 animate-ping" />
                     <div className="relative w-14 h-14 flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                        <Loader2 className="w-8 h-8 text-brand animate-spin" />
                     </div>
                 </div>
                 <p className="text-sm text-muted-foreground animate-pulse font-medium">Loading WhatsApp analytics...</p>
@@ -91,7 +91,7 @@ export default function WhatsAppAnalyticsPage() {
         { id: "w1", type: "incoming", phone: "+91 98765 43210", content: "price details", time: "10:30 AM", trigger: "price" },
         { id: "w2", type: "reply", phone: "+91 98765 43210", content: "Here is our catalog with details!", time: "10:30 AM", status: "delivered" },
         { id: "w3", type: "incoming", phone: "+91 88776 55443", content: "discount code", time: "09:15 AM", trigger: "discount" },
-        { id: "w4", type: "reply", phone: "+91 88776 55443", content: "Use coupon code DMSPARK50 for 50% off!", time: "09:15 AM", status: "read" },
+        { id: "w4", type: "reply", phone: "+91 88776 55443", content: "Use coupon code CELRA50 for 50% off!", time: "09:15 AM", status: "read" },
         { id: "w5", type: "incoming", phone: "+91 76543 21098", content: "hi, is this open?", time: "Yesterday", trigger: "hi" },
         { id: "w6", type: "reply", phone: "+91 76543 21098", content: "Hello! Yes, we are open until 8 PM.", time: "Yesterday", status: "read" }
     ]
@@ -128,8 +128,8 @@ export default function WhatsAppAnalyticsPage() {
     }
 
     const pieData = [
-        { name: "Automated Rules", value: 72, color: "#10b981" }, // emerald-500
-        { name: "Custom Manual DMs", value: 28, color: "#14b8a6" } // teal-500
+        { name: "Automated Rules", value: 72, color: "var(--chart-1)" }, // emerald-500
+        { name: "Custom Manual DMs", value: 28, color: "var(--chart-2)" } // teal-500
     ]
 
     const topKeywords = [
@@ -154,7 +154,7 @@ export default function WhatsAppAnalyticsPage() {
                         <button 
                             key={t}
                             onClick={() => setTimeframe(t)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer capitalize ${timeframe === t ? "bg-background text-emerald-500 shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer capitalize ${timeframe === t ? "bg-background text-brand shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                         >
                             {t === "all" ? "All Time" : t === "24h" ? "24 Hours" : t === "7d" ? "7 Days" : "30 Days"}
                         </button>
@@ -164,50 +164,50 @@ export default function WhatsAppAnalyticsPage() {
 
             {/* Quick Metrics Grid */}
             <div className={`grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: '100ms' }}>
-                <Card className="group relative p-3 md:p-6 bg-card/60 border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-emerald-500/20 transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden gap-2 md:gap-4">
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.08),transparent_70%)]" />
+                <Card className="group relative p-3 md:p-6 bg-card/60 border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-brand/20 transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden gap-2 md:gap-4">
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-brand/5" />
                     <div className="relative space-y-1 md:space-y-2 flex-1 min-w-0">
                         <span className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider leading-tight block">Total WhatsApp Replies</span>
                         <h3 className="text-xl md:text-2xl font-black tracking-tight text-foreground"><AnimatedCounter value={284} /></h3>
-                        <p className="text-[9px] md:text-[10px] text-emerald-500 font-bold hidden sm:block">+24.5% vs last week</p>
+                        <p className="text-[9px] md:text-[10px] text-brand font-bold hidden sm:block">+24.5% vs last week</p>
                     </div>
-                    <div className="relative p-2 md:p-3 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-xl">
+                    <div className="relative p-2 md:p-3 bg-brand/10 text-brand border border-brand/20 rounded-xl">
                         <MessageSquare className="w-5 h-5" />
                     </div>
                 </Card>
 
-                <Card className="group relative p-3 md:p-6 bg-card/60 border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-emerald-500/20 transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden gap-2 md:gap-4">
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.08),transparent_70%)]" />
+                <Card className="group relative p-3 md:p-6 bg-card/60 border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-brand/20 transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden gap-2 md:gap-4">
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-brand/5" />
                     <div className="relative space-y-1 md:space-y-2 flex-1 min-w-0">
                         <span className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider leading-tight block">Contacts Reached</span>
                         <h3 className="text-xl md:text-2xl font-black tracking-tight text-foreground"><AnimatedCounter value={94} /></h3>
-                        <p className="text-[9px] md:text-[10px] text-teal-500 font-bold hidden sm:block">+12.3% active chat threads</p>
+                        <p className="text-[9px] md:text-[10px] text-brand font-bold hidden sm:block">+12.3% active chat threads</p>
                     </div>
-                    <div className="relative p-2 md:p-3 bg-teal-500/10 text-teal-500 border border-teal-500/20 rounded-xl">
+                    <div className="relative p-2 md:p-3 bg-brand/10 text-brand border border-brand/20 rounded-xl">
                         <Users className="w-5 h-5" />
                     </div>
                 </Card>
 
-                <Card className="group relative p-3 md:p-6 bg-card/60 border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-emerald-500/20 transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden gap-2 md:gap-4">
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.08),transparent_70%)]" />
+                <Card className="group relative p-3 md:p-6 bg-card/60 border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-brand/20 transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden gap-2 md:gap-4">
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-brand/5" />
                     <div className="relative space-y-1 md:space-y-2 flex-1 min-w-0">
                         <span className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider leading-tight block">Active Rules</span>
                         <h3 className="text-xl md:text-2xl font-black tracking-tight text-foreground">5/5</h3>
-                        <p className="text-[9px] md:text-[10px] text-emerald-500 font-bold hidden sm:block">Automations listener active</p>
+                        <p className="text-[9px] md:text-[10px] text-brand font-bold hidden sm:block">Automations listener active</p>
                     </div>
-                    <div className="relative p-2 md:p-3 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-xl">
+                    <div className="relative p-2 md:p-3 bg-brand/10 text-brand border border-brand/20 rounded-xl">
                         <Zap className="w-5 h-5" />
                     </div>
                 </Card>
 
-                <Card className="group relative p-3 md:p-6 bg-card/60 border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-emerald-500/20 transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden gap-2 md:gap-4">
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.08),transparent_70%)]" />
+                <Card className="group relative p-3 md:p-6 bg-card/60 border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-brand/20 transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between overflow-hidden gap-2 md:gap-4">
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-brand/5" />
                     <div className="relative space-y-1 md:space-y-2 flex-1 min-w-0">
                         <span className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider leading-tight block">Template Delivery Rate</span>
                         <h3 className="text-xl md:text-2xl font-black tracking-tight text-foreground">99.6%</h3>
-                        <p className="text-[9px] md:text-[10px] text-emerald-500 font-bold hidden sm:block">Meta API healthy</p>
+                        <p className="text-[9px] md:text-[10px] text-brand font-bold hidden sm:block">Meta API healthy</p>
                     </div>
-                    <div className="relative p-2 md:p-3 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-xl">
+                    <div className="relative p-2 md:p-3 bg-brand/10 text-brand border border-brand/20 rounded-xl">
                         <TrendingUp className="w-5 h-5" />
                     </div>
                 </Card>
@@ -232,7 +232,7 @@ export default function WhatsAppAnalyticsPage() {
                                             onClick={() => setChartTimeframe(t)}
                                             className={`px-2.5 py-1 rounded-md text-[10px] transition-all cursor-pointer ${
                                                 chartTimeframe === t
-                                                    ? "bg-background text-emerald-500 shadow-sm font-bold"
+                                                    ? "bg-background text-brand shadow-sm font-bold"
                                                     : "text-muted-foreground hover:text-foreground font-medium"
                                             }`}
                                         >
@@ -240,7 +240,7 @@ export default function WhatsAppAnalyticsPage() {
                                         </button>
                                     ))}
                                 </div>
-                                <span className="flex items-center gap-1 text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full shrink-0">
+                                <span className="flex items-center gap-1 text-xs text-brand font-bold bg-brand/10 px-2.5 py-1 rounded-full shrink-0">
                                     <TrendingUp className="w-3.5 h-3.5" /> +24.5%
                                 </span>
                             </div>
@@ -248,14 +248,8 @@ export default function WhatsAppAnalyticsPage() {
                         <div className="h-72 w-full mt-4">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={chartDataMap[chartTimeframe]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="colorWa" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                                    <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                                     <Tooltip 
                                         contentStyle={{ 
                                             backgroundColor: "var(--card)", 
@@ -266,7 +260,7 @@ export default function WhatsAppAnalyticsPage() {
                                             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)"
                                         }} 
                                     />
-                                    <Area type="monotone" dataKey="messages" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorWa)" name="Total Messages" />
+                                    <Area type="monotone" dataKey="messages" stroke="var(--chart-1)" strokeWidth={2.5} fillOpacity={0.12} fill="var(--chart-1)" name="Total Messages" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
@@ -333,13 +327,13 @@ export default function WhatsAppAnalyticsPage() {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-extrabold text-foreground text-sm tracking-tight">Top Keyword Triggers</h3>
-                            <Award className="w-5 h-5 text-emerald-500" />
+                            <Award className="w-5 h-5 text-brand" />
                         </div>
                         <div className="space-y-4">
                             {topKeywords.map((kw, idx) => (
                                 <div key={idx} className="flex items-center justify-between p-3 bg-secondary/50 border border-border rounded-xl">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 font-extrabold text-xs flex items-center justify-center font-mono">
+                                        <div className="w-7 h-7 rounded-lg bg-brand/10 text-brand font-extrabold text-xs flex items-center justify-center font-mono">
                                             #{idx + 1}
                                         </div>
                                         <div>
@@ -349,7 +343,7 @@ export default function WhatsAppAnalyticsPage() {
                                     </div>
                                     <div className="text-right">
                                         <span className="text-xs font-bold text-foreground block">{kw.count} hits</span>
-                                        <span className="text-[10px] text-emerald-500 font-bold">{kw.rate} success</span>
+                                        <span className="text-[10px] text-brand font-bold">{kw.rate} success</span>
                                     </div>
                                 </div>
                             ))}
@@ -372,7 +366,7 @@ export default function WhatsAppAnalyticsPage() {
                                         onClick={() => setFeedFilter(filter)}
                                         className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer capitalize ${
                                             feedFilter === filter
-                                                ? "bg-background text-emerald-500 shadow-sm"
+                                                ? "bg-background text-brand shadow-sm"
                                                 : "text-muted-foreground hover:text-foreground"
                                         }`}
                                     >
@@ -387,11 +381,11 @@ export default function WhatsAppAnalyticsPage() {
                                 const isIncoming = msg.type === "incoming";
                                 let badgeText = isIncoming ? "Trigger Detected" : "Reply Sent";
                                 let badgeStyle = isIncoming 
-                                    ? "bg-teal-500/10 text-teal-500 border border-teal-500/20" 
-                                    : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20";
+                                    ? "bg-brand/10 text-brand border border-brand/20" 
+                                    : "bg-brand/10 text-brand border border-brand/20";
                                 let iconElement = isIncoming 
-                                    ? <Users className="w-3.5 h-3.5 text-teal-500" /> 
-                                    : <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />;
+                                    ? <Users className="w-3.5 h-3.5 text-brand" /> 
+                                    : <MessageSquare className="w-3.5 h-3.5 text-brand" />;
 
                                 return (
                                     <div
@@ -400,8 +394,8 @@ export default function WhatsAppAnalyticsPage() {
                                     >
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
                                             <div className="relative">
-                                                <span className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping opacity-75" style={{ animationDuration: '2s' }} />
-                                                <span className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+                                                <span className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 bg-brand rounded-full animate-ping opacity-75" style={{ animationDuration: '2s' }} />
+                                                <span className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 bg-brand rounded-full" />
                                             </div>
                                             <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center border border-border/80 shrink-0">
                                                 {iconElement}
@@ -437,7 +431,7 @@ export default function WhatsAppAnalyticsPage() {
                     </div>
                     <div className="mt-6 pt-4 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-muted-foreground font-semibold">
                         <span>Real-time logs from WhatsApp Cloud API webhook</span>
-                        <a href="/whatsapp-dashboard/automations" className="text-emerald-500 font-bold flex items-center gap-1 hover:underline">
+                        <a href="/whatsapp-dashboard/automations" className="text-brand font-bold flex items-center gap-1 hover:underline">
                             Manage Templates <ArrowUpRight className="w-3.5 h-3.5" />
                         </a>
                     </div>

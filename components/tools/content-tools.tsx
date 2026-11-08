@@ -25,8 +25,8 @@ export function CaptionChecker() {
         <>
           <Panel title="What people see before &quot;more&quot;">
             <div className="au-bubble">
-              <span style={{ color: "#fff" }}>{r.preview}</span>
-              {r.hidden && <><span className="au-muted"> ... </span><b style={{ color: "#9a9aa6" }}>more</b></>}
+              <span style={{ color: "var(--au-text)" }}>{r.preview}</span>
+              {r.hidden && <><span className="au-muted"> ... </span><b style={{ color: "var(--au-muted)" }}>more</b></>}
             </div>
             <p className="au-muted" style={{ fontSize: 12 }}>About the first {PREVIEW_CHARS} characters show in the feed. The rest is hidden until someone taps &quot;more&quot;.</p>
           </Panel>
@@ -165,7 +165,7 @@ export function InstagramImageSizes() {
                 {g.rows.map(([n, s, ratio, tip]) => (
                   <tr key={n} style={{ borderTop: "1px solid var(--au-line)" }}>
                     <td style={{ padding: "10px 8px 10px 0", fontWeight: 600 }}>{n}</td>
-                    <td className="au-head" style={{ color: "#ff6e80", whiteSpace: "nowrap" }}>{s}</td>
+                    <td className="au-head" style={{ color: "var(--au-brand)", whiteSpace: "nowrap" }}>{s}</td>
                     <td className="au-muted">{ratio}</td>
                     <td className="au-muted" style={{ fontSize: 13 }}>{tip}</td>
                   </tr>
