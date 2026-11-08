@@ -109,6 +109,12 @@ export async function POST(request: NextRequest) {
       { label: "audits", sql: "DELETE FROM audits WHERE user_id = $1" },
       { label: "follower_snapshots", sql: "DELETE FROM follower_snapshots WHERE user_id = $1" },
       { label: "report_shares", sql: "DELETE FROM report_shares WHERE user_id = $1" },
+      // QA fix: new tables hold DM text, PSIDs and lead data (names, emails, phones), so they must go with the account.
+      // subscriptions / billing_events are kept on purpose (payment records; they hold only a numeric id, no profile data).
+      { label: "failed_sends", sql: "DELETE FROM failed_sends WHERE user_id = $1" },
+      { label: "webhook_deliveries", sql: "DELETE FROM webhook_deliveries WHERE user_id = $1" },
+      { label: "webhook_endpoints", sql: "DELETE FROM webhook_endpoints WHERE user_id = $1" },
+      { label: "usage_counters", sql: "DELETE FROM usage_counters WHERE user_id = $1" },
       { label: "team_members", sql: "DELETE FROM team_members WHERE owner_id = $1 OR member_id = $1" },
       { label: "team_invites", sql: "DELETE FROM team_invites WHERE owner_id = $1" },
     ]
