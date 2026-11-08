@@ -296,9 +296,11 @@ export async function POST(request: NextRequest) {
               )
             }
 
-            // Priority 3: Global Keyword Match (Only if no specific match found)
+            // Priority 3: Global Keyword Match (Only if no specific match found).
+            // Searches commentAutomations only: before, this searched ALL automations, so a DM-keyword
+            // or story rule with the same word could fire on a public comment.
             if (!match) {
-              match = automations.find(
+              match = commentAutomations.find(
                 (a: any) =>
                   !a.specific_media_id &&
                   a.trigger_type === "keyword" &&
