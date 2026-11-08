@@ -95,7 +95,7 @@ export function LandingPage() {
 
       {/* Background glow effects */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] left-1/4 w-[600px] h-[600px] bg-[#1a73e8]/[0.06] rounded-full blur-[140px]" />
+        <div className="absolute -top-[10%] left-1/4 w-[600px] h-[600px] bg-[#D62976]/[0.06] rounded-full blur-[140px]" />
         <div className="absolute -bottom-[20%] right-1/4 w-[500px] h-[500px] bg-[#34a853]/[0.04] rounded-full blur-[120px]" />
       </div>
 
@@ -103,12 +103,12 @@ export function LandingPage() {
       <nav className="relative z-50 h-16 shrink-0 flex items-center justify-between px-6 md:px-12 border-b border-border bg-white/60 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <img src="/logo.png" alt="DMSpark" className="w-10 h-10 object-contain" />
-          <span className="text-xl font-black tracking-tight text-[#1a73e8]">DMSpark</span>
+          <span className="text-xl font-black tracking-tight text-[#D62976]">DMSpark</span>
         </div>
         <Button
           asChild
           variant="outline"
-          className="rounded-full px-5 h-9 text-xs font-bold uppercase tracking-widest hover:bg-[#1a73e8]/5 hover:text-[#1a73e8] hover:border-[#1a73e8]/30 transition-all bg-transparent border-border flex items-center gap-1.5 cursor-pointer"
+          className="rounded-full px-5 h-9 text-xs font-bold uppercase tracking-widest hover:bg-[#D62976]/5 hover:text-[#D62976] hover:border-[#D62976]/30 transition-all bg-transparent border-border flex items-center gap-1.5 cursor-pointer"
         >
           <a href={instagramAuthUrl}>
             <Instagram className="w-3.5 h-3.5" /> Login
@@ -136,7 +136,7 @@ export function LandingPage() {
           >
             Auto Reply.
             <br />
-            <span className="text-[#1a73e8] bg-gradient-to-r from-[#1a73e8] to-[#1a73e8]/80 bg-clip-text">Auto Grow.</span>
+            <span className="text-[#D62976] bg-gradient-to-r from-[#D62976] to-[#D62976]/80 bg-clip-text">Auto Grow.</span>
           </h1>
 
           <p 
@@ -152,7 +152,7 @@ export function LandingPage() {
           >
             <Button
               asChild
-              className="bg-[#1a73e8] text-white h-13 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base hover:scale-[1.03] transition-all duration-300 shadow-xl shadow-[#1a73e8]/20 hover:bg-[#1557b0] flex items-center justify-center gap-2 group w-full sm:w-auto cursor-pointer"
+              className="bg-[#D62976] text-white h-13 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base hover:scale-[1.03] transition-all duration-300 shadow-xl shadow-[#D62976]/20 hover:bg-[#B8225F] flex items-center justify-center gap-2 group w-full sm:w-auto cursor-pointer"
             >
               <a href={instagramAuthUrl}>
                 Connect Instagram <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
@@ -253,7 +253,7 @@ export function LandingPage() {
             <button
               onClick={() => setViewMode('mobile')}
               className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                viewMode === 'mobile' ? 'bg-[#1a73e8] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'
+                viewMode === 'mobile' ? 'bg-[#D62976] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               Mobile View
@@ -261,7 +261,7 @@ export function LandingPage() {
             <button
               onClick={() => setViewMode('laptop')}
               className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                viewMode === 'laptop' ? 'bg-[#1a73e8] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'
+                viewMode === 'laptop' ? 'bg-[#D62976] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               Laptop View
@@ -280,7 +280,7 @@ export function LandingPage() {
 
               {/* Instagram Mock Header */}
               <div className="flex items-center gap-2 border-b border-slate-100 pb-2 pt-4 px-3 shrink-0 bg-white/90 backdrop-blur-sm z-10">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#fbbc04] via-[#ea4335] to-[#1a73e8] p-0.5">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#fbbc04] via-[#ea4335] to-[#D62976] p-0.5">
                   <div className="w-full h-full rounded-full bg-white p-0.5">
                     <img src="/logo.png" alt="Profile" className="w-full h-full object-contain rounded-full" />
                   </div>
@@ -307,7 +307,7 @@ export function LandingPage() {
 
                 {/* DM Reply Bubble (Looping Animation) */}
                 <div className="anim-reply absolute left-2.5 right-2.5 top-3 flex items-start gap-1.5 justify-end">
-                  <div className="bg-[#1a73e8] text-white rounded-xl rounded-tr-none p-2 max-w-[80%] shadow-lg shadow-blue-500/10">
+                  <div className="bg-[#D62976] text-white rounded-xl rounded-tr-none p-2 max-w-[80%] shadow-lg shadow-blue-500/10">
                     <div className="flex items-center gap-1">
                       <img src="/logo.png" alt="DMSpark" className="w-2.5 h-2.5 object-contain brightness-0 invert" />
                       <span className="text-[7px] font-black uppercase tracking-wider opacity-85">DMSpark</span>
@@ -366,9 +366,9 @@ export function LandingPage() {
                       <div className="w-[70px] border-r border-slate-200 bg-white p-2 space-y-1.5 shrink-0 flex flex-col">
                         <div className="flex items-center gap-1.5 mb-2.5">
                           <img src="/logo.png" alt="Logo" className="w-4 h-4 object-contain" />
-                          <span className="font-black text-[8px] text-[#1a73e8] leading-none">DMSpark</span>
+                          <span className="font-black text-[8px] text-[#D62976] leading-none">DMSpark</span>
                         </div>
-                        <div className="h-4 w-full bg-blue-50 text-[#1a73e8] font-bold px-1.5 rounded flex items-center gap-1 text-[7px] shrink-0">📊 Dash</div>
+                        <div className="h-4 w-full bg-blue-50 text-[#D62976] font-bold px-1.5 rounded flex items-center gap-1 text-[7px] shrink-0">📊 Dash</div>
                         <div className="h-4 w-full text-slate-400 px-1.5 rounded flex items-center gap-1 text-[7px] shrink-0">⚡ Rules</div>
                         <div className="h-4 w-full text-slate-400 px-1.5 rounded flex items-center gap-1 text-[7px] shrink-0">📥 Inbox</div>
                       </div>
@@ -436,9 +436,9 @@ export function LandingPage() {
           {/* Quick Feature Grid */}
           <div className="grid grid-cols-3 gap-3 w-full max-w-[450px] shrink-0">
             <MiniCard 
-              icon={<MessageCircle className="w-4 h-4 text-[#1a73e8]" />}
+              icon={<MessageCircle className="w-4 h-4 text-[#D62976]" />}
               title="Auto Reply"
-              bg="bg-[#1a73e8]/10"
+              bg="bg-[#D62976]/10"
             />
             <MiniCard 
               icon={<Shield className="w-4 h-4 text-[#34a853]" />}

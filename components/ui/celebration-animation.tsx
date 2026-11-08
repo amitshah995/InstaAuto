@@ -58,10 +58,10 @@ export function CelebrationAnimation({
 
     // Google palette colors + celebration golds & purples
     const colors = [
-      "#4285F4", // Google Blue
-      "#EA4335", // Google Red
-      "#FBBC05", // Google Yellow
-      "#34A853", // Google Green
+      "#515BD4", // Instagram indigo
+      "#DD2A7B", // Instagram pink
+      "#FEDA77", // Instagram yellow
+      "#F58529", // Instagram orange
       "#FF6D00", // Vibrant Orange
       "#A142F4", // Neon Purple
       "#00E5FF", // Cyan Sparkle
@@ -242,7 +242,7 @@ export function CelebrationAnimation({
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                    <Zap className="w-5 h-5 text-[#1a73e8]" />
+                    <Zap className="w-5 h-5 text-[#D62976]" />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
@@ -264,7 +264,7 @@ export function CelebrationAnimation({
                   {keywords.split(",").map((k, i) => (
                     <span
                       key={i}
-                      className="px-2 py-0.5 rounded-md bg-[#1a73e8]/10 text-[#1a73e8] text-xs font-bold"
+                      className="px-2 py-0.5 rounded-md bg-[#D62976]/10 text-[#D62976] text-xs font-bold"
                     >
                       {k.trim()}
                     </span>
@@ -288,7 +288,7 @@ export function CelebrationAnimation({
           {/* Action Button */}
           <button
             onClick={onClose}
-            className="w-full h-12 rounded-2xl bg-[#1a73e8] hover:bg-[#1557b0] text-white font-bold text-sm shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full h-12 rounded-2xl bg-[#D62976] hover:bg-[#B8225F] text-white font-bold text-sm shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>Awesome, Got It!</span>
             <ArrowRight className="w-4 h-4" />

@@ -79,7 +79,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
                   className={cn(
                     "relative px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200",
                     isActive(item)
-                      ? "text-[#1a73e8] bg-[#1a73e8]/8"
+                      ? "text-[#D62976] bg-[#D62976]/8"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                   )}
                 >
@@ -91,7 +91,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
                 className={cn(
                   "relative px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200",
                   pathname.startsWith("/dashboard/help")
-                    ? "text-[#1a73e8] bg-[#1a73e8]/8"
+                    ? "text-[#D62976] bg-[#D62976]/8"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 )}
               >
@@ -120,7 +120,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
           {!isConnected ? (
             <a
               href={instagramAuthUrl}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1a73e8] hover:bg-[#1557b0] text-white text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full ig-gradient text-white text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
             >
               <Instagram className="w-4 h-4" />
               <span>Connect</span>
@@ -171,7 +171,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                   isActive(item)
-                    ? "text-[#1a73e8] bg-[#1a73e8]/8"
+                    ? "text-[#D62976] bg-[#D62976]/8"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                 )}
               >
@@ -185,7 +185,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                 pathname.startsWith("/dashboard/help")
-                  ? "text-[#1a73e8] bg-[#1a73e8]/8"
+                  ? "text-[#D62976] bg-[#D62976]/8"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
               )}
             >

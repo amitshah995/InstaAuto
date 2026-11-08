@@ -56,7 +56,7 @@ export function GoogleSearchHome() {
 
   const featurePills = [
     { label: "Instant Comment Auto-Reply", icon: <Zap className="w-3.5 h-3.5 text-amber-500" /> },
-    { label: "Follower Growth Gate", icon: <Shield className="w-3.5 h-3.5 text-[#1a73e8]" /> },
+    { label: "Follower Growth Gate", icon: <Shield className="w-3.5 h-3.5 text-[#D62976]" /> },
     { label: "Replies While You Sleep", icon: <Clock className="w-3.5 h-3.5 text-emerald-500" /> },
     { label: "Direct Message Funnels", icon: <MessageCircle className="w-3.5 h-3.5 text-indigo-500" /> },
   ]
@@ -88,11 +88,11 @@ export function GoogleSearchHome() {
           <div
             className={`flex items-center w-full h-12 md:h-14 rounded-full border bg-background px-4 md:px-6 gap-3 transition-all duration-300 ${
               searchFocused
-                ? "border-[#1a73e8] shadow-xl shadow-[#1a73e8]/10 ring-4 ring-[#1a73e8]/15 scale-[1.01]"
+                ? "border-[#D62976] shadow-xl shadow-[#D62976]/10 ring-4 ring-[#D62976]/15 scale-[1.01]"
                 : "border-border/90 shadow-sm hover:shadow-md hover:border-border"
             }`}
           >
-            <Search className={`w-5 h-5 shrink-0 transition-all duration-300 ${searchFocused ? "text-[#1a73e8] scale-110" : "text-muted-foreground/50"}`} />
+            <Search className={`w-5 h-5 shrink-0 transition-all duration-300 ${searchFocused ? "text-[#D62976] scale-110" : "text-muted-foreground/50"}`} />
             
             <div className="relative flex-1 h-full flex items-center">
               <input
@@ -145,7 +145,7 @@ export function GoogleSearchHome() {
           {searchFocused && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-background/98 backdrop-blur-md border border-border rounded-2xl shadow-2xl z-50 overflow-hidden p-5 text-left animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-[#1a73e8]" />
+                <Sparkles className="w-4 h-4 text-[#D62976]" />
                 <span className="text-xs font-bold text-foreground">
                   {searchQuery ? `Auto-Reply Trigger: "${searchQuery}"` : "Instant Instagram Automation"}
                 </span>
@@ -155,7 +155,7 @@ export function GoogleSearchHome() {
               </p>
               <a
                 href={instagramAuthUrl}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1a73e8] hover:bg-[#1557b0] text-white text-xs font-bold transition-all shadow-md shadow-blue-500/15 cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#D62976] hover:bg-[#B8225F] text-white text-xs font-bold transition-all shadow-md shadow-blue-500/15 cursor-pointer"
               >
                 <Instagram className="w-4 h-4" />
                 <span>Connect Instagram to Launch</span>
@@ -169,7 +169,7 @@ export function GoogleSearchHome() {
         <div className="flex items-center gap-3 mt-7 md:mt-8 flex-wrap justify-center">
           <a
             href={instagramAuthUrl}
-            className="group flex items-center gap-2 h-11 md:h-12 px-6 md:px-7 rounded-full bg-[#1a73e8] hover:bg-[#1557b0] text-white text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20 active:scale-95 cursor-pointer"
+            className="group flex items-center gap-2 h-11 md:h-12 px-6 md:px-7 rounded-full ig-gradient text-white text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20 active:scale-95 cursor-pointer"
           >
             <Instagram className="w-4 h-4 transition-transform group-hover:scale-110" />
             <span>Connect Instagram</span>

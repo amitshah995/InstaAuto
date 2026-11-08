@@ -68,7 +68,7 @@ export function InstagramConnectAnimation() {
       "#FCAF45", // Instagram Yellow
       "#833AB4", // Instagram Purple
       "#405DE6", // Instagram Blue
-      "#1a73e8", // DMSpark Blue
+      "#D62976", // DMSpark Blue
       "#C13584", // Instagram Magenta
       "#FD1D1D", // Instagram Red
     ]

@@ -14,9 +14,8 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.01 260);
 
-  /* Primary is Google Blue (#1a73e8) */
-  --primary: 214 82% 51%; /* Using hsl values for easy tailwind parsing if needed, but oklch is native in v4. Let's use oklch or hex. */
-  --primary: oklch(0.58 0.16 260); /* Blue */
+  /* Primary is Google Blue (#D62976) */
+  --primary: oklch(0.58 0.2 0); /* Instagram pink #D62976 */
   --primary-foreground: oklch(1 0 0); /* White text on blue */
 
   /* Secondary is a very light gray/blue */
@@ -36,47 +35,47 @@
 
   --border: oklch(0.92 0.01 260);
   --input: oklch(0.92 0.01 260);
-  --ring: oklch(0.58 0.16 260 / 0.3);
+  --ring: oklch(0.58 0.2 0 / 0.3);
 
-  --radius: 0.5rem; /* Crisper, slightly smaller radius for clean look */
+  --radius: 0.75rem; /* Instagram uses soft, rounded cards */
 
   --sidebar: oklch(0.99 0 0);    /* Pure white sidebar */
   --sidebar-foreground: oklch(0.3 0.01 260);
-  --sidebar-primary: oklch(0.58 0.16 260);
+  --sidebar-primary: oklch(0.58 0.2 0);
   --sidebar-border: oklch(0.92 0.01 260);
   --sidebar-accent: oklch(0.96 0.01 260);
   --sidebar-accent-foreground: oklch(0.2 0.01 260);
-  --sidebar-ring: oklch(0.58 0.16 260 / 0.2);
+  --sidebar-ring: oklch(0.58 0.2 0 / 0.2);
 }
 
 .dark {
   /* We maintain a clean dark mode just in case, but default is light */
-  --background: oklch(0.15 0.01 260);
+  --background: oklch(0.1 0 0);
   --foreground: oklch(0.98 0 0);
-  --card: oklch(0.18 0.01 260);
+  --card: oklch(0.15 0 0);
   --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.18 0.01 260);
+  --popover: oklch(0.15 0 0);
   --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.65 0.16 260); /* Lighter blue for dark mode */
+  --primary: oklch(0.68 0.2 0); /* Lighter blue for dark mode */
   --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.22 0.01 260);
+  --secondary: oklch(0.22 0 0);
   --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.22 0.01 260);
-  --muted-foreground: oklch(0.7 0.01 260);
-  --accent: oklch(0.22 0.01 260);
+  --muted: oklch(0.22 0 0);
+  --muted-foreground: oklch(0.7 0 0);
+  --accent: oklch(0.22 0 0);
   --accent-foreground: oklch(0.98 0 0);
   --destructive: oklch(0.61 0.17 25);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.22 0.01 260);
-  --input: oklch(0.22 0.01 260);
-  --ring: oklch(0.65 0.16 260 / 0.3);
-  --sidebar: oklch(0.15 0.01 260);
-  --sidebar-foreground: oklch(0.8 0.01 260);
-  --sidebar-primary: oklch(0.65 0.16 260);
-  --sidebar-border: oklch(0.22 0.01 260);
-  --sidebar-accent: oklch(0.22 0.01 260);
+  --border: oklch(0.22 0 0);
+  --input: oklch(0.22 0 0);
+  --ring: oklch(0.68 0.2 0 / 0.3);
+  --sidebar: oklch(0.1 0 0);
+  --sidebar-foreground: oklch(0.8 0 0);
+  --sidebar-primary: oklch(0.68 0.2 0);
+  --sidebar-border: oklch(0.22 0 0);
+  --sidebar-accent: oklch(0.22 0 0);
   --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-ring: oklch(0.65 0.16 260 / 0.3);
+  --sidebar-ring: oklch(0.68 0.2 0 / 0.3);
 }
 
 
@@ -115,7 +114,12 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   /* Custom DMSpark Brand Colors */
-  --color-dmspark-blue: #1a73e8;
+  --color-dmspark-blue: #D62976; /* legacy name, now Instagram pink */
+  --color-ig-orange: #E8590C;
+  --color-ig-pink: #D62976;
+  --color-ig-purple: #8134AF;
+  --color-ig-indigo: #515BD4;
+  --color-ig-yellow: #FEDA77;
   --color-dmspark-red: #ea4335;
   --color-dmspark-yellow: #fbbc04;
   --color-dmspark-green: #34a853;
@@ -339,3 +343,37 @@
 }
 
 
+
+
+/* ---------------------------------------------------- */
+/* INSTAGRAM BRAND LOOK                                  */
+/* Accessible gradient: the orange end is darkened so white text keeps ~4.5:1 contrast. */
+/* ---------------------------------------------------- */
+.ig-gradient {
+  background: linear-gradient(45deg, #E8590C 0%, #D62976 45%, #8134AF 80%, #515BD4 100%);
+  color: #fff;
+}
+.ig-gradient:hover { filter: brightness(1.06); }
+.ig-gradient-text {
+  background: linear-gradient(45deg, #E8590C 0%, #D62976 50%, #8134AF 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+/* Story ring: wrap an avatar/icon: <span class="ig-ring"><span class="ig-ring-inner">...</span></span> */
+.ig-ring {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 9999px;
+  background: conic-gradient(from 210deg, #FEDA77, #F58529, #DD2A7B, #8134AF, #515BD4, #FEDA77);
+}
+.ig-ring-inner {
+  display: inline-flex;
+  border-radius: 9999px;
+  padding: 2px;
+  background: var(--background);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ig-gradient:hover { filter: none; }
+}

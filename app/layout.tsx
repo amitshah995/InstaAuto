@@ -83,21 +83,12 @@ export const metadata: Metadata = {
     title: "DMSpark — Instagram comment to DM automation",
     description:
       "Auto-reply to Instagram comments and DMs with keyword triggers, using the official Instagram API.",
-    images: [
-      {
-        url: "/logo.png",
-        width: 512,
-        height: 512,
-        alt: "DMSpark",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "DMSpark — Instagram comment to DM automation",
     description:
       "DMSpark auto-replies to Instagram comments and DMs with keyword triggers.",
-    images: ["/logo.png"],
   },
   robots: {
     index: true,
@@ -112,8 +103,8 @@ export const metadata: Metadata = {
   },
   other: {
     "application-name": "DMSpark",
-    "msapplication-TileColor": "#1a73e8",
-    "theme-color": "#1a73e8",
+    "msapplication-TileColor": "#D62976",
+    "theme-color": "#D62976",
   },
   icons: {
     icon: [

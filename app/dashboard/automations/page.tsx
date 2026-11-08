@@ -417,7 +417,7 @@ export default function AutomationsPage() {
 
                             {/* Instagram Header Mock */}
                             <div className="flex items-center gap-2 border-b border-slate-100 pb-2 pt-4 px-3 shrink-0 bg-white/95 backdrop-blur-sm z-10">
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#fbbc04] via-[#ea4335] to-[#1a73e8] p-0.5">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#fbbc04] via-[#ea4335] to-[#D62976] p-0.5">
                                     <div className="w-full h-full rounded-full bg-white p-0.5">
                                         <img src="/logo.png" alt="Profile" className="w-full h-full object-contain rounded-full" />
                                     </div>
@@ -502,7 +502,7 @@ export default function AutomationsPage() {
                                                     )}
                                                 </div>
                                             ) : (
-                                                <div className="bg-[#1a73e8] text-white rounded-xl rounded-tr-none p-1.5 shadow-md shadow-blue-500/10 text-left w-fit">
+                                                <div className="bg-[#D62976] text-white rounded-xl rounded-tr-none p-1.5 shadow-md shadow-blue-500/10 text-left w-fit">
                                                     <div className="flex items-center gap-1 shrink-0 select-none">
                                                         <img src="/logo.png" alt="DMSpark" className="w-2.5 h-2.5 object-contain brightness-0 invert" />
                                                         <span className="text-[6.5px] font-black uppercase tracking-wider opacity-85">DMSpark</span>
