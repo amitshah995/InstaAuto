@@ -9,6 +9,8 @@
  *   ai        { type, instruction, next }      // AI writes one reply from the instruction
  *   condition { type, branches:[{keyword,next}], default_next }
  */
+import { textMatchesKeyword } from "../matching/keywords.ts"
+
 export type FlowGraph = { startNodeId: string; nodes: Record<string, any> }
 
 export type FlowAction =
@@ -18,15 +20,10 @@ export type FlowAction =
 
 const MAX_HOPS = 20
 
-function escapeRegex(str: string) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
-
 export function pickBranch(node: any, incomingText: string | null): string | null {
-  const text = (incomingText || "").toLowerCase().trim()
-  const branch = (node.branches || []).find(
-    (b: any) => b.keyword && new RegExp(`\\b${escapeRegex(String(b.keyword).trim())}\\b`, "i").test(text),
-  )
+  // Unicode-aware whole-word match (works for Devanagari and other non-ASCII scripts).
+  const text = incomingText || ""
+  const branch = (node.branches || []).find((b: any) => b.keyword && textMatchesKeyword(text, String(b.keyword)))
   return branch?.next || node.default_next || null
 }
 
