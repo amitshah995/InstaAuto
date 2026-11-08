@@ -264,8 +264,8 @@ export default function DashboardPage() {
             label: "Open Inbox",
             shortLabel: "Inbox",
             href: "/dashboard/inbox",
-            icon: <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1a73e8] group-hover:scale-125 group-hover:-translate-y-0.5 transition-all duration-300" />,
-            hoverClass: "hover:border-[#1a73e8]/40 hover:bg-[#1a73e8]/5 hover:text-[#1a73e8]",
+            icon: <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#D62976] group-hover:scale-125 group-hover:-translate-y-0.5 transition-all duration-300" />,
+            hoverClass: "hover:border-[#D62976]/40 hover:bg-[#D62976]/5 hover:text-[#D62976]",
         },
         {
             label: "View Analytics",
@@ -310,10 +310,10 @@ export default function DashboardPage() {
                 <div className="w-full max-w-2xl relative" ref={searchRef}>
                     <div className={`flex items-center w-full h-12 md:h-14 rounded-full border bg-background px-4 md:px-6 gap-3 transition-all duration-300 ${
                         searchFocused 
-                            ? 'border-[#1a73e8] shadow-xl shadow-[#1a73e8]/10 ring-4 ring-[#1a73e8]/15 scale-[1.01]' 
+                            ? 'border-[#D62976] shadow-xl shadow-[#D62976]/10 ring-4 ring-[#D62976]/15 scale-[1.01]' 
                             : 'border-border/90 shadow-sm hover:shadow-md hover:border-border'
                     }`}>
-                        <Search className={`w-5 h-5 shrink-0 transition-all duration-300 ${searchFocused ? 'text-[#1a73e8] scale-110' : 'text-muted-foreground/50'}`} />
+                        <Search className={`w-5 h-5 shrink-0 transition-all duration-300 ${searchFocused ? 'text-[#D62976] scale-110' : 'text-muted-foreground/50'}`} />
                         <div className="relative flex-1 h-full flex items-center">
                             <input
                                 ref={searchInputRef}
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                                 <div className="p-8 text-center">
                                     <div className="relative w-8 h-8 mx-auto mb-3">
                                         <div className="w-8 h-8 rounded-full border-2 border-primary/20 animate-ping absolute inset-0" />
-                                        <Loader2 className="w-8 h-8 text-[#1a73e8] animate-spin" />
+                                        <Loader2 className="w-8 h-8 text-[#D62976] animate-spin" />
                                     </div>
                                     <p className="text-xs text-muted-foreground font-medium animate-pulse">Loading your posts & reels...</p>
                                 </div>
@@ -385,7 +385,7 @@ export default function DashboardPage() {
                                         <p className="text-xs text-muted-foreground font-semibold">
                                             {searchQuery ? `${filteredMedia.length} results found` : `Your Posts & Reels (${filteredMedia.length})`}
                                         </p>
-                                        <span className="text-[10px] text-[#1a73e8] font-medium bg-[#1a73e8]/10 px-2 py-0.5 rounded-full">
+                                        <span className="text-[10px] text-[#D62976] font-medium bg-[#D62976]/10 px-2 py-0.5 rounded-full">
                                             Click any post to automate
                                         </span>
                                     </div>
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                                             </div>
                                             {/* Details */}
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm text-foreground font-semibold truncate group-hover/item:text-[#1a73e8] transition-colors">
+                                                <p className="text-sm text-foreground font-semibold truncate group-hover/item:text-[#D62976] transition-colors">
                                                     {m.caption || "Untitled Post"}
                                                 </p>
                                                 <div className="flex items-center gap-2 mt-0.5">
@@ -430,7 +430,7 @@ export default function DashboardPage() {
                                                 </div>
                                             </div>
                                             {/* Arrow pill */}
-                                            <span className="w-8 h-8 rounded-full bg-secondary/80 flex items-center justify-center text-muted-foreground group-hover/item:bg-[#1a73e8] group-hover/item:text-white transition-all duration-200 shrink-0">
+                                            <span className="w-8 h-8 rounded-full bg-secondary/80 flex items-center justify-center text-muted-foreground group-hover/item:bg-[#D62976] group-hover/item:text-white transition-all duration-200 shrink-0">
                                                 <Zap className="w-4 h-4" />
                                             </span>
                                         </button>
@@ -487,7 +487,7 @@ export default function DashboardPage() {
                                             href={selectedMedia.permalink}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-1 text-xs text-[#1a73e8] hover:underline"
+                                            className="flex items-center gap-1 text-xs text-[#D62976] hover:underline"
                                         >
                                             View on Instagram <ExternalLink className="w-3 h-3" />
                                         </a>
@@ -504,7 +504,7 @@ export default function DashboardPage() {
                             {/* Automation Setup Form */}
                             <div className="p-4 space-y-4 text-left">
                                 <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                                    <Zap className="w-4 h-4 text-[#1a73e8]" />
+                                    <Zap className="w-4 h-4 text-[#D62976]" />
                                     Set Up Automation
                                 </h3>
 
@@ -516,7 +516,7 @@ export default function DashboardPage() {
                                         placeholder="e.g. Price Query Auto-Reply"
                                         value={autoName}
                                         onChange={(e) => setAutoName(e.target.value)}
-                                        className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]/20 transition-all"
+                                        className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-[#D62976] focus:ring-1 focus:ring-[#D62976]/20 transition-all"
                                     />
                                 </div>
 
@@ -528,12 +528,12 @@ export default function DashboardPage() {
                                         placeholder="price, how much, cost, rate (comma-separated)"
                                         value={autoKeywords}
                                         onChange={(e) => setAutoKeywords(e.target.value)}
-                                        className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]/20 transition-all"
+                                        className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-[#D62976] focus:ring-1 focus:ring-[#D62976]/20 transition-all"
                                     />
                                     {autoKeywords && (
                                         <div className="flex flex-wrap gap-1.5 mt-2">
                                             {autoKeywords.split(",").filter(k => k.trim()).map((k, i) => (
-                                                <span key={i} className="px-2 py-0.5 rounded-md bg-[#1a73e8]/8 text-[#1a73e8] text-xs font-medium">
+                                                <span key={i} className="px-2 py-0.5 rounded-md bg-[#D62976]/8 text-[#D62976] text-xs font-medium">
                                                     {k.trim()}
                                                 </span>
                                             ))}
@@ -549,7 +549,7 @@ export default function DashboardPage() {
                                         value={autoMessage}
                                         onChange={(e) => setAutoMessage(e.target.value)}
                                         rows={3}
-                                        className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]/20 transition-all resize-none"
+                                        className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm text-foreground outline-none focus:border-[#D62976] focus:ring-1 focus:ring-[#D62976]/20 transition-all resize-none"
                                     />
                                     <p className="text-[11px] text-muted-foreground mt-1 text-right">{autoMessage.length}/500</p>
                                 </div>
@@ -558,7 +558,7 @@ export default function DashboardPage() {
                                 <button
                                     onClick={handleCreateAutomation}
                                     disabled={creating || !autoKeywords.trim() || !autoMessage.trim()}
-                                    className="w-full h-11 rounded-full bg-[#1a73e8] hover:bg-[#1557b0] text-white text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                                    className="w-full h-11 rounded-full bg-[#D62976] hover:bg-[#B8225F] text-white text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
                                 >
                                     {creating ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
