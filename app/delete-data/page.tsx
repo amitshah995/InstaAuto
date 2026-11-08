@@ -1,5 +1,8 @@
 import Link from "next/link"
+import { SUPPORT_EMAIL } from "@/lib/site"
 import { ArrowLeft, Trash2, ShieldAlert, Mail, Info, RefreshCw, Key } from "lucide-react"
+
+export const metadata = { title: "Delete my data", description: "How to delete your DMSpark data and revoke Instagram access.", alternates: { canonical: "./" } }
 
 export default function DataDeletionInstructions() {
   return (
@@ -53,8 +56,8 @@ export default function DataDeletionInstructions() {
               <div className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center font-bold text-white shrink-0 mt-0.5">1</div>
                 <div className="space-y-1">
-                  <h4 className="text-white font-bold">Disconnect via Dashboard:</h4>
-                  <p>Log in to your DMSpark dashboard, navigate to **Settings**, and click the red **"Disconnect Account"** button next to your Instagram profile. This will instantly invalidate your tokens and stop all active automations.</p>
+                  <h4 className="text-white font-bold">Log out (optional):</h4>
+                  <p>In your DMSpark dashboard, open Settings and use Log out. This only ends your session in this browser; it does not delete data and your automations keep running.</p>
                 </div>
               </div>
 
@@ -63,7 +66,7 @@ export default function DataDeletionInstructions() {
                 <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center font-bold text-white shrink-0 mt-0.5">2</div>
                 <div className="space-y-1">
                   <h4 className="text-white font-bold">Remove DMSpark App from Instagram:</h4>
-                  <p>To fully deauthorize the app, go to your Instagram mobile app settings, select **"Apps and Websites"**, find **"DMSpark"**, and click **"Remove"**.</p>
+                  <p>Go to Instagram Settings, open Apps and Websites, find DMSpark and tap Remove. This revokes our access token. If you also choose to delete your data there, Instagram sends us a signed deletion request and we delete your account data (automations, conversations, contacts, links, shop pages, reports and your account record).</p>
                 </div>
               </div>
 
@@ -72,7 +75,7 @@ export default function DataDeletionInstructions() {
                 <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center font-bold text-white shrink-0 mt-0.5">3</div>
                 <div className="space-y-1">
                   <h4 className="text-white font-bold">Request Manual Purge:</h4>
-                  <p>If you would like all your historical analytics, automation logs, and profile records permanently and immediately purged from our active databases and backup storage systems, send an email to <span className="text-white font-semibold underline">virtualrevolution02@gmail.com</span> with your username.</p>
+                  <p>To have your data deleted directly, or if the steps above do not work, email <span className="text-white font-semibold underline">{SUPPORT_EMAIL}</span> with your Instagram username. We aim to complete deletion within 30 days.</p>
                 </div>
               </div>
             </div>
@@ -104,7 +107,7 @@ export default function DataDeletionInstructions() {
               <p className="text-xs text-slate-400">Send us a direct request and we will purge your data within 24 hours.</p>
             </div>
             <a 
-              href="mailto:virtualrevolution02@gmail.com" 
+              href={`mailto:${SUPPORT_EMAIL}`} 
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-slate-200 hover:scale-105 transition-all duration-200"
             >
               <Mail className="w-4 h-4" /> Request Purge via Email
