@@ -35,7 +35,26 @@ async function finish(id: number, status: "sent" | "failed" | "expired", error?:
   )
 }
 
-export async function processDueMessages(limit = 25) {
+/**
+ * Processes due jobs in batches until none are left or the time budget is spent, so a single call
+ * (even from a once-a-minute pinger) drains the queue instead of handling only 25 jobs.
+ */
+export async function processDueMessages(limit = 25, budgetMs = 45_000) {
+  const started = Date.now()
+  const total = { claimed: 0, sent: 0, failed: 0, expired: 0 }
+  for (;;) {
+    const s = await processBatch(limit)
+    total.claimed += s.claimed
+    total.sent += s.sent
+    total.failed += s.failed
+    total.expired += s.expired
+    // A short batch means the queue is drained; the budget keeps us inside the 60s function limit.
+    if (s.claimed < limit || Date.now() - started > budgetMs) break
+  }
+  return total
+}
+
+async function processBatch(limit: number) {
   const jobs = await claimDue(limit)
   const supabase = await getSupabaseServerClient()
   const summary = { claimed: jobs.length, sent: 0, failed: 0, expired: 0 }
