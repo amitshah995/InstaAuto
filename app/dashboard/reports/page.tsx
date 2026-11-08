@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { FollowerChart } from "@/components/reports/FollowerChart"
+import { FunnelTable } from "@/components/reports/FunnelTable"
 
 interface ReportData {
   setup: boolean
@@ -81,6 +82,8 @@ export default function ReportsPage() {
           <Card key={label}><CardContent className="p-4"><p className="text-2xl font-bold">{v.toLocaleString("en-IN")}</p><p className="text-xs text-muted-foreground">{label} · 30d</p></CardContent></Card>
         ))}
       </div>
+
+      <FunnelTable />
 
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Share2 className="h-4 w-4" /> Share with a client</CardTitle></CardHeader>
