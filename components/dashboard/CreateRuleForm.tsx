@@ -168,6 +168,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       toast.error("Replace the [bracketed] parts", { description: "Put your real link, price or brand name instead of the [brackets]." })
       return false
     }
+    // Same guard for multi-message sequences: a template step like "[your link]" must be replaced before saving.
+    if (type === "sequence" && (strict || d?.steps?.some((st) => hasPlaceholders(st.text))) && steps.some((st) => hasPlaceholders(st.text))) {
+      toast.error("Replace the [bracketed] parts", { description: "Put your real link or price instead of the [brackets]." })
+      return false
+    }
     if (type === "text" && !messageText.trim()) {
       toast.error("Missing Reply", { description: "Enter the message to auto-send." })
       return false

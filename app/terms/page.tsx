@@ -1,5 +1,8 @@
 import Link from "next/link"
+import { SUPPORT_EMAIL } from "@/lib/site"
 import { ArrowLeft, FileText, CheckCircle, AlertTriangle, HelpCircle, UserCheck, ShieldAlert, Mail } from "lucide-react"
+
+export const metadata = { title: "Terms of Service", description: "The terms for using DMSpark.", alternates: { canonical: "./" } }
 
 export default function TermsOfService() {
   return (
@@ -28,7 +31,7 @@ export default function TermsOfService() {
           <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
             Terms of Service
           </h1>
-          <p className="text-slate-400 text-xs font-medium">Last updated: June 2026 • Version 2.0</p>
+          <p className="text-slate-400 text-xs font-medium">Last updated: November 2026 • Version 2.1</p>
         </div>
 
         {/* Introduction */}
@@ -123,7 +126,7 @@ export default function TermsOfService() {
               <p className="text-xs text-slate-400">Our customer support and legal team is here to help.</p>
             </div>
             <a 
-              href="mailto:virtualrevolution02@gmail.com" 
+              href={`mailto:${SUPPORT_EMAIL}`} 
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-slate-200 hover:scale-105 transition-all duration-200"
             >
               <Mail className="w-4 h-4" /> Contact Support

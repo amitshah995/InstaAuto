@@ -13,11 +13,11 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] })
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: {
-    default: "DMSpark — #1 Instagram Automation Tool | Auto Reply DMs & Comments | dmspark.in",
+    default: "DMSpark — Instagram comment to DM automation",
     template: "%s | DMSpark - Instagram Automation",
   },
   description:
-    "DMSpark (dmspark.in) is India's #1 Instagram automation tool. Auto-reply to comments & DMs with smart keyword triggers. DM Spark helps you grow Instagram followers 24/7 on autopilot. Free Instagram auto reply bot. Try DMSpark insta automation today!",
+    "DMSpark auto-replies to Instagram comments and DMs with keyword triggers, using the official Instagram API. Includes a free Instagram audit.",
   keywords: [
     // Brand keywords — exact match variations
     "DMSpark",
@@ -74,31 +74,29 @@ export const metadata: Metadata = {
   authors: [{ name: "DMSpark", url: "https://www.dmspark.in" }],
   creator: "DMSpark",
   publisher: "DMSpark",
-  alternates: {
-    canonical: "https://www.dmspark.in",
-  },
+  // No root-level canonical: each page sets its own, otherwise every page would claim the homepage as canonical.
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://www.dmspark.in",
+    url: getSiteUrl(),
     siteName: "DMSpark",
-    title: "DMSpark — #1 Instagram Automation Tool | Auto Reply & Auto Grow | dmspark.in",
+    title: "DMSpark — Instagram comment to DM automation",
     description:
-      "DMSpark (DM Spark) — Auto-reply to Instagram comments & DMs with smart keyword triggers. India's best Instagram automation tool. Grow your followers 24/7 on autopilot. Official Meta API powered. Free to start!",
+      "Auto-reply to Instagram comments and DMs with keyword triggers, using the official Instagram API.",
     images: [
       {
         url: "/logo.png",
         width: 512,
         height: 512,
-        alt: "DMSpark - #1 Instagram Automation Tool - dmspark.in",
+        alt: "DMSpark",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "DMSpark — #1 Instagram Automation Tool | dmspark.in",
+    title: "DMSpark — Instagram comment to DM automation",
     description:
-      "DMSpark (DM Spark) auto-replies to Instagram comments & DMs. Grow followers 24/7 on autopilot. Free insta automation tool.",
+      "DMSpark auto-replies to Instagram comments and DMs with keyword triggers.",
     images: ["/logo.png"],
   },
   robots: {
@@ -113,7 +111,6 @@ export const metadata: Metadata = {
     },
   },
   other: {
-    "google-site-verification": "YOUR_GOOGLE_VERIFICATION_CODE_HERE",
     "application-name": "DMSpark",
     "msapplication-TileColor": "#1a73e8",
     "theme-color": "#1a73e8",

@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { GoogleSearchHome } from "@/components/layout/google-home"
-import { SeoContent } from "@/components/layout/seo-content"
 import { InstagramConnectAnimation } from "@/components/ui/instagram-connect-animation"
 import { Loader2, AlertCircle } from "lucide-react"
 
@@ -83,7 +82,7 @@ export default function Home() {
           "dmspark bot",
         ],
         description:
-          "DMSpark is India's #1 Instagram automation tool. Auto-reply to comments, DMs, and stories with smart keyword triggers. Grow your Instagram followers 24/7 on autopilot.",
+          "DMSpark auto-replies to Instagram comments and DMs with keyword triggers, using the official Instagram API.",
         publisher: {
           "@type": "Organization",
           name: "DMSpark",
@@ -132,12 +131,6 @@ export default function Home() {
           name: "DMSpark",
           url: "https://www.dmspark.in",
         },
-        aggregateRating: {
-          "@type": "AggregateRating",
-          ratingValue: "4.8",
-          ratingCount: "150",
-          bestRating: "5",
-        },
       },
       {
         "@type": "Organization",
@@ -152,7 +145,7 @@ export default function Home() {
           height: 512,
         },
         description:
-          "DMSpark — India's #1 Instagram automation and growth tool. Powering auto-replies for businesses and creators.",
+          "DMSpark — Instagram comment-to-DM automation for businesses and creators.",
       },
       {
         "@type": "BreadcrumbList",
@@ -175,7 +168,7 @@ export default function Home() {
             name: "What is DMSpark?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "DMSpark (dmspark.in) is India's #1 Instagram automation tool. It auto-replies to Instagram comments and DMs using smart keyword triggers. DMSpark helps businesses and creators grow their Instagram followers 24/7 on complete autopilot. It's powered by the official Meta/Instagram API.",
+              text: "DMSpark is an Instagram comment-to-DM automation tool. It auto-replies to Instagram comments and DMs using keyword triggers, through the official Instagram API.",
             },
           },
           {
@@ -183,7 +176,7 @@ export default function Home() {
             name: "How does DMSpark Instagram automation work?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "DMSpark works by connecting your Instagram Business or Creator account via the official Meta API. You set up keyword triggers (like 'price', 'link', 'info') and DMSpark automatically replies to comments and sends DMs whenever someone uses those keywords. It runs 24/7 without you having to be online.",
+              text: "DMSpark works by connecting your Instagram Business or Creator account via the official Meta API. You set up keyword triggers (like 'price', 'link', 'info') and DMSpark automatically replies to comments and sends DMs whenever someone uses those keywords. Replies are sent automatically, even when you are offline.",
             },
           },
           {
@@ -191,7 +184,7 @@ export default function Home() {
             name: "Is DMSpark free to use?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "Yes! DMSpark is free to start. You can connect your Instagram account and set up auto-replies at no cost. DMSpark offers a generous free tier that lets you automate your Instagram comments and DMs instantly.",
+              text: "DMSpark is currently free to use while it is in beta. You can connect your Instagram account and set up auto-replies at no cost.",
             },
           },
           {
@@ -199,7 +192,7 @@ export default function Home() {
             name: "Is DMSpark safe? Does it use the official Instagram API?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "Absolutely! DMSpark uses the official Meta (Instagram) Graph API. Your account is never at risk. Unlike unofficial bots, DMSpark is fully compliant with Instagram's terms of service and uses secure OAuth authentication.",
+              text: "DMSpark uses the official Instagram API and signs in with Instagram's own OAuth login; we never ask for your Instagram password. Follow Instagram's messaging rules when you set up automations.",
             },
           },
           {
@@ -207,7 +200,7 @@ export default function Home() {
             name: "How is DMSpark different from other Instagram automation tools?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "DMSpark (DM Spark) stands out because it uses the official Meta API (not unofficial scraping), offers both comment auto-reply AND DM automation, works 24/7 on autopilot, has a Google-like clean interface, is free to start, and is built specifically for Indian businesses and creators.",
+              text: "DMSpark uses the official Instagram API (not scraping), supports comment-to-DM and DM automation, and includes a free Instagram audit that turns findings into ready-to-use automations.",
             },
           },
         ],
@@ -222,7 +215,6 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {/* Server-rendered SEO content for Google crawler */}
-      <SeoContent />
       <Suspense fallback={
         <div className="flex h-screen items-center justify-center bg-black">
           <Loader2 className="h-8 w-8 animate-spin text-white" />

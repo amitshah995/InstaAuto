@@ -362,21 +362,11 @@ export default function SettingsPage() {
                       </span>
                     </div>
                     <div className="bg-secondary/40 p-2.5 rounded-xl border border-border/50">
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Token Vault</span>
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Token Storage</span>
                       <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5 mt-1">
-                        <Lock className="w-3 h-3 text-blue-500" /> AES-256 / SHA
+                        <Lock className="w-3 h-3 text-blue-500" /> Encrypted at rest
                       </span>
                     </div>
-                  </div>
-
-                  {/* Webhook Health Status */}
-                  <div className="p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between text-xs">
-                    <span className="font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-emerald-500" /> Webhook Ping:
-                    </span>
-                    <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                      HTTP 200 OK (v24.0)
-                    </span>
                   </div>
 
                 </div>
@@ -388,12 +378,12 @@ export default function SettingsPage() {
                     onClick={() => setShowDisconnectModal(true)}
                     className="w-full mt-6 py-4.5 rounded-xl font-extrabold text-xs shadow-sm hover:shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
                   >
-                    <Trash2 className="w-4 h-4" /> Disconnect & Revoke Access
+                    <Trash2 className="w-4 h-4" /> Log out
                   </Button>
                 ) : (
                   <div className="w-full mt-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/30 space-y-3 animate-in fade-in">
                     <p className="text-xs text-destructive font-bold">
-                      Are you sure? This will purge all active tokens and pause automations.
+                      Are you sure? This logs you out of this browser. Your automations keep running. To remove your data, use "Delete my data".
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -402,7 +392,7 @@ export default function SettingsPage() {
                         onClick={logout}
                         className="flex-1 text-xs font-bold py-2 rounded-lg cursor-pointer"
                       >
-                        Yes, Disconnect
+                        Yes, Log out
                       </Button>
                       <Button
                         variant="outline"
@@ -417,60 +407,12 @@ export default function SettingsPage() {
                 )}
                 
                 <p className="text-[10px] text-muted-foreground mt-2.5 font-medium leading-relaxed">
-                  Disconnecting triggers an immediate database purge complying with Meta Data Access Renewal standards.
+                  Logging out only ends this browser session. To delete your data, see the Delete my data page (/delete-data) or remove DMSpark in Instagram Settings → Apps and Websites.
                 </p>
               </CardContent>
             </Card>
 
-            {/* AI Auto-Reply (Groq) Card */}
-            <Card className={`border-border bg-card/90 backdrop-blur-md shadow-sm p-5 space-y-4 hover:shadow-md transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '250ms' : '0ms', transitionDuration: '700ms' }}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-foreground text-sm">AI Auto-Reply</h3>
-                    <p className="text-[10px] text-muted-foreground font-semibold">Groq-powered dynamic DM replies</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={aiEnabled}
-                  disabled={aiSaving}
-                  onCheckedChange={(v) => handleSaveAiSettings(v)}
-                />
-              </div>
-
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                When ON, any DM that doesn't match a keyword automation gets a dynamic AI-generated reply instead of going unanswered. Give the AI context about your business below.
-              </p>
-
-              <div className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-start gap-2">
-                <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  A "Reply to ALL DMs" (wildcard) automation always wins over AI Auto-Reply — the AI only replies when no automation matched. Don't run both for the same use case.
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Business Context (optional)</Label>
-                <Textarea
-                  value={aiContext}
-                  onChange={(e) => setAiContext(e.target.value)}
-                  placeholder="e.g. We sell handmade candles, ship across India, price range ₹299-999..."
-                  className="bg-secondary/30 border-border min-h-[70px] text-xs resize-none"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={aiSaving}
-                  onClick={() => handleSaveAiSettings(aiEnabled, aiContext)}
-                  className="h-7 text-xs"
-                >
-                  {aiSaving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null} Save Context
-                </Button>
-              </div>
-            </Card>
+            {/* AI Auto-Reply card removed for launch: it told the model to pose as the account owner and sent DMs to a third-party gateway. */}
 
             {/* Quick Meta Compliance Card */}
             <Card className={`border-border bg-card/90 backdrop-blur-md shadow-sm p-5 space-y-3.5 hover:shadow-md transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: isVisible ? '300ms' : '0ms', transitionDuration: '700ms' }}>
@@ -491,8 +433,8 @@ export default function SettingsPage() {
 
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center bg-secondary/40 p-2 rounded-lg border border-border/40">
-                  <span className="font-semibold text-muted-foreground">Data Retention Post-Revoke:</span>
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">0 Days (Instant Purge)</span>
+                  <span className="font-semibold text-muted-foreground">Data deletion:</span>
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">On request</span>
                 </div>
                 <div className="flex justify-between items-center bg-secondary/40 p-2 rounded-lg border border-border/40">
                   <span className="font-semibold text-muted-foreground">Payload Signature Guard:</span>
@@ -540,12 +482,12 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  Verified Compliant
+                  Privacy Policy
                 </span>
               </div>
 
               <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-                InstaAuto operates in strict compliance with Meta Platform Terms, Instagram Messaging Policies, and Data Handling requirements. All links below are publicly accessible for App Review verification:
+                DMSpark follows the Meta Platform Terms and Instagram Messaging Policies. These pages are public:
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
@@ -693,7 +635,7 @@ export default function SettingsPage() {
             <div className="border-b border-border/70 pb-4">
               <h2 className="text-xl font-black text-foreground">Data Access Renewal (DAR) & Security Assessment</h2>
               <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                Technical overview of how InstaAuto satisfies Meta's security, privacy, and user consent obligations.
+                Technical overview of how DMSpark handles Meta's security, privacy, and user consent obligations.
               </p>
             </div>
 
@@ -714,7 +656,7 @@ export default function SettingsPage() {
                   <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">Secure Token Storage</h4>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Tokens are stored in PostgreSQL with strict Row Level Security (RLS) policies and verified HMAC signatures for every incoming Meta webhook.
+                  Access tokens are stored in our database and are encrypted when an encryption key is configured. Incoming Meta webhooks are checked with an HMAC signature.
                 </p>
               </div>
 
@@ -724,7 +666,7 @@ export default function SettingsPage() {
                   <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">Automated Deletion</h4>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  When a user removes the app from their Instagram account settings, Meta's signed deauthorization callback automatically triggers an instant database purge.
+                  When a user removes the app from their Instagram account settings, Meta's signed deauthorization callback revokes the stored access token. Use the data deletion request to remove your remaining data.
                 </p>
               </div>
             </div>

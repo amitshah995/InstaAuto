@@ -588,7 +588,7 @@ export default function DashboardPage() {
                         Terms of Service
                     </Link>
                     <span className="text-muted-foreground/40">•</span>
-                    <Link href="/data-deletion" className="hover:text-foreground transition-colors hover:underline">
+                    <Link href="/delete-data" className="hover:text-foreground transition-colors hover:underline">
                         Data Deletion
                     </Link>
                 </div>

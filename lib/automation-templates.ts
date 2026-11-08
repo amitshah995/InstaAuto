@@ -57,7 +57,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     defaults: {
       triggers: ["link", "info"],
       type: "text",
-      messageText: "Hey! Here's the link you asked for: https://yourwebsite.com",
+      messageText: "Hey! Here's the link you asked for: [your link]",
       name: "Link Request → Auto Reply",
     },
   },
@@ -89,7 +89,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
       type: "sequence",
       steps: [
         { text: "Hey! Thanks for reaching out 👋 What can I help you with?", delay_seconds: 0 },
-        { text: "In the meantime, check out our latest offers here: https://yourwebsite.com", delay_seconds: 4 },
+        { text: "In the meantime, check out our latest offers here: [your link]", delay_seconds: 4 },
       ],
       name: "Welcome Flow",
     },
@@ -103,7 +103,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     defaults: {
       triggers: ["price", "pricing", "cost"],
       type: "text",
-      messageText: "Our pricing starts at ₹999/mo — want me to send the full breakdown?",
+      messageText: "Our pricing starts at [your price] — want me to send the full breakdown?",
       name: "Pricing FAQ",
     },
   },
@@ -162,7 +162,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     defaults: {
       triggers: ["link", "price"],
       type: "text",
-      messageText: "Thanks for watching live! Here's what you asked for: https://yourwebsite.com",
+      messageText: "Thanks for watching live! Here's what you asked for: [your link]",
       name: "Live Comment → DM",
     },
   },
@@ -188,8 +188,8 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
           ],
           default_next: "msgElse",
         },
-        msgA: { type: "message", text: "Great! Our pricing starts at ₹999/mo — want the full breakdown?", delay_seconds: 0, next: null },
-        msgB: { type: "message", text: "Awesome! Here's a link to book a demo: https://yourwebsite.com/demo", delay_seconds: 0, next: null },
+        msgA: { type: "message", text: "Great! Our pricing starts at [your price] — want the full breakdown?", delay_seconds: 0, next: null },
+        msgB: { type: "message", text: "Awesome! Here's a link to book a demo: [your booking link]", delay_seconds: 0, next: null },
         msgElse: { type: "message", text: "Sorry, just reply with A or B and I'll help you out!", delay_seconds: 0, next: "cond1" },
       },
     },
