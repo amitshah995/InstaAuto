@@ -1,5 +1,5 @@
 // Creating shared types for automation system
-export type ButtonAction = "web_url" | "postback"
+export type ButtonAction = "web_url" | "postback" | "pay"
 
 export interface ProButton {
   id: string

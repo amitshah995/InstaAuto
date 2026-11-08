@@ -13,7 +13,7 @@ const BATCH = 2000
 
 export async function runRetention() {
   const days = retentionDays()
-  const out = { webhookEventsDeleted: 0, failedSendsDeleted: 0, days }
+  const out = { webhookEventsDeleted: 0, failedSendsDeleted: 0, webhookDeliveriesDeleted: 0, days }
   try {
     // Batched so one run never holds a long lock; repeated runs finish the backlog.
     const r = await rawQuery<{ n: number }>(
@@ -41,6 +41,20 @@ export async function runRetention() {
     out.failedSendsDeleted = r[0]?.n ?? 0
   } catch {
     // table missing until migration 26 is run: not an error
+  }
+  try {
+    // Delivery log rows hold the event payload (names, emails): same retention, finished ones only.
+    const r = await rawQuery<{ n: number }>(
+      `WITH d AS (
+         DELETE FROM webhook_deliveries WHERE id IN (
+           SELECT id FROM webhook_deliveries WHERE status <> 'pending' AND created_at < now() - ($1 || ' days')::interval LIMIT ${BATCH})
+         RETURNING 1)
+       SELECT COUNT(*)::int AS n FROM d`,
+      [String(days)],
+    )
+    out.webhookDeliveriesDeleted = r[0]?.n ?? 0
+  } catch {
+    // table missing until migration 28 is run: not an error
   }
   return out
 }

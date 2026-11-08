@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { isServiceAuthorized } from "@/lib/security/service-auth"
 import { processDueMessages } from "@/lib/messaging/scheduler"
 import { retryFailedSends } from "@/lib/messaging/retry-failed"
+import { processDueDeliveries } from "@/lib/webhooks/events"
 import { runRetention } from "@/lib/maintenance"
 
 export const maxDuration = 60
@@ -19,9 +20,10 @@ export async function GET(request: NextRequest) {
     // Each stage is isolated: one failing stage must not stop the others.
     const messages = await processDueMessages()
     const retries = await retryFailedSends().catch((e) => ({ error: String(e?.message || e) }))
+    const webhooks = await processDueDeliveries().catch((e) => ({ error: String(e?.message || e) }))
     const retention = await runRetention().catch((e) => ({ error: String(e?.message || e) }))
     // Spread keeps the old top-level shape (claimed/sent/failed/expired) for existing callers.
-    return NextResponse.json({ ...messages, retries, retention })
+    return NextResponse.json({ ...messages, retries, webhooks, retention })
   } catch (e: any) {
     console.error("[scheduler] run failed:", e)
     return NextResponse.json({ error: "Scheduler failed" }, { status: 500 })

@@ -4,6 +4,7 @@ import crypto from "crypto"
 import { postGraphMessage, sendSteps } from "@/lib/messaging/send-steps"
 import { releaseDm, reserveAiRun, reserveDm } from "@/lib/billing/usage"
 import { runFlow } from "@/lib/messaging/flow-runner"
+import { emitEvent } from "@/lib/webhooks/events"
 import { checkFollowStatus } from "@/lib/messaging/follow-check"
 import { matchesAnyKeyword } from "@/lib/matching/keywords"
 import { isOncePerPerson, onceKey } from "@/lib/automations/once"
@@ -42,6 +43,8 @@ async function logRun(
     matched: boolean
     actionStatus?: "sent" | "failed" | "skipped" | null
     errorMessage?: string | null
+    /** Instagram-scoped id of the person involved, forwarded to outbound webhooks. */
+    igsid?: string | null
   },
 ) {
   try {
@@ -56,6 +59,20 @@ async function logRun(
     })
   } catch (e) {
     console.error("[v0] ⚠️ Failed to write automation_runs log:", e)
+  }
+
+  // Outbound webhooks (Phase 4): every matched rule is a comment_matched / dm_sent / dm_failed event.
+  // emitEvent never throws and does nothing when the user has no endpoints.
+  if (params.matched && params.actionStatus !== "skipped") {
+    const data = {
+      automation_id: params.automationId || null,
+      source: params.eventType,
+      igsid: params.igsid || null,
+      trigger_text: params.triggerText || null,
+    }
+    if (params.eventType === "comment") await emitEvent(params.userId, "comment_matched", data)
+    if (params.actionStatus === "sent") await emitEvent(params.userId, "dm_sent", data)
+    else if (params.actionStatus === "failed") await emitEvent(params.userId, "dm_failed", { ...data, error: params.errorMessage || null })
   }
 }
 
@@ -311,6 +328,7 @@ export async function POST(request: NextRequest) {
               if (commentAutomations.length > 0) {
                 await logRun(supabase, {
                   userId: user.id,
+                  igsid: senderId,
                   eventType: "comment",
                   triggerText: commentText,
                   matched: false,
@@ -331,6 +349,7 @@ export async function POST(request: NextRequest) {
                 console.log(`[v0] ⏭️ Skipped: ${senderId} already got "${match.name}" on this post`)
                 await logRun(supabase, {
                   userId: user.id,
+                  igsid: senderId,
                   automationId: match.id,
                   eventType: "comment",
                   triggerText: commentText,
@@ -391,6 +410,7 @@ export async function POST(request: NextRequest) {
               }
               await logRun(supabase, {
                 userId: user.id,
+                igsid: senderId,
                 automationId: match.id,
                 eventType: "comment",
                 triggerText: commentText,
@@ -402,6 +422,7 @@ export async function POST(request: NextRequest) {
               console.log(`[v0] 🟢 Private DM Sent! (${dmResults.length} step${dmResults.length > 1 ? "s" : ""})`)
               await logRun(supabase, {
                 userId: user.id,
+                igsid: senderId,
                 automationId: match.id,
                 eventType: "comment",
                 triggerText: commentText,
@@ -690,6 +711,7 @@ export async function POST(request: NextRequest) {
             console.log(`[v0] 🙋 Human is handling ${senderId} — skipping automation`)
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               eventType: triggerType === "postback" ? "postback" : "dm",
               triggerText: triggerValue,
               matched: false,
@@ -737,6 +759,21 @@ export async function POST(request: NextRequest) {
                   .from("conversations")
                   .update({ active_flow_automation_id: null, active_flow_step: null })
                   .eq("id", conv.id)
+                // Lead complete: tell the creator's outbound webhooks (Sheets, CRM, Zapier...).
+                const { data: lead } = await supabase
+                  .from("contacts")
+                  .select("name, email, phone, custom_fields")
+                  .eq("user_id", user.id)
+                  .eq("igsid", senderId)
+                  .single()
+                await emitEvent(user.id, "lead_captured", {
+                  automation_id: flowAutomation.id,
+                  igsid: senderId,
+                  name: lead?.name ?? null,
+                  email: lead?.email ?? null,
+                  phone: lead?.phone ?? null,
+                  custom_fields: lead?.custom_fields ?? {},
+                })
                 if (flowAutomation.response_content.closing_message) {
                   await sendSteps(user.access_token, { id: senderId }, senderId, {
                     message: flowAutomation.response_content.closing_message,
@@ -746,6 +783,7 @@ export async function POST(request: NextRequest) {
 
               await logRun(supabase, {
                 userId: user.id,
+                igsid: senderId,
                 automationId: flowAutomation.id,
                 eventType: "dm",
                 triggerText: triggerValue,
@@ -800,6 +838,7 @@ export async function POST(request: NextRequest) {
 
               await logRun(supabase, {
                 userId: user.id,
+                igsid: senderId,
                 automationId: flowAutomation.id,
                 eventType: "dm",
                 triggerText: triggerValue,
@@ -828,6 +867,7 @@ export async function POST(request: NextRequest) {
             console.log(`[v0] ⏸️ Skipped DM to ${senderId} — outside 24h messaging window`)
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               eventType: triggerType === "postback" ? "postback" : "dm",
               triggerText: triggerValue,
               matched: false,
@@ -897,6 +937,7 @@ export async function POST(request: NextRequest) {
                 if (!aiQuota.allowed) {
                   await logRun(supabase, {
                     userId: user.id,
+                    igsid: senderId,
                     eventType: "dm",
                     triggerText: triggerValue,
                     matched: false,
@@ -1013,6 +1054,7 @@ STRICT RULES — follow every single one:
                   console.log(`[v0] ❌ AI proxy error: ${aiRes.status}`)
                   await logRun(supabase, {
                     userId: user.id,
+                    igsid: senderId,
                     eventType: "dm",
                     triggerText: triggerValue,
                     matched: false,
@@ -1117,6 +1159,7 @@ STRICT RULES — follow every single one:
                   const handoffJson = await handoffRes.json()
                   await logRun(supabase, {
                     userId: user.id,
+                    igsid: senderId,
                     eventType: "dm",
                     triggerText: triggerValue,
                     matched: false,
@@ -1149,6 +1192,7 @@ STRICT RULES — follow every single one:
                 if (!dmQuota.allowed) {
                   await logRun(supabase, {
                     userId: user.id,
+                    igsid: senderId,
                     eventType: "dm",
                     triggerText: triggerValue,
                     matched: false,
@@ -1164,6 +1208,7 @@ STRICT RULES — follow every single one:
                   console.error("[v0] 🔴 AI Reply Send Failed:", sendJson.error)
                   await logRun(supabase, {
                     userId: user.id,
+                    igsid: senderId,
                     eventType: "dm",
                     triggerText: triggerValue,
                     matched: false,
@@ -1174,6 +1219,7 @@ STRICT RULES — follow every single one:
                   console.log("[v0] 🟢 AI Reply Sent!")
                   await logRun(supabase, {
                     userId: user.id,
+                    igsid: senderId,
                     eventType: "dm",
                     triggerText: triggerValue,
                     matched: false,
@@ -1209,6 +1255,7 @@ STRICT RULES — follow every single one:
             console.log(`[v0] ❌ No match.`)
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               eventType: triggerType === "postback" ? "postback" : "dm",
               triggerText: triggerValue,
               matched: false,
@@ -1236,6 +1283,7 @@ STRICT RULES — follow every single one:
 
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               automationId: match.id,
               eventType: "dm",
               triggerText: triggerValue,
@@ -1284,6 +1332,7 @@ STRICT RULES — follow every single one:
 
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               automationId: match.id,
               eventType: "dm",
               triggerText: triggerValue,
@@ -1348,6 +1397,7 @@ STRICT RULES — follow every single one:
             console.error("[v0] 🔴 Reply Failed:", lastError)
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               automationId: match.id,
               eventType: triggerType === "postback" ? "postback" : "dm",
               triggerText: triggerValue,
@@ -1359,6 +1409,7 @@ STRICT RULES — follow every single one:
             console.log(`[v0] 🟢 Reply Sent! (${dmResults.length} step${dmResults.length > 1 ? "s" : ""})`)
             await logRun(supabase, {
               userId: user.id,
+              igsid: senderId,
               automationId: match.id,
               eventType: triggerType === "postback" ? "postback" : "dm",
               triggerText: triggerValue,

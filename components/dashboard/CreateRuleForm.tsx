@@ -219,6 +219,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
             if (cleanUrl.startsWith("https://https://")) cleanUrl = cleanUrl.replace("https://https://", "https://")
             return { type: "web_url", title: b.title, url: cleanUrl }
           }
+          // "Pay" button: the amount is typed in the shared value box. Razorpay creates the link at send time.
+          if (b.type === "pay") return { type: "pay", title: b.title, amount_inr: Number(b.payload) || 0 }
           return { type: "postback", title: b.title, payload: b.payload }
         })
         .filter((b) => b.title)
@@ -745,13 +747,14 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
                   <SelectContent>
                     <SelectItem value="web_url">Link</SelectItem>
                     <SelectItem value="postback">Flow</SelectItem>
+                    <SelectItem value="pay">Pay</SelectItem>
                   </SelectContent>
                 </Select>
                 <Input
                   value={btn.type === "web_url" ? btn.url : btn.payload}
                   onChange={(e) => updateButton(btn.id, btn.type === "web_url" ? "url" : "payload", e.target.value)}
                   className="h-8 text-xs flex-1 bg-background border border-border px-2 text-foreground"
-                  placeholder={btn.type === "web_url" ? "https://..." : "Keyword"}
+                  placeholder={btn.type === "web_url" ? "https://..." : btn.type === "pay" ? "Amount in Rs, e.g. 499" : "Keyword"}
                 />
                 <Button size="icon" variant="ghost" onClick={() => removeButton(btn.id)} className="h-6 w-6 text-red-500 hover:bg-red-500/10">
                   <Trash2 className="w-3 h-3" />

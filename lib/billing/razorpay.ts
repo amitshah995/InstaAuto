@@ -20,7 +20,7 @@ export function razorpayKeysPresent(): boolean {
   return !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
 }
 
-async function rp<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+export async function rp<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
   const id = process.env.RAZORPAY_KEY_ID
   const secret = process.env.RAZORPAY_KEY_SECRET
   if (!id || !secret) throw new RazorpayError("Billing is not configured", 503)
