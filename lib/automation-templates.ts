@@ -62,6 +62,37 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     },
   },
   {
+    // Indian buyers comment "price", "rate", "kitna" under product posts. Hinglish words are included on purpose.
+    id: "comment-price-dm",
+    title: "Comment \"price\" → price in DM",
+    description: "When someone comments price, rate or kitna, send them your price in a DM (English + Hinglish words).",
+    triggerSource: "comment",
+    goal: "Drive traffic",
+    badge: "New",
+    defaults: {
+      triggers: ["price", "rate", "cost", "kitna", "kitne ka", "price kya hai"],
+      type: "text",
+      // [Brackets] are blocked by the form until replaced, so a made-up price is never sent.
+      messageText: "Hi! Thanks for asking. The price is [your price]. To order or see more, use this link: [your link]. (This is an automatic reply.)",
+      name: "Comment Price → DM",
+    },
+  },
+  {
+    id: "comment-booking-dm",
+    title: "Comment \"book\" → booking link in DM",
+    description: "Send your booking or WhatsApp link when someone comments book, slot or appointment.",
+    triggerSource: "comment",
+    goal: "Capture leads",
+    badge: "New",
+    defaults: {
+      triggers: ["book", "booking", "appointment", "slot", "slot chahiye", "booking karna"],
+      type: "text",
+      // Never claims the booking is confirmed: it only hands off a link and asks for a preferred time.
+      messageText: "Hi! For booking, use this link: [your booking or WhatsApp link]. You can also reply with the date and time you prefer. (This is an automatic reply.)",
+      name: "Comment Book → DM",
+    },
+  },
+  {
     id: "follow-gate-freebie",
     title: "Follow first, then freebie",
     description: "Gate a discount code or download behind a follow — reward followers, not lurkers.",
@@ -122,7 +153,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
         { field: "email", prompt: "What's your email?" },
         { field: "phone", prompt: "What's the best number to reach you on?" },
       ],
-      closingMessage: "Thanks! We'll be in touch shortly 🙌",
+      closingMessage: "Thanks! By sharing your details you agree that we may contact you about your enquiry. 🙌",
       name: "Lead Capture",
     },
   },
