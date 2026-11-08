@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getVerifiedSessionUserId } from "@/lib/auth"
+import { reserveAiRun } from "@/lib/billing/usage"
 import { BriefSchema, createAiReport, getSavedAiReport } from "@/lib/audit/ai/service"
 
 export const maxDuration = 60
@@ -25,6 +26,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try { body = await request.json() } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }) }
   const parsed = BriefSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: "Please fill every field correctly", issues: parsed.error.issues.map((i) => i.path.join(".")) }, { status: 400 })
+
+  // Plan AI limit (daily). Checked after validation so a malformed request does not burn a run.
+  const quota = await reserveAiRun(userId)
+  if (!quota.allowed) return NextResponse.json({ error: quota.message, code: "ai_limit_reached" }, { status: 429, headers: NO_STORE })
 
   const out = await createAiReport(id, userId, parsed.data, apiKey)
   if (!out.ok) return NextResponse.json({ error: out.error }, { status: out.status, headers: NO_STORE })
