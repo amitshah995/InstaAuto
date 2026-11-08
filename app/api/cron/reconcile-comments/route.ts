@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { isServiceAuthorized } from "@/lib/security/service-auth"
 import crypto from "crypto"
 import { rawQuery } from "@/lib/supabase-server"
 import { decryptToken } from "@/lib/token-crypto"
@@ -21,11 +22,7 @@ const MAX_USERS = 25
 const MAX_REPLAYS_PER_RUN = 40
 
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get("authorization")
-  const ok =
-    (process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`) ||
-    (process.env.API_SECRET_KEY && auth === `Bearer ${process.env.API_SECRET_KEY}`)
-  if (!ok) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!isServiceAuthorized(request.headers)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const users = await rawQuery<{ id: number; business_account_id: string; access_token: string; username: string }>(
     `SELECT DISTINCT u.id, u.business_account_id, u.access_token, u.username
