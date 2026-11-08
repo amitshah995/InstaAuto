@@ -6,13 +6,12 @@ import { createReelsContainer, getContainerStatus, publishContainer } from "@/li
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms))
 
 export async function GET(request: NextRequest) {
-    // Security check: Verify Cron-Secret header (enforced when CRON_SECRET is set)
+    // Security check: FAIL CLOSED. If CRON_SECRET is not set, nobody gets in
+    // (before, a missing secret left this endpoint open to the internet).
     const cronSecret = process.env.CRON_SECRET
-    if (cronSecret) {
-        const authHeader = request.headers.get('authorization')
-        if (authHeader !== `Bearer ${cronSecret}`) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+    const authHeader = request.headers.get('authorization')
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const supabase = await getSupabaseServerClient()
