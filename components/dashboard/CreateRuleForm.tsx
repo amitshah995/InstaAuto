@@ -12,6 +12,7 @@ import { TagInput } from "@/components/ui/tag-input"
 import type { ProButton } from "@/lib/types"
 import type { AutomationTemplate } from "@/lib/automation-templates"
 import { toast } from "sonner"
+import { hasPlaceholders } from "@/lib/audit/recommendations"
 import { PhonePreview } from "@/components/dashboard/PhonePreview"
 import { CardImageField } from "@/components/dashboard/CardImageField"
 import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
@@ -21,9 +22,14 @@ interface CreateRuleFormProps {
   triggerSource: 'comment' | 'dm' | 'story' | 'live'
   onSuccess: () => void
   template?: AutomationTemplate | null
+  /**
+   * Strict mode is used for rules suggested by the Instagram Audit. A suggested rule must be tied to ONE post
+   * (otherwise it would fire on every post) and every [bracketed] placeholder must be replaced before it can go live.
+   */
+  strict?: boolean
 }
 
-export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: CreateRuleFormProps) {
+export function CreateRuleForm({ userId, triggerSource, onSuccess, template, strict }: CreateRuleFormProps) {
   const [step, setStep] = useState(1)
   const d = template?.defaults
 
@@ -57,6 +63,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
   // Media
   const [reels, setReels] = useState<any[]>([])
   const [loadingReels, setLoadingReels] = useState(false)
+  // true when /api/instagram/media failed (expired login, rate limit) so strict mode can say so
+  const [reelsFailed, setReelsFailed] = useState(false)
 
   useEffect(() => {
     if (userId) loadReels()
@@ -76,10 +84,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
     try {
       setLoadingReels(true)
       const res = await fetch(`/api/instagram/media?userId=${userId}`)
+      if (!res.ok) setReelsFailed(true)
       const responseJson = await res.json()
       if (responseJson.data && Array.isArray(responseJson.data)) setReels(responseJson.data)
       else if (Array.isArray(responseJson)) setReels(responseJson)
     } catch (err) {
+      setReelsFailed(true)
       console.error("[v0] Failed to load reels:", err)
     } finally {
       setLoadingReels(false)
@@ -129,6 +139,16 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
 
   // Validation per step
   const canProceedStep1 = () => {
+    if (strict && !selectedReel) {
+      if (reelsFailed) {
+        toast.error("Could not load your posts", { description: "Reconnect Instagram, then try again." })
+      } else if (!loadingReels && reels.length === 0) {
+        toast.error("No posts found", { description: "Publish a post that asks people to comment this keyword first, then come back." })
+      } else {
+        toast.error("Pick the post this applies to", { description: "Audit suggestions work on one post at a time." })
+      }
+      return false
+    }
     const isStoryMentionOrReaction = triggerSource === 'story' && (storyTriggerType === 'mention' || storyTriggerType === 'reaction')
     if (triggerSource === 'comment' && replyToAll && !selectedReel) {
       toast.error("Select a Post", { description: "Reply-All requires selecting a specific post." })
@@ -142,6 +162,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
   }
 
   const canProceedStep2 = () => {
+    if (strict && type === "text" && hasPlaceholders(messageText)) {
+      toast.error("Replace the [bracketed] parts", { description: "Put your real link, price or brand name instead of the [brackets]." })
+      return false
+    }
     if (type === "text" && !messageText.trim()) {
       toast.error("Missing Reply", { description: "Enter the message to auto-send." })
       return false
@@ -457,7 +481,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
       {(triggerSource === 'comment' || triggerSource === 'story') && (
         <div className="space-y-2">
           <Label className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider ml-1">
-            {replyToAll ? 'Select Post (Required)' :
+            {replyToAll || strict ? 'Select Post (Required)' :
               triggerSource === 'story' ? 'Story (Optional)' : 'Post/Reel (Optional)'}
           </Label>
           <div className="relative">
@@ -478,7 +502,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
                 </>
               ) : (
                 <span className="text-sm text-muted-foreground">
-                  {replyToAll ? '📌 Select a post...' : '📌 Optional — applies to any post (tap to pick)'}
+                  {replyToAll || strict ? '📌 Select a post...' : '📌 Optional — applies to any post (tap to pick)'}
                 </span>
               )}
             </button>
