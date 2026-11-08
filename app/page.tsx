@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { GoogleSearchHome } from "@/components/layout/google-home"
 import { InstagramConnectAnimation } from "@/components/ui/instagram-connect-animation"
+import { BRAND_NAME } from "@/lib/site"
 import { Loader2, AlertCircle } from "lucide-react"
 
 function HomeContent() {
@@ -65,27 +66,13 @@ export default function Home() {
         "@type": "WebSite",
         "@id": "https://www.dmspark.in/#website",
         url: "https://www.dmspark.in",
-        name: "DMSpark",
-        alternateName: [
-          "dmspark",
-          "dmspark.in",
-          "DM Spark",
-          "dm spark",
-          "DMSPARK",
-          "DMspark",
-          "dmSpark",
-          "dmspark insta automation",
-          "dmspark instagram automation",
-          "dm spark insta automation",
-          "dm spark instagram",
-          "dmspark auto reply",
-          "dmspark bot",
-        ],
+        name: BRAND_NAME,
+        alternateName: ["DMSpark"],
         description:
-          "DMSpark auto-replies to Instagram comments and DMs with keyword triggers, using the official Instagram API.",
+          `${BRAND_NAME} auto-replies to Instagram comments and DMs with keyword triggers, using the official Instagram API.`,
         publisher: {
           "@type": "Organization",
-          name: "DMSpark",
+          name: BRAND_NAME,
           url: "https://www.dmspark.in",
           logo: {
             "@type": "ImageObject",
@@ -94,49 +81,35 @@ export default function Home() {
             height: 512,
           },
         },
-        potentialAction: {
-          "@type": "SearchAction",
-          target: {
-            "@type": "EntryPoint",
-            urlTemplate: "https://www.dmspark.in/?q={search_term_string}",
-          },
-          "query-input": "required name=search_term_string",
-        },
         inLanguage: "en",
       },
       {
         "@type": "SoftwareApplication",
         "@id": "https://www.dmspark.in/#app",
-        name: "DMSpark",
-        alternateName: [
-          "dmspark",
-          "DM Spark",
-          "dm spark",
-          "dmspark insta automation",
-          "Instagram Auto Reply by DMSpark",
-        ],
+        name: BRAND_NAME,
+        alternateName: ["DMSpark"],
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web, Android",
         url: "https://www.dmspark.in",
         description:
-          "DMSpark is the official Instagram automation platform. Auto-reply to comments, DMs, and stories with smart keyword triggers. Grow your Instagram followers 24/7 on autopilot. Best insta automation tool in India.",
+          `${BRAND_NAME} sends the price, link or details to anyone who comments on your reel. Auto-reply to comments, DMs, and stories with smart keyword triggers.`,
         offers: {
           "@type": "Offer",
           price: "0",
           priceCurrency: "INR",
-          description: "Free to start — No credit card required",
+          description: "Free during beta",
         },
         creator: {
           "@type": "Organization",
-          name: "DMSpark",
+          name: BRAND_NAME,
           url: "https://www.dmspark.in",
         },
       },
       {
         "@type": "Organization",
         "@id": "https://www.dmspark.in/#organization",
-        name: "DMSpark",
-        alternateName: ["DM Spark", "dmspark", "dmspark.in"],
+        name: BRAND_NAME,
+        alternateName: ["DMSpark"],
         url: "https://www.dmspark.in",
         logo: {
           "@type": "ImageObject",
@@ -145,7 +118,7 @@ export default function Home() {
           height: 512,
         },
         description:
-          "DMSpark — Instagram comment-to-DM automation for businesses and creators.",
+          `${BRAND_NAME} — Instagram comment-to-DM automation for businesses and creators.`,
       },
       {
         "@type": "BreadcrumbList",
@@ -154,7 +127,7 @@ export default function Home() {
           {
             "@type": "ListItem",
             position: 1,
-            name: "DMSpark Home",
+            name: `${BRAND_NAME} Home`,
             item: "https://www.dmspark.in",
           },
         ],
@@ -165,42 +138,42 @@ export default function Home() {
         mainEntity: [
           {
             "@type": "Question",
-            name: "What is DMSpark?",
+            name: `What is ${BRAND_NAME}?`,
             acceptedAnswer: {
               "@type": "Answer",
-              text: "DMSpark is an Instagram comment-to-DM automation tool. It auto-replies to Instagram comments and DMs using keyword triggers, through the official Instagram API.",
+              text: `${BRAND_NAME} is an Instagram comment-to-DM automation tool. It auto-replies to Instagram comments and DMs using keyword triggers, through the official Instagram API.`,
             },
           },
           {
             "@type": "Question",
-            name: "How does DMSpark Instagram automation work?",
+            name: `How does ${BRAND_NAME} Instagram automation work?`,
             acceptedAnswer: {
               "@type": "Answer",
-              text: "DMSpark works by connecting your Instagram Business or Creator account via the official Meta API. You set up keyword triggers (like 'price', 'link', 'info') and DMSpark automatically replies to comments and sends DMs whenever someone uses those keywords. Replies are sent automatically, even when you are offline.",
+              text: `${BRAND_NAME} works by connecting your Instagram Business or Creator account via the official Meta API. You set up keyword triggers (like 'price', 'link', 'info') and ${BRAND_NAME} automatically replies to comments and sends DMs whenever someone uses those keywords. Replies are sent automatically, even when you are offline.`,
             },
           },
           {
             "@type": "Question",
-            name: "Is DMSpark free to use?",
+            name: `Is ${BRAND_NAME} free to use?`,
             acceptedAnswer: {
               "@type": "Answer",
-              text: "DMSpark is currently free to use while it is in beta. You can connect your Instagram account and set up auto-replies at no cost.",
+              text: `${BRAND_NAME} is currently free to use while it is in beta. You can connect your Instagram account and set up auto-replies at no cost.`,
             },
           },
           {
             "@type": "Question",
-            name: "Is DMSpark safe? Does it use the official Instagram API?",
+            name: `Is ${BRAND_NAME} safe? Does it use the official Instagram API?`,
             acceptedAnswer: {
               "@type": "Answer",
-              text: "DMSpark uses the official Instagram API and signs in with Instagram's own OAuth login; we never ask for your Instagram password. Follow Instagram's messaging rules when you set up automations.",
+              text: `${BRAND_NAME} uses the official Instagram API and signs in with Instagram's own OAuth login; we never ask for your Instagram password. Follow Instagram's messaging rules when you set up automations.`,
             },
           },
           {
             "@type": "Question",
-            name: "How is DMSpark different from other Instagram automation tools?",
+            name: `How is ${BRAND_NAME} different from other Instagram automation tools?`,
             acceptedAnswer: {
               "@type": "Answer",
-              text: "DMSpark uses the official Instagram API (not scraping), supports comment-to-DM and DM automation, and includes a free Instagram audit that turns findings into ready-to-use automations.",
+              text: `${BRAND_NAME} uses the official Instagram API (not scraping), supports comment-to-DM and DM automation, and includes a free Instagram audit that turns findings into ready-to-use automations.`,
             },
           },
         ],
