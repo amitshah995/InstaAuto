@@ -10,6 +10,7 @@ import { AiReportSection } from "@/components/audit/ai-report"
 import { DAY_SHORT, hourLabel, timeBreakdown } from "@/lib/audit/insights"
 import { instagramAuthUrl, PENDING_AUDIT_FLAG } from "@/lib/audit/oauth-url"
 import type { AuditReport, MediaKind, PostPoint, Severity } from "@/lib/audit/types"
+import { RECIPES, recipeHref, recipesFor, type Lang } from "@/lib/audit/recommendations"
 
 interface View {
   id: string
@@ -144,6 +145,8 @@ function Thumb({ post }: { post: PostPoint }) {
 
 function Report({ id, report }: { id: string; report: AuditReport }) {
   const [interest, setInterest] = useState("dm_automation")
+  // Language of the DM suggestion chips ("Turn this into an automation").
+  const [recipeLang, setRecipeLang] = useState<Lang>("en")
   const [range, setRange] = useState<"12" | "25" | "all">("all")
   const [filter, setFilter] = useState<"all" | "video" | "image" | "carousel">("all")
   const [offset, setOffset] = useState(0)
@@ -366,6 +369,37 @@ function Report({ id, report }: { id: string; report: AuditReport }) {
               </div>
               <p className="au-muted" style={{ fontSize: 14 }}>{f.detail}</p>
               <p style={{ fontSize: 14 }}><b>Fix:</b> {f.fix}</p>
+              {/* One-tap automation recipes. Clicking opens the create form PRE-FILLED; nothing is created or sent from here. */}
+              {recipesFor(f).length > 0 && (
+                <div style={{ marginTop: 6, display: "grid", gap: 8, borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <b style={{ fontSize: 13 }}>Turn this into an automation. What do people ask you for?</b>
+                    <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
+                      {(["en", "hi"] as const).map((l) => (
+                        <button
+                          key={l}
+                          type="button"
+                          onClick={() => setRecipeLang(l)}
+                          className="au-pill"
+                          style={{ cursor: "pointer", opacity: recipeLang === l ? 1 : 0.55 }}
+                        >
+                          {l === "en" ? "English" : "Hinglish"}
+                        </button>
+                      ))}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {recipesFor(f).map((rid) => (
+                      <a key={rid} href={recipeHref(rid, recipeLang)} className="au-pill" style={{ textDecoration: "none", fontWeight: 600 }}>
+                        {RECIPES[rid].label[recipeLang]} → DM
+                      </a>
+                    ))}
+                  </div>
+                  <p className="au-muted" style={{ fontSize: 12 }}>
+                    Based on your recent posts. Nothing is sent until you review the message, pick a post and create the rule.
+                  </p>
+                </div>
+              )}
             </article>
           ))}
           <p className="au-muted" style={{ fontSize: 12 }}>{report.methodology}</p>

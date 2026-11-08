@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { isLang, isRecipeId, recipeToTemplate } from "@/lib/audit/recommendations"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { AutomationList } from "@/components/dashboard/AutomationList"
 import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
@@ -88,8 +89,33 @@ export default function AutomationsPage() {
             if (params.get("create") === "true") {
                 setShowCreateForm(true)
             }
+            // Coming from the Instagram Audit: open the create form PRE-FILLED with the suggested recipe.
+            // Nothing is created here; the owner still has to pick a post and press Create.
+            const recipe = params.get("recipe")
+            if (isRecipeId(recipe)) {
+                const lang = isLang(params.get("lang")) ? (params.get("lang") as "en" | "hi") : "en"
+                setActiveTab("comment")
+                setSelectedTemplate(recipeToTemplate(recipe, lang))
+                setShowCreateForm(true)
+                router.replace("/dashboard/automations") // clean the URL so a refresh doesn't re-open it
+            }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    // Warn (not block) when an existing comment rule already uses one of the suggested keywords.
+    const isAuditRecipe = !!selectedTemplate?.id.startsWith("audit-")
+    const overlappingKeywords = isAuditRecipe
+        ? (selectedTemplate?.defaults?.triggers ?? []).filter((k) =>
+              automations.some(
+                  (a: any) =>
+                      a.trigger_source === "comment" &&
+                      String(a.trigger_value || "")
+                          .split(",")
+                          .some((x) => x.trim().toLowerCase() === k.toLowerCase()),
+              ),
+          )
+        : []
 
     const handleDeleteRule = async (id: string) => {
         await fetch(`/api/automations?id=${id}&userId=${userId}`, { method: "DELETE" })
@@ -230,7 +256,21 @@ export default function AutomationsPage() {
                                 </button>
                             </div>
                         )}
+                        {isAuditRecipe && (
+                            <div className="mb-4 space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-foreground">
+                                <p className="font-semibold">Starting from your audit suggestion</p>
+                                <p className="text-muted-foreground">
+                                    Pick the post this applies to and replace the [bracketed] parts with your real details. Nothing goes live until you press Create.
+                                </p>
+                                {overlappingKeywords.length > 0 && (
+                                    <p className="text-amber-700">
+                                        You already have a comment rule using: {overlappingKeywords.join(", ")}. A new rule on a specific post is fine, but check you are not duplicating one.
+                                    </p>
+                                )}
+                            </div>
+                        )}
                         <CreateRuleForm
+                            strict={isAuditRecipe}
                             key={selectedTemplate?.id || 'blank'}
                             userId={userId}
                             triggerSource={activeTab}

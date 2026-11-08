@@ -103,6 +103,8 @@ export function computeStats(p: ProfileSnapshot, now = new Date()): AuditStats {
 export function scoreProfile(p: ProfileSnapshot, now = new Date()): AuditReport {
   const s = computeStats(p, now)
   const findings: Finding[] = []
+  // Every finding passes a STABLE id (see lib/audit/recommendations.ts) so the same issue
+  // has the same id in every report; the positional fallback only exists for safety.
   const add = (f: Omit<Finding, "id"> & { id?: string }) =>
     findings.push({ id: f.id ?? `${f.category}-${findings.length + 1}`, ...f })
 
@@ -115,21 +117,21 @@ export function scoreProfile(p: ProfileSnapshot, now = new Date()): AuditReport 
   if (p.website) profile += 0.25
   if (BIO_CTA_RE.test(bio)) profile += 0.25
   if (!bio) {
-    add({ category: "profile", severity: "high", title: "Your bio is empty",
+    add({ category: "profile", severity: "high", id: "bio_empty", title: "Your bio is empty",
       detail: "Visitors cannot tell what you offer or why they should follow.",
       fix: "Write a one-line value statement, who you help, and one clear next step." })
   } else if (bio.length < 40) {
-    add({ category: "profile", severity: "medium", title: "Your bio is very short",
+    add({ category: "profile", severity: "medium", id: "bio_short", title: "Your bio is very short",
       detail: `Only ${bio.length} characters used out of 150.`,
       fix: "Add what you offer, who it is for, and a call to action." })
   }
   if (!p.website) {
-    add({ category: "profile", severity: "high", title: "No link in your profile",
+    add({ category: "profile", severity: "high", id: "no_profile_link", title: "No link in your profile",
       detail: "There is nowhere for interested visitors to go next.",
       fix: "Add a link to your store, booking page, WhatsApp or a link-in-bio page." })
   }
   if (bio && !BIO_CTA_RE.test(bio)) {
-    add({ category: "profile", severity: "medium", title: "Your bio has no call to action",
+    add({ category: "profile", severity: "medium", id: "bio_no_cta", title: "Your bio has no call to action",
       detail: "A bio without a next step turns profile visits into dead ends.",
       fix: 'End your bio with an action, e.g. "DM \'PRICE\' to order" or "Book a call below".' })
   }
@@ -137,11 +139,11 @@ export function scoreProfile(p: ProfileSnapshot, now = new Date()): AuditReport 
   // ---- consistency
   const consistency = clamp(s.postsLast30d / TUNING.postsPerMonthTarget)
   if (s.postsLast30d === 0) {
-    add({ category: "consistency", severity: "high", title: "No posts in the last 30 days",
+    add({ category: "consistency", severity: "high", id: "no_posts_30d", title: "No posts in the last 30 days",
       detail: "The algorithm and your followers both forget accounts that go quiet.",
       fix: `Plan ${TUNING.postsPerMonthTarget} posts a month and schedule them in advance.` })
   } else if (s.postsLast30d < TUNING.postsPerMonthTarget / 2) {
-    add({ category: "consistency", severity: "medium", title: "Posting frequency is low",
+    add({ category: "consistency", severity: "medium", id: "low_frequency", title: "Posting frequency is low",
       detail: `${s.postsLast30d} posts in the last 30 days (target ~${TUNING.postsPerMonthTarget}).`,
       fix: "Batch-create content weekly and use a scheduler so posting does not depend on mood." })
   }
@@ -150,11 +152,11 @@ export function scoreProfile(p: ProfileSnapshot, now = new Date()): AuditReport 
   const target = TUNING.engagementTargetPct.find((t) => p.followersCount <= t.maxFollowers)!.pct
   const engagement = s.engagementRatePct === null ? 0.5 : clamp(s.engagementRatePct / target)
   if (s.engagementRatePct !== null && s.engagementRatePct < target * 0.5) {
-    add({ category: "engagement", severity: "high", title: "Engagement is well below target for your size",
+    add({ category: "engagement", severity: "high", id: "engagement_very_low", title: "Engagement is well below target for your size",
       detail: `About ${s.engagementRatePct}% per post versus a ~${target}% working target for accounts your size.`,
       fix: "Ask questions, use hooks in the first line, and reply to every early comment." })
   } else if (s.engagementRatePct !== null && s.engagementRatePct < target) {
-    add({ category: "engagement", severity: "medium", title: "Engagement is slightly under target",
+    add({ category: "engagement", severity: "medium", id: "engagement_low", title: "Engagement is slightly under target",
       detail: `About ${s.engagementRatePct}% per post versus a ~${target}% working target.`,
       fix: "Double down on your top posts' formats and topics." })
   }
@@ -166,12 +168,12 @@ export function scoreProfile(p: ProfileSnapshot, now = new Date()): AuditReport 
     0.6 * clamp(reelShare / TUNING.reelShareTarget) + 0.4 * clamp((formats - 1) / 2)
   )
   if (p.media.length && reelShare < TUNING.reelShareTarget / 2) {
-    add({ category: "content_mix", severity: "high", title: "Almost no Reels",
+    add({ category: "content_mix", severity: "high", id: "almost_no_reels", title: "Almost no Reels",
       detail: `Reels are ${s.reelSharePct}% of your recent posts. Reels are the main way non-followers discover accounts.`,
       fix: "Aim for at least 1 in 3 posts being a Reel." })
   }
   if (p.media.length >= 6 && formats < 2) {
-    add({ category: "content_mix", severity: "medium", title: "You only use one content format",
+    add({ category: "content_mix", severity: "medium", id: "single_format", title: "You only use one content format",
       detail: "Mixing Reels, carousels and images reaches different audiences.",
       fix: "Add carousels for saves and shares, Reels for reach." })
   }
@@ -181,12 +183,12 @@ export function scoreProfile(p: ProfileSnapshot, now = new Date()): AuditReport 
   const tagOk = s.avgHashtags >= TUNING.hashtagsIdeal.min && s.avgHashtags <= TUNING.hashtagsIdeal.max
   const captions = (lenOk ? 0.5 : s.avgCaptionLength > 0 ? 0.2 : 0) + (tagOk ? 0.5 : s.avgHashtags > 0 ? 0.25 : 0)
   if (p.media.length && s.avgCaptionLength < TUNING.captionLengthIdeal.min) {
-    add({ category: "captions", severity: "medium", title: "Captions are too short",
+    add({ category: "captions", severity: "medium", id: "captions_short", title: "Captions are too short",
       detail: `Average caption is ${s.avgCaptionLength} characters.`,
       fix: "Open with a hook, add value, and close with a question or call to action." })
   }
   if (p.media.length && s.avgHashtags < TUNING.hashtagsIdeal.min) {
-    add({ category: "captions", severity: "low", title: "Few or no hashtags",
+    add({ category: "captions", severity: "low", id: "few_hashtags", title: "Few or no hashtags",
       detail: `Average ${s.avgHashtags} hashtags per post.`,
       fix: `Use ${TUNING.hashtagsIdeal.min}-${TUNING.hashtagsIdeal.max} specific, relevant hashtags.` })
   }
@@ -195,11 +197,11 @@ export function scoreProfile(p: ProfileSnapshot, now = new Date()): AuditReport 
   const ctaShare = s.ctaCaptionSharePct / 100
   const lead = clamp(0.5 * clamp(ctaShare / 0.5) + 0.25 * (p.website ? 1 : 0) + 0.25 * (BIO_CTA_RE.test(bio) ? 1 : 0))
   if (p.media.length && ctaShare < 0.25) {
-    add({ category: "lead_capture", severity: "high", title: "Posts rarely ask people to take an action",
+    add({ category: "lead_capture", severity: "high", id: "posts_rarely_cta", title: "Posts rarely ask people to take an action",
       detail: `Only ${s.ctaCaptionSharePct}% of recent captions include a call to action.`,
       fix: 'Add prompts like "Comment LINK and I will DM it to you" and automate the reply.' })
   } else if (p.media.length && s.postsLast30d > 0) {
-    add({ category: "lead_capture", severity: "medium", title: "Comments are likely going unconverted",
+    add({ category: "lead_capture", severity: "medium", id: "comments_unconverted", title: "Comments are likely going unconverted",
       detail: `${s.ctaCaptionSharePct}% of your captions ask for comments or DMs. Without automatic replies, each one is manual work and slow answers lose buyers.`,
       fix: "Automate comment-to-DM replies so every interested commenter gets an instant answer." })
   }

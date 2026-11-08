@@ -12,6 +12,7 @@ import { TagInput } from "@/components/ui/tag-input"
 import type { ProButton } from "@/lib/types"
 import type { AutomationTemplate } from "@/lib/automation-templates"
 import { toast } from "sonner"
+import { hasPlaceholders } from "@/lib/audit/recommendations"
 import { PhonePreview } from "@/components/dashboard/PhonePreview"
 import { CardImageField } from "@/components/dashboard/CardImageField"
 import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
@@ -21,9 +22,14 @@ interface CreateRuleFormProps {
   triggerSource: 'comment' | 'dm' | 'story' | 'live'
   onSuccess: () => void
   template?: AutomationTemplate | null
+  /**
+   * Strict mode is used for rules suggested by the Instagram Audit. A suggested rule must be tied to ONE post
+   * (otherwise it would fire on every post) and every [bracketed] placeholder must be replaced before it can go live.
+   */
+  strict?: boolean
 }
 
-export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: CreateRuleFormProps) {
+export function CreateRuleForm({ userId, triggerSource, onSuccess, template, strict }: CreateRuleFormProps) {
   const [step, setStep] = useState(1)
   const d = template?.defaults
 
@@ -129,6 +135,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
 
   // Validation per step
   const canProceedStep1 = () => {
+    if (strict && !selectedReel) {
+      toast.error("Pick the post this applies to", {
+        description: "Audit suggestions work on one post at a time. If your posts don't load, reconnect Instagram and try again.",
+      })
+      return false
+    }
     const isStoryMentionOrReaction = triggerSource === 'story' && (storyTriggerType === 'mention' || storyTriggerType === 'reaction')
     if (triggerSource === 'comment' && replyToAll && !selectedReel) {
       toast.error("Select a Post", { description: "Reply-All requires selecting a specific post." })
@@ -142,6 +154,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template }: C
   }
 
   const canProceedStep2 = () => {
+    if (strict && type === "text" && hasPlaceholders(messageText)) {
+      toast.error("Replace the [bracketed] parts", { description: "Put your real link, price or brand name instead of the [brackets]." })
+      return false
+    }
     if (type === "text" && !messageText.trim()) {
       toast.error("Missing Reply", { description: "Enter the message to auto-send." })
       return false
