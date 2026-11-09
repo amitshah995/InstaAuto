@@ -1,3 +1,5 @@
+import { STORAGE_MESSAGES, classifyStorageError, type StorageErrorCode } from "@/lib/shop/storage-errors"
+
 export const MAX_IMAGE_BYTES = 1_500_000
 export const MAX_IMAGES_PER_POST = 10
 export const MAX_POSTS_PER_USER = 200
@@ -28,20 +30,84 @@ export function userMediaPrefix(userId: string): string | null {
   return base ? `${base}/storage/v1/object/public/${BUCKET}/${userId}/` : null
 }
 
-export async function uploadToStorage(userId: string, bytes: Uint8Array, type: ImageType): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+export const BUCKET_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"]
+export const BUCKET_SIZE_LIMIT = 5 * 1024 * 1024
+
+/**
+ * Supabase's new secret keys (sb_secret_...) are not JWTs and are rejected in an Authorization: Bearer
+ * header; they only work in `apikey`. Legacy service_role keys are JWTs and want both.
+ */
+export function storageHeaders(key: string, extra: Record<string, string> = {}): Record<string, string> {
+  return { apikey: key, ...(key.startsWith("eyJ") ? { authorization: `Bearer ${key}` } : {}), ...extra }
+}
+
+/**
+ * Creates the public bucket with the service role. Safe to call when it already exists (409 counts as success).
+ * Called at most once a minute per server instance when an upload reports "Bucket not found", so a fresh Supabase
+ * project works without the owner touching the dashboard. If the key may not create buckets, the caller
+ * falls back to telling the owner exactly what to create.
+ */
+// Throttled to one attempt per minute so a key that cannot create buckets is not hammered on every upload.
+let bucketTriedAt = 0
+export async function ensureBucket(): Promise<boolean> {
   const base = storageBase()
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!base || !key) return { ok: false, error: "Image storage is not set up yet (see setup steps)." }
+  if (!base || !key || Date.now() - bucketTriedAt < 60_000) return false
+  bucketTriedAt = Date.now()
+  try {
+    const res = await fetch(`${base}/storage/v1/bucket`, {
+      method: "POST",
+      headers: storageHeaders(key, { "content-type": "application/json" }),
+      body: JSON.stringify({ id: BUCKET, name: BUCKET, public: true, file_size_limit: BUCKET_SIZE_LIMIT, allowed_mime_types: BUCKET_MIME_TYPES }),
+      signal: AbortSignal.timeout(10000),
+    })
+    const text = (await res.text().catch(() => "")).slice(0, 200)
+    if (res.ok || /already exists|duplicate/i.test(text) || res.status === 409) return true
+    console.error("[shop-media] bucket create failed:", res.status, text)
+  } catch (e) {
+    console.error("[shop-media] bucket create error:", (e as Error)?.message)
+  }
+  return false
+}
+
+export type UploadResult = { ok: true; url: string } | { ok: false; code: StorageErrorCode; error: string }
+const fail = (code: StorageErrorCode): UploadResult => ({ ok: false, code, error: STORAGE_MESSAGES[code] })
+
+export async function uploadToStorage(userId: string, bytes: Uint8Array, type: ImageType): Promise<UploadResult> {
+  const base = storageBase()
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!base || !key) return fail("storage_not_configured")
+  // The path always starts with the user's id; PUT /api/shop only accepts URLs under that prefix.
   const name = `${userId}/${crypto.randomUUID()}.${type.ext}`
-  const res = await fetch(`${base}/storage/v1/object/${BUCKET}/${name}`, {
-    method: "POST",
-    headers: { authorization: `Bearer ${key}`, apikey: key, "content-type": type.mime, "x-upsert": "false" },
-    body: bytes as any,
-    signal: AbortSignal.timeout(20000),
-  })
-  if (!res.ok) {
-    console.error("[shop-media] storage upload failed:", res.status, (await res.text().catch(() => "")).slice(0, 200))
-    return { ok: false, error: res.status === 404 ? `Create a public storage bucket named "${BUCKET}" first.` : "Image upload failed" }
+  const send = () =>
+    fetch(`${base}/storage/v1/object/${BUCKET}/${name}`, {
+      method: "POST",
+      headers: storageHeaders(key, { "content-type": type.mime, "x-upsert": "false" }),
+      body: bytes as any,
+      signal: AbortSignal.timeout(20000),
+    })
+  let res: Response
+  try {
+    res = await send()
+  } catch (e) {
+    console.error("[shop-media] storage unreachable:", (e as Error)?.message)
+    return fail("storage_failed")
+  }
+  let body = res.ok ? "" : (await res.text().catch(() => "")).slice(0, 300)
+  let code = res.ok ? null : classifyStorageError(res.status, body)
+  if (code === "bucket_missing" && (await ensureBucket())) {
+    try {
+      res = await send()
+      body = res.ok ? "" : (await res.text().catch(() => "")).slice(0, 300)
+      code = res.ok ? null : classifyStorageError(res.status, body)
+    } catch {
+      code = "storage_failed"
+    }
+  }
+  if (code) {
+    // Details stay in the server log only; the owner gets the mapped message.
+    console.error("[shop-media] storage upload failed:", res.status, code, body)
+    return fail(code)
   }
   return { ok: true, url: `${base}/storage/v1/object/public/${BUCKET}/${name}` }
 }

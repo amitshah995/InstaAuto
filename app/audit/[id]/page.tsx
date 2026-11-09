@@ -476,6 +476,11 @@ export default function AuditResultPage() {
   const { id } = useParams<{ id: string }>()
   const [view, setView] = useState<View | null>(null)
   const [notFound, setNotFound] = useState(false)
+  // Is the visitor signed in? Decides whether a missing report offers "Connect" (it should not for signed-in owners of another account's link).
+  const [signedIn, setSignedIn] = useState<boolean | null>(null)
+  useEffect(() => {
+    fetch("/api/audit/session", { cache: "no-store" }).then((r) => r.json()).then((d) => setSignedIn(!!d.signedIn)).catch(() => setSignedIn(false))
+  }, [])
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/audit/${id}`, { cache: "no-store" })
@@ -498,11 +503,13 @@ export default function AuditResultPage() {
         <div className="au-wrap" style={{ maxWidth: 560, padding: "96px 16px", textAlign: "center", display: "grid", gap: 16 }}>
           <h1 className="au-head" style={{ fontSize: 28 }}>We could not open this report</h1>
           <p className="au-muted">
-            Audit reports are private. Connect the Instagram account that created it, or run a new audit for your own account.
+            {signedIn
+              ? "Audit reports are private and belong to the account that ran them. You are signed in, so you can run an audit for your own account."
+              : "Audit reports are private. Connect the Instagram account that created it, or run a new audit for your own account."}
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <button className="au-btn" onClick={connect}><AtSign size={18} /> Connect Instagram</button>
-            <Link href="/instagram-audit" className="au-btn ghost">Run a new audit</Link>
+            {signedIn === false && <button className="au-btn" onClick={connect}><AtSign size={18} /> Connect Instagram</button>}
+            <Link href="/instagram-audit" className={signedIn ? "au-btn" : "au-btn ghost"}>{signedIn ? "Go to my audit" : "Run a new audit"}</Link>
           </div>
         </div>
       </AuditShell>
