@@ -9,11 +9,12 @@ export type ShopSchemaStatus = {
   links_price: boolean // migration 21
   shop_avatar: boolean // migration 22
   shop_banner: boolean // migration 23
+  links_position: boolean // migration 29
 }
 
 /** Which of the shop migrations have been run. Never throws. */
 export async function shopSchemaStatus(): Promise<ShopSchemaStatus> {
-  const out: ShopSchemaStatus = { shop_profiles: false, links_shop_visible: false, links_image_url: false, shop_posts: false, shop_posts_ig_media_id: false, links_price: false, shop_avatar: false, shop_banner: false }
+  const out: ShopSchemaStatus = { shop_profiles: false, links_shop_visible: false, links_image_url: false, shop_posts: false, shop_posts_ig_media_id: false, links_price: false, shop_avatar: false, shop_banner: false, links_position: false }
   try {
     const rows = await rawQuery<{ table_name: string; column_name: string }>(
       `SELECT table_name, column_name FROM information_schema.columns
@@ -27,6 +28,7 @@ export async function shopSchemaStatus(): Promise<ShopSchemaStatus> {
     out.shop_posts_ig_media_id = has("shop_posts", "ig_media_id")
     out.shop_avatar = has("shop_profiles", "avatar_url")
     out.shop_banner = has("shop_profiles", "banner_url")
+    out.links_position = has("links", "position")
     out.links_price = has("links", "price_inr") && has("links", "mrp_inr")
   } catch {
     /* leave everything false */
@@ -80,6 +82,22 @@ export async function hasBannerColumn(): Promise<boolean> {
   return value
 }
 
+let posCol: { at: number; value: boolean } | null = null
+
+/** True once migration 29 (manual link order) has been run (same caching as above). */
+export async function hasPositionColumn(): Promise<boolean> {
+  if (posCol && (posCol.value || Date.now() - posCol.at < 30_000)) return posCol.value
+  const value = (await shopSchemaStatus()).links_position
+  posCol = { at: Date.now(), value }
+  return value
+}
+
+/** ORDER BY body for links: manual order first (when migration 29 is in), then newest. `alias` is the links table alias, if any. */
+export async function linkOrder(alias = ""): Promise<string> {
+  const a = alias ? `${alias}.` : ""
+  return (await hasPositionColumn()) ? `${a}position ASC NULLS LAST, ${a}created_at DESC` : `${a}created_at DESC`
+}
+
 /** SELECT fragment for the profile picture and banner; each one is NULL until its migration (22, 23) has been run. */
 export async function avatarSelect(): Promise<string> {
   const a = (await hasAvatarColumn()) ? "avatar_url" : "NULL::text AS avatar_url"
@@ -96,6 +114,7 @@ const LABELS: [keyof ShopSchemaStatus, string][] = [
   ["links_price", "migration 21 (product prices)"],
   ["shop_avatar", "migration 22 (shop profile picture)"],
   ["shop_banner", "migration 23 (shop banner)"],
+  ["links_position", "migration 29 (link order)"],
 ]
 
 export function missingMigrations(s: ShopSchemaStatus): string[] {

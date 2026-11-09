@@ -3,7 +3,7 @@ import { z } from "zod"
 import { rawQuery } from "@/lib/supabase-server"
 import { getSessionUserId } from "@/lib/auth"
 import { cleanImageUrl, fetchProductImage } from "@/lib/links/image"
-import { hasPriceColumns, priceSelect } from "@/lib/shop/schema"
+import { hasPriceColumns, linkOrder, priceSelect } from "@/lib/shop/schema"
 import { MAX_LINKS_PER_USER, makeSlug, siteBase, validateDestination } from "@/lib/links/core"
 
 const CreateSchema = z.object({
@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
   if (!userId) return unauthorized()
   try {
     const pc = await priceSelect("l")
+    const order = await linkOrder("l")
     const rows = await rawQuery(
       `SELECT l.id, l.slug, l.title, l.url, l.network, l.disclose, l.disabled, l.shop_visible, l.image_url, ${pc}, l.created_at,
               COUNT(c.id) FILTER (WHERE c.is_bot = FALSE)::int AS clicks_total,
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
               COUNT(DISTINCT c.visitor_hash) FILTER (WHERE c.is_bot = FALSE AND c.clicked_at > now() - interval '7 days')::int AS visitors_7d
        FROM links l LEFT JOIN link_clicks c ON c.link_id = l.id
        WHERE l.user_id = $1
-       GROUP BY l.id ORDER BY l.created_at DESC LIMIT $2`,
+       GROUP BY l.id ORDER BY ${order} LIMIT $2`,
       [userId, MAX_LINKS_PER_USER],
     )
     return NextResponse.json({ base: siteBase(), links: rows })
