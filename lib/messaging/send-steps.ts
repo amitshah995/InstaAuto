@@ -4,6 +4,8 @@ import { expandTokens } from "@/lib/links/core"
 import { getEntitlement, releaseDm, reserveDm, type Entitlement } from "@/lib/billing/usage"
 import { createPaymentLink } from "@/lib/payments/payment-link"
 import { classifyFailure, withRetry, type MetaError } from "@/lib/messaging/retry"
+import { describeCards, isSendableElement, normalizeCards, toGenericTemplateMessage } from "@/lib/messaging/cards"
+import { buildQuickRepliesApi } from "@/lib/messaging/quick-replies"
 import { DM_WINDOW_MS, PRIVATE_REPLY_WINDOW_MS, recordFailedSend } from "@/lib/messaging/failed-sends"
 
 /**
@@ -123,7 +125,7 @@ export async function sendSteps(
   const steps: any[] =
     Array.isArray(content.steps) && content.steps.length > 0
       ? content.steps
-      : [{ text: content.message, card: content.card, delay_seconds: content.delay_seconds }]
+      : [{ text: content.message, card: content.card, quick_replies: content.quick_replies, cards: content.cards, delay_seconds: content.delay_seconds }]
 
   const results: SendResult[] = []
   let allOk = true
@@ -154,42 +156,53 @@ export async function sendSteps(
     // Without an account context a {link:..} token cannot be resolved, so strip it rather than send it raw.
     const expand = async (t: string | undefined | null) =>
       !t ? "" : ctx ? expandLinksForUser(ctx.userId, t) : expandTokens(t, new Map())
-    if (step.card) {
-      const card = step.card
+    // A step holds either `cards` (carousel, 1..10, clamped to Meta's limits) or a legacy single `card` (sent as before,
+    // untouched, so existing rules and the follow-gate card behave exactly as they always did).
+    // Carousel cards that Meta would refuse (a title and nothing else) are dropped; if none are left the legacy card is used.
+    const carouselCards: any[] = Array.isArray(step.cards) ? normalizeCards({ cards: step.cards }).filter(isSendableElement) : []
+    const stepCards: any[] = carouselCards.length > 0 ? carouselCards : step.card ? [step.card] : []
+    if (stepCards.length > 0) {
       let payUnavailable = false
-      const builtButtons = await Promise.all(card.buttons.map(async (b: any) => {
-        if (b.type === "pay") {
-          // "Pay" button: create a Razorpay Payment Link now and send it as a normal link button.
-          // Disabled/misconfigured -> no link, and the whole step is skipped below (never send a dead button).
-          const link = ctx ? await createPaymentLink({ amountInr: b.amount_inr, description: b.description || card.title, userId: ctx.userId, psid }) : null
-          if (!link) {
-            payUnavailable = true
-            return null
+      const elements: Record<string, unknown>[] = []
+      for (const card of stepCards) {
+        const builtButtons = await Promise.all((card.buttons || []).map(async (b: any) => {
+          if (b.type === "pay") {
+            // "Pay" button: create a Razorpay Payment Link now and send it as a normal link button.
+            // Disabled/misconfigured -> no link, and the whole step is skipped below (never send a dead button).
+            const link = ctx ? await createPaymentLink({ amountInr: b.amount_inr, description: b.description || card.title, userId: ctx.userId, psid }) : null
+            if (!link) {
+              payUnavailable = true
+              return null
+            }
+            return { type: "web_url", title: b.title, url: link.url, payload: undefined }
           }
-          return { type: "web_url", title: b.title, url: link.url, payload: undefined }
-        }
-        return {
-          type: b.type,
-          title: b.title,
-          url: b.url ? await expand(b.url) : undefined,
-          payload: b.payload || undefined,
-        }
-      }))
+          return {
+            type: b.type,
+            title: b.title,
+            url: b.url ? await expand(b.url) : undefined,
+            payload: b.payload || undefined,
+          }
+        }))
+        if (payUnavailable) break
+        const element: any = { title: card.title, buttons: builtButtons.filter(Boolean) }
+        if (card.subtitle) element.subtitle = card.subtitle
+        if (card.image_url && card.image_url.startsWith("http")) element.image_url = card.image_url
+        elements.push(element)
+      }
       if (payUnavailable) {
         console.warn("[payments] pay button skipped: payment links are not enabled or could not be created")
-        results.push({ text: `[Card] ${card.title}`, ok: false, error: "Payment link unavailable (payment links are not enabled, or Razorpay could not create the link)" })
+        results.push({ text: describeCards(stepCards), ok: false, error: "Payment link unavailable (payment links are not enabled, or Razorpay could not create the link)" })
         allOk = false
         break
       }
-      const apiButtons = builtButtons.filter(Boolean)
-      const element: any = { title: card.title, buttons: apiButtons }
-      if (card.subtitle) element.subtitle = card.subtitle
-      if (card.image_url && card.image_url.startsWith("http")) element.image_url = card.image_url
-      apiBody.message = { attachment: { type: "template", payload: { template_type: "generic", elements: [element] } } }
-      textLog = `[Card] ${card.title}`
+      apiBody.message = toGenericTemplateMessage(elements)
+      textLog = describeCards(stepCards)
     } else {
       const finalText = await expand(step.text)
       apiBody.message = { text: finalText }
+      // Quick reply chips ride on text messages only (max 13, title max 20 chars; see lib/messaging/quick-replies.ts).
+      const chips = buildQuickRepliesApi(step.quick_replies)
+      if (chips.length > 0 && finalText) apiBody.message.quick_replies = chips
       textLog = finalText
     }
 
@@ -205,7 +218,15 @@ export async function sendSteps(
     }
 
     // Retry transient Meta errors briefly inline (webhook stays fast: ~2s worst case), permanent ones fail at once.
-    const sent = await postGraphMessage(accessToken, apiBody)
+    let sent = await postGraphMessage(accessToken, apiBody)
+    // Meta documents quick replies for normal DMs; whether a private reply to a comment accepts them is not
+    // documented. If that very first message is rejected as an invalid request, resend it once as plain text so the
+    // person still gets the DM (they can then type the answer).
+    if (!sent.ok && apiBody.message?.quick_replies && i === 0 && firstRecipient?.comment_id && sent.error?.code === 100) {
+      console.warn("[v0] ⚠️ Private reply rejected with quick replies; resending without them")
+      delete apiBody.message.quick_replies
+      sent = await postGraphMessage(accessToken, apiBody)
+    }
     if (!sent.ok) {
       // A DM that never went out is not billed.
       if (ctx && entitlement) await releaseDm(ctx.userId)

@@ -29,6 +29,9 @@ import { toast } from "sonner"
 import { FlowTester } from "@/components/flows/flow-tester"
 import { VersionHistory } from "@/components/flows/version-history"
 import { BRAND_NAME } from "@/lib/site"
+import { ConditionRulesEditor } from "@/components/flows/condition-rules-editor"
+import { DEFAULT_TIMEZONE, sanitizeRules, type CondRule } from "@/lib/flows/conditions"
+import { QuickRepliesField, quickRepliesFromContent, quickRepliesToContent, type QuickReplyDraft } from "@/components/dashboard/QuickRepliesField"
 
 interface Node {
   id: string
@@ -39,6 +42,15 @@ interface Node {
   content: string
   extra?: string
   delaySeconds?: number // message nodes only — seconds to wait before sending
+  quickReplies?: QuickReplyDraft[] // message nodes only — tappable chips under the message (max 13, 20 chars each)
+  /**
+   * Which kind of action node this is. Needed because the label (title) is editable, so it cannot be used to tell nodes
+   * apart. Older saved flows have none and fall back to the original titles.
+   */
+  actionKind?: "tag" | "remove_tag" | "set_variable" | "ai"
+  varValue?: string // set_variable nodes only — the value to save (may use {{last_reply}} or {{other_variable}})
+  /** Condition nodes only. true (default, and for every flow saved before) = pause and wait for the person's next message. false = decide right away. */
+  waitForReply?: boolean
 }
 
 interface Connection {
@@ -48,11 +60,19 @@ interface Connection {
   // Only meaningful when fromId is a "condition" node: the keyword that
   // routes to this branch. Empty/undefined = the default/fallback branch.
   label?: string
+  // Condition branches only: extra rules (max 5, joined by AND/OR) next to the keyword. See lib/flows/conditions.ts.
+  rules?: CondRule[]
+  match?: "all" | "any"
 }
 
 // Turns a saved graph (content.flow) into canvas nodes + connections with a
 // simple left-to-right BFS layered layout, so reopening a branching flow
 // shows the same shape it was saved in (not the single-message fallback).
+// Graph node types that continue to a single `next` node.
+function hasNext(type: string) {
+  return type === "message" || type === "tag" || type === "ai" || type === "remove_tag" || type === "set_variable"
+}
+
 function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any> }, trigger: Node): { nodes: Node[]; connections: Connection[] } {
   const graphNodes = flow.nodes || {}
   const canvasNodes: Node[] = [trigger]
@@ -70,7 +90,7 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
     const gNode = graphNodes[id]
     if (!gNode) continue
 
-    if ((gNode.type === "message" || gNode.type === "tag" || gNode.type === "ai") && gNode.next) queue.push({ id: gNode.next, depth: depth + 1 })
+    if (hasNext(gNode.type) && gNode.next) queue.push({ id: gNode.next, depth: depth + 1 })
     if (gNode.type === "condition") {
       for (const b of gNode.branches || []) if (b.next) queue.push({ id: b.next, depth: depth + 1 })
       if (gNode.default_next) queue.push({ id: gNode.default_next, depth: depth + 1 })
@@ -91,13 +111,17 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
       const gNode = graphNodes[id]
       canvasNodes.push({
         id,
-        type: gNode.type === "condition" ? "condition" : gNode.type === "tag" || gNode.type === "ai" ? "action" : "message",
+        type: gNode.type === "condition" ? "condition" : hasNext(gNode.type) && gNode.type !== "message" ? "action" : "message",
         x: 360 + depth * COL_WIDTH,
         y: 60 + i * ROW_HEIGHT,
-        title: gNode.type === "condition" ? "Condition" : gNode.type === "tag" ? "Assign Tag" : gNode.type === "ai" ? "AI Reply" : "Message",
-        extra: gNode.type === "tag" ? "SaaS CRM Tag" : gNode.type === "ai" ? "AI writes the reply" : undefined,
-        content: gNode.type === "message" ? gNode.text || "" : gNode.type === "tag" ? gNode.tag || "" : gNode.type === "ai" ? gNode.instruction || "" : "",
+        title: gNode.type === "condition" ? "Condition" : gNode.type === "tag" ? "Assign Tag" : gNode.type === "remove_tag" ? "Remove Tag" : gNode.type === "set_variable" ? "Set Variable" : gNode.type === "ai" ? "AI Reply" : "Message",
+        extra: gNode.type === "tag" ? "SaaS CRM Tag" : gNode.type === "remove_tag" ? "Removes a CRM tag" : gNode.type === "set_variable" ? "Saves a value on the contact" : gNode.type === "ai" ? "AI writes the reply" : undefined,
+        actionKind: gNode.type === "tag" || gNode.type === "remove_tag" || gNode.type === "set_variable" || gNode.type === "ai" ? gNode.type : undefined,
+        varValue: gNode.type === "set_variable" ? String(gNode.value ?? "") : undefined,
+        waitForReply: gNode.type === "condition" ? gNode.wait_for_reply !== false : undefined,
+        content: gNode.type === "message" ? gNode.text || "" : gNode.type === "tag" || gNode.type === "remove_tag" ? gNode.tag || "" : gNode.type === "set_variable" ? gNode.name || "" : gNode.type === "ai" ? gNode.instruction || "" : "",
         delaySeconds: gNode.type === "message" ? gNode.delay_seconds || 0 : undefined,
+        quickReplies: gNode.type === "message" ? quickRepliesFromContent(gNode.quick_replies) : undefined,
       })
     })
   }
@@ -106,13 +130,22 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
     canvasConnections.push({ id: `c-t-${flow.startNodeId}`, fromId: trigger.id, toId: flow.startNodeId })
   }
   for (const [id, gNode] of Object.entries(graphNodes)) {
-    if ((gNode.type === "message" || gNode.type === "tag" || gNode.type === "ai") && gNode.next) {
+    if (hasNext(gNode.type) && gNode.next) {
       canvasConnections.push({ id: `c-${id}-${gNode.next}`, fromId: id, toId: gNode.next })
     }
     if (gNode.type === "condition") {
-      for (const b of gNode.branches || []) {
-        if (b.next) canvasConnections.push({ id: `c-${id}-${b.next}-${b.keyword}`, fromId: id, toId: b.next, label: b.keyword })
-      }
+      ;(gNode.branches || []).forEach((b: any, bi: number) => {
+        if (b.next) {
+          canvasConnections.push({
+            id: `c-${id}-${b.next}-${bi}`,
+            fromId: id,
+            toId: b.next,
+            label: b.keyword,
+            rules: sanitizeRules(b.rules),
+            match: b.match === "any" ? "any" : "all",
+          })
+        }
+      })
       if (gNode.default_next) {
         canvasConnections.push({ id: `c-${id}-${gNode.default_next}-default`, fromId: id, toId: gNode.default_next })
       }
@@ -125,10 +158,16 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
 // "Assign Tag" action nodes are real graph nodes (they tag the contact at runtime).
 // Other action nodes (e.g. Follower Check) are still handled elsewhere / folded through.
 function isAiNode(n: Node) {
-  return n.type === "action" && n.title === "AI Reply"
+  return n.type === "action" && (n.actionKind === "ai" || (!n.actionKind && n.title === "AI Reply"))
 }
 function isTagNode(n: Node) {
-  return n.type === "action" && n.title === "Assign Tag"
+  return n.type === "action" && (n.actionKind === "tag" || (!n.actionKind && n.title === "Assign Tag"))
+}
+function isRemoveTagNode(n: Node) {
+  return n.type === "action" && n.actionKind === "remove_tag"
+}
+function isSetVariableNode(n: Node) {
+  return n.type === "action" && n.actionKind === "set_variable"
 }
 
 // Turns canvas nodes + connections into the graph shape the webhook
@@ -136,7 +175,7 @@ function isTagNode(n: Node) {
 // nodes themselves — a chain like message -> delay -> message folds the
 // delay's seconds into the first message's delay_seconds, and Action nodes
 // (tagging isn't wired up server-side yet) are skipped through silently.
-function buildGraph(nodes: Node[], connections: Connection[], triggerId: string): { startNodeId: string | null; nodes: Record<string, any> } {
+function buildGraph(nodes: Node[], connections: Connection[], triggerId: string, timezone?: string): { startNodeId: string | null; nodes: Record<string, any>; timezone?: string } {
   const nodeById = new Map(nodes.map((n) => [n.id, n]))
 
   function resolveNext(fromId: string, visited: Set<string> = new Set()): { nextId: string | null; delay: number } {
@@ -151,7 +190,7 @@ function buildGraph(nodes: Node[], connections: Connection[], triggerId: string)
       const deeper = resolveNext(target.id, visited)
       return { nextId: deeper.nextId, delay: d + deeper.delay }
     }
-    if (target.type === "action" && !isTagNode(target) && !isAiNode(target)) {
+    if (target.type === "action" && !isTagNode(target) && !isAiNode(target) && !isRemoveTagNode(target) && !isSetVariableNode(target)) {
       return resolveNext(target.id, visited)
     }
     return { nextId: target.id, delay: 0 }
@@ -165,6 +204,9 @@ function buildGraph(nodes: Node[], connections: Connection[], triggerId: string)
         type: "message",
         text: node.content,
         delay_seconds: node.delaySeconds || delay || 0,
+        ...(quickRepliesToContent(node.quickReplies ?? [], false).length > 0
+          ? { quick_replies: quickRepliesToContent(node.quickReplies ?? [], false) }
+          : {}),
         next: nextId,
       }
     } else if (node.type === "action" && isAiNode(node)) {
@@ -173,23 +215,43 @@ function buildGraph(nodes: Node[], connections: Connection[], triggerId: string)
     } else if (node.type === "action" && isTagNode(node)) {
       const { nextId } = resolveNext(node.id)
       graphNodes[node.id] = { type: "tag", tag: node.content, next: nextId }
+    } else if (node.type === "action" && isRemoveTagNode(node)) {
+      const { nextId } = resolveNext(node.id)
+      graphNodes[node.id] = { type: "remove_tag", tag: node.content, next: nextId }
+    } else if (node.type === "action" && isSetVariableNode(node)) {
+      const { nextId } = resolveNext(node.id)
+      graphNodes[node.id] = { type: "set_variable", name: node.content, value: node.varValue ?? "", next: nextId }
     } else if (node.type === "condition") {
       const outgoing = connections.filter((c) => c.fromId === node.id)
-      const branches: { keyword: string; next: string }[] = []
+      const branches: { keyword?: string; rules?: CondRule[]; match?: "all" | "any"; next: string }[] = []
       let default_next: string | null = null
       for (const c of outgoing) {
-        if (c.label && c.label.trim()) {
-          branches.push({ keyword: c.label.trim(), next: c.toId })
+        const keyword = c.label && c.label.trim() ? c.label.trim() : ""
+        const rules = sanitizeRules(c.rules)
+        if (keyword || rules.length > 0) {
+          // A keyword-only branch is saved exactly as before; rules are added only when there are some.
+          branches.push({
+            ...(keyword ? { keyword } : {}),
+            ...(rules.length > 0 ? { rules, match: c.match === "any" ? "any" : "all" } : {}),
+            next: c.toId,
+          })
         } else {
           default_next = c.toId
         }
       }
-      graphNodes[node.id] = { type: "condition", branches, default_next }
+      graphNodes[node.id] = {
+        type: "condition",
+        branches,
+        default_next,
+        // Only written when the node decides immediately; flows saved before this feature (and new waiting nodes) omit it.
+        ...(node.waitForReply === false ? { wait_for_reply: false } : {}),
+      }
     }
   }
 
   const { nextId: startNodeId } = resolveNext(triggerId)
-  return { startNodeId, nodes: graphNodes }
+  // The time zone is only written when it differs from the default, so existing flows save byte-for-byte as before.
+  return { startNodeId, nodes: graphNodes, ...(timezone && timezone !== DEFAULT_TIMEZONE ? { timezone } : {}) }
 }
 
 export default function FlowBuilderPage() {
@@ -266,6 +328,8 @@ function FlowBuilderContent() {
   const [automationName, setAutomationName] = useState<string>("Demo Automation Flow")
   const [specificMediaId, setSpecificMediaId] = useState<string | null>(null)
   const [triggerSource, setTriggerSource] = useState<'comment' | 'dm' | 'story'>('dm')
+  // Time zone used by "time of day" rules (saved on the flow; default Asia/Kolkata).
+  const [flowTimezone, setFlowTimezone] = useState<string>(DEFAULT_TIMEZONE)
   // The rule's original response_content, kept so saving can preserve fields
   // this canvas doesn't understand (e.g. sequence "steps" or lead-qual
   // "questions") instead of silently discarding them.
@@ -320,6 +384,7 @@ function FlowBuilderContent() {
 
             if (content.flow?.nodes && content.flow?.startNodeId) {
               // Branching flow — reconstruct the full graph with auto-layout.
+              setFlowTimezone(typeof content.flow.timezone === "string" && content.flow.timezone ? content.flow.timezone : DEFAULT_TIMEZONE)
               const { nodes: loadedNodes, connections: loadedConnections } = deserializeFlow(content.flow, triggerNode)
               setNodes(loadedNodes)
               setConnections(loadedConnections)
@@ -482,8 +547,8 @@ function FlowBuilderContent() {
   }
 
   // Add new Node
-  const addNewNode = (kind: "message" | "delay" | "action" | "condition" | "ai") => {
-    const type = kind === "ai" ? "action" : kind
+  const addNewNode = (kind: "message" | "delay" | "action" | "condition" | "ai" | "remove_tag" | "set_variable") => {
+    const type = kind === "ai" || kind === "remove_tag" || kind === "set_variable" ? "action" : kind
     const id = `n_${Date.now()}`
     let title = ""
     let content = ""
@@ -505,6 +570,14 @@ function FlowBuilderContent() {
       title = "AI Reply"
       content = "Answer the follower's question about our services in a friendly way."
       extra = "AI writes the reply"
+    } else if (kind === "remove_tag") {
+      title = "Remove Tag"
+      content = "Warm Lead"
+      extra = "Removes a CRM tag"
+    } else if (kind === "set_variable") {
+      title = "Set Variable"
+      content = "plan"
+      extra = "Saves a value on the contact"
     } else {
       title = "Assign Tag"
       content = "Warm Lead"
@@ -520,6 +593,9 @@ function FlowBuilderContent() {
       content,
       extra,
       delaySeconds: type === "message" ? 0 : undefined,
+      actionKind: kind === "ai" ? "ai" : kind === "remove_tag" ? "remove_tag" : kind === "set_variable" ? "set_variable" : type === "action" ? "tag" : undefined,
+      varValue: kind === "set_variable" ? "{{last_reply}}" : undefined,
+      waitForReply: type === "condition" ? true : undefined,
     }
 
     setNodes([...nodes, newNode])
@@ -544,7 +620,7 @@ function FlowBuilderContent() {
   }
 
   // Update selected node values from right sidebar
-  const updateSelectedNode = (field: "title" | "content" | "extra" | "delaySeconds", value: string | number) => {
+  const updateSelectedNode = (field: "title" | "content" | "extra" | "delaySeconds" | "varValue" | "waitForReply", value: string | number | boolean) => {
     if (!selectedNodeId) return
     setNodes(prev => prev.map(node => {
       if (node.id === selectedNodeId) {
@@ -554,9 +630,23 @@ function FlowBuilderContent() {
     }))
   }
 
+  const setSelectedQuickReplies = (chips: QuickReplyDraft[]) => {
+    if (!selectedNodeId) return
+    setNodes(prev => prev.map(node => (node.id === selectedNodeId ? { ...node, quickReplies: chips } : node)))
+  }
+
   const updateConnectionLabel = (connId: string, label: string) => {
     setConnections(prev => prev.map(c => c.id === connId ? { ...c, label } : c))
   }
+
+  const updateConnectionRules = (connId: string, next: { rules: CondRule[]; match: "all" | "any" }) => {
+    setConnections(prev => prev.map(c => c.id === connId ? { ...c, rules: next.rules, match: next.match } : c))
+  }
+
+  // Quick reply chips defined on any message node, offered to the "tapped quick reply" condition rule.
+  const flowChips = nodes.flatMap(n => (n.type === "message" ? (n.quickReplies ?? []) : []))
+    .filter(q => q.title.trim())
+    .map(q => ({ title: q.title.trim(), payload: q.payload }))
 
   const deleteConnection = (connId: string) => {
     setConnections(prev => prev.filter(c => c.id !== connId))
@@ -593,7 +683,7 @@ function FlowBuilderContent() {
           return
         }
 
-        const graph = buildGraph(nodes, connections, triggerNode.id)
+        const graph = buildGraph(nodes, connections, triggerNode.id, flowTimezone)
         if (!graph.startNodeId) {
           toast.error("Flow invalid", { description: "Connect your trigger to at least one message." })
           setIsSaved(false)
@@ -611,7 +701,9 @@ function FlowBuilderContent() {
             trigger_source: triggerSource,
             trigger_value: triggerNode.content,
             content: {
-              flow: { startNodeId: graph.startNodeId, nodes: graph.nodes },
+              // Keep settings this canvas does not edit (public reply, once per person, comment scope...).
+              ...(originalContent || {}),
+              flow: { startNodeId: graph.startNodeId, nodes: graph.nodes, ...(graph.timezone ? { timezone: graph.timezone } : {}) },
               check_follow: isFollowGateActive,
             },
             specific_media_id: specificMediaId
@@ -696,8 +788,8 @@ function FlowBuilderContent() {
           graph={(() => {
             const t = nodes.find((n) => n.type === "trigger")
             if (!t) return null
-            const g = buildGraph(nodes, connections, t.id)
-            return g.startNodeId ? { startNodeId: g.startNodeId, nodes: g.nodes } : null
+            const g = buildGraph(nodes, connections, t.id, flowTimezone)
+            return g.startNodeId ? { startNodeId: g.startNodeId, nodes: g.nodes, ...(g.timezone ? { timezone: g.timezone } : {}) } : null
           })()}
         />
       )}
@@ -764,6 +856,22 @@ function FlowBuilderContent() {
                 <Plus className="w-3.5 h-3.5" /> AI Reply
               </Button>
               <Button
+                onClick={() => addNewNode("set_variable")}
+                size="sm"
+                variant="outline"
+                className="h-9 rounded-xl text-xs font-bold hover:bg-primary/90 hover:text-primary-foreground hover:border-brand border-brand/25 text-brand transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-brand/5"
+              >
+                <Plus className="w-3.5 h-3.5" /> Set variable
+              </Button>
+              <Button
+                onClick={() => addNewNode("remove_tag")}
+                size="sm"
+                variant="outline"
+                className="h-9 rounded-xl text-xs font-bold hover:bg-primary/90 hover:text-primary-foreground hover:border-brand border-brand/25 text-brand transition-all duration-300 cursor-pointer flex items-center gap-1.5 bg-brand/5"
+              >
+                <Plus className="w-3.5 h-3.5" /> Remove tag
+              </Button>
+              <Button
                 onClick={() => { setLinkMode(!linkMode); setLinkFromId(null) }}
                 size="sm"
                 variant={linkMode ? "default" : "outline"}
@@ -817,7 +925,7 @@ function FlowBuilderContent() {
                     <>
                       <rect x={midX - 26} y={midY - 10} width={52} height={20} rx={6} fill="var(--card)" stroke="var(--primary)" strokeWidth={1} />
                       <text x={midX} y={midY + 4} textAnchor="middle" fontSize="9" fontWeight={800} fill="var(--primary)">
-                        {c.label?.trim() ? c.label.trim().slice(0, 8) : "else"}
+                        {c.label?.trim() ? c.label.trim().slice(0, 8) : (c.rules?.length ?? 0) > 0 ? `${c.rules!.length} rule${c.rules!.length > 1 ? "s" : ""}` : "else"}
                       </text>
                     </>
                   )}
@@ -883,12 +991,17 @@ function FlowBuilderContent() {
                   <div className="p-3">
                     {node.type === "condition" ? (
                       <p className="text-[11px] text-muted-foreground leading-normal italic">
-                        Branches on the reply — connect it to each possible message.
+                        {node.waitForReply === false
+                          ? "Checks right away — connect it to each possible next step."
+                          : "Branches on the reply — connect it to each possible message."}
                       </p>
                     ) : (
                       <p className="text-[11px] text-muted-foreground leading-normal line-clamp-3 font-medium italic">
                         "{node.content}"
                       </p>
+                    )}
+                    {node.type === "action" && isSetVariableNode(node) && (
+                      <span className="text-[9px] text-muted-foreground font-bold block mt-1 truncate">= {node.varValue || "(empty)"}</span>
                     )}
                     {node.type === "message" && !!node.delaySeconds && (
                       <span className="text-[9px] text-warn font-bold uppercase tracking-wider block mt-2 text-right">
@@ -942,7 +1055,7 @@ function FlowBuilderContent() {
                 {selectedNode.type !== "condition" && (
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block">
-                      {selectedNode.type === "trigger" ? "Trigger Word / Keywords" : selectedNode.type === "delay" ? "Delay Time (seconds)" : selectedNode.title === "AI Reply" ? "What should the AI do? (instruction)" : "Message / Tag Content"}
+                      {selectedNode.type === "trigger" ? "Trigger Word / Keywords" : selectedNode.type === "delay" ? "Delay Time (seconds)" : isAiNode(selectedNode) ? "What should the AI do? (instruction)" : isSetVariableNode(selectedNode) ? "Variable name" : isRemoveTagNode(selectedNode) ? "Tag to remove" : isTagNode(selectedNode) ? "Tag to add" : "Message (use {{name}} to insert a saved value)"}
                     </label>
                     <textarea
                       rows={4}
@@ -950,6 +1063,23 @@ function FlowBuilderContent() {
                       onChange={(e) => updateSelectedNode("content", e.target.value)}
                       className="w-full p-3 rounded-xl border border-border bg-background text-xs font-semibold outline-none focus:border-primary/60 transition-colors resize-none leading-relaxed"
                     />
+                  </div>
+                )}
+
+                {/* Value to save — set variable nodes only */}
+                {isSetVariableNode(selectedNode) && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block">Value to save</label>
+                    <input
+                      type="text"
+                      value={selectedNode.varValue ?? ""}
+                      onChange={(e) => updateSelectedNode("varValue", e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-border bg-background text-xs font-semibold outline-none focus:border-primary/60 transition-colors"
+                      placeholder="{{last_reply}} or text"
+                    />
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      <code className="font-mono">{"{{last_reply}}"}</code> saves what the person just wrote. The value is stored on the contact (Contacts, custom fields) and can be used in conditions and as <code className="font-mono">{"{{name}}"}</code> in later messages.
+                    </p>
                   </div>
                 )}
 
@@ -967,14 +1097,50 @@ function FlowBuilderContent() {
                   </div>
                 )}
 
+                {/* Quick reply chips — message nodes only */}
+                {selectedNode.type === "message" && (
+                  <QuickRepliesField value={selectedNode.quickReplies ?? []} onChange={setSelectedQuickReplies} showReply={false} compact />
+                )}
+
                 {/* Branches list — condition nodes only */}
                 {selectedNode.type === "condition" && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
+                    <label className="flex items-start gap-2 text-[11px] text-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedNode.waitForReply !== false}
+                        onChange={(e) => updateSelectedNode("waitForReply", e.target.checked)}
+                        className="mt-0.5 h-4 w-4 accent-primary"
+                      />
+                      <span>
+                        <span className="font-bold">Wait for the person&apos;s reply first</span>
+                        <span className="block text-[10px] text-muted-foreground leading-snug">
+                          On: the flow pauses here and routes on the next message. Off: it decides right away from tags, saved values, follow status or the time of day.
+                        </span>
+                      </span>
+                    </label>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block">Time zone for time rules</label>
+                      <select
+                        value={flowTimezone}
+                        onChange={(e) => setFlowTimezone(e.target.value)}
+                        className="w-full h-9 px-2 rounded-xl border border-border bg-background text-xs font-semibold outline-none focus:border-primary/60"
+                      >
+                        {[DEFAULT_TIMEZONE, "Asia/Dubai", "Asia/Singapore", "Europe/London", "Europe/Berlin", "America/New_York", "America/Chicago", "America/Los_Angeles", "Australia/Sydney", "UTC"].map((tz) => (
+                          <option key={tz} value={tz}>{tz}</option>
+                        ))}
+                        {![DEFAULT_TIMEZONE, "Asia/Dubai", "Asia/Singapore", "Europe/London", "Europe/Berlin", "America/New_York", "America/Chicago", "America/Los_Angeles", "Australia/Sydney", "UTC"].includes(flowTimezone) && (
+                          <option value={flowTimezone}>{flowTimezone}</option>
+                        )}
+                      </select>
+                    </div>
+
                     <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block">
                       Branches ({outgoingFromSelected.length})
                     </label>
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      Use "Connect" in the dock to link this to each possible next message, then type the keyword that routes there. Leave one blank as the fallback ("else").
+                      Use &quot;Connect&quot; in the dock to link this to each next step. A branch fires when its keyword and/or its rules match (up to 5 rules, joined by AND or OR); the first branch that fires wins. A branch with no keyword and no rules is the fallback (&quot;else&quot;).
                     </p>
                     {outgoingFromSelected.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground italic py-3 text-center border border-dashed border-border rounded-xl">
@@ -984,24 +1150,37 @@ function FlowBuilderContent() {
                       <div className="space-y-2">
                         {outgoingFromSelected.map((c) => {
                           const target = nodes.find(n => n.id === c.toId)
+                          const waiting = selectedNode.waitForReply !== false
                           return (
-                            <div key={c.id} className="p-2.5 rounded-xl border border-border bg-secondary/30 space-y-1.5">
+                            <div key={c.id} className="p-2.5 rounded-xl border border-border bg-secondary/30 space-y-2">
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold text-foreground truncate">→ {target?.title || "?"}</span>
                                 <button
                                   onClick={() => deleteConnection(c.id)}
                                   className="text-muted-foreground hover:text-destructive transition-colors"
+                                  aria-label="Remove branch"
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
                               </div>
-                              <input
-                                type="text"
-                                value={c.label || ""}
-                                onChange={(e) => updateConnectionLabel(c.id, e.target.value)}
-                                placeholder="keyword (blank = else/fallback)"
-                                className="w-full h-8 px-2 rounded-lg border border-border bg-background text-[11px] font-mono outline-none focus:border-primary/60"
+                              {waiting && (
+                                <input
+                                  type="text"
+                                  value={c.label || ""}
+                                  onChange={(e) => updateConnectionLabel(c.id, e.target.value)}
+                                  placeholder="keyword in the reply (optional)"
+                                  className="w-full h-8 px-2 rounded-lg border border-border bg-background text-[11px] font-mono outline-none focus:border-primary/60"
+                                />
+                              )}
+                              <ConditionRulesEditor
+                                rules={c.rules ?? []}
+                                match={c.match ?? "all"}
+                                onChange={(next) => updateConnectionRules(c.id, next)}
+                                chips={flowChips}
                               />
+                              {!(c.label && c.label.trim()) && (c.rules?.length ?? 0) === 0 && (
+                                <p className="text-[10px] text-brand font-semibold">No keyword and no rules: this is the fallback (else) path.</p>
+                              )}
                             </div>
                           )
                         })}
@@ -1037,7 +1216,7 @@ function FlowBuilderContent() {
                       {selectedNode.type === 'trigger'
                         ? `Fires when the keyword matches "${selectedNode.content}".`
                         : selectedNode.type === 'condition'
-                          ? 'Pauses the flow and waits for the person\'s reply, then routes to the matching branch.'
+                          ? (selectedNode.waitForReply === false ? 'Checks its rules right away and routes to the first branch that matches.' : 'Pauses the flow and waits for the person\'s reply, then routes to the matching branch.')
                           : 'This node runs when the flow reaches this point.'}
                     </p>
                   </div>

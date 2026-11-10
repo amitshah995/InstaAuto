@@ -1,10 +1,14 @@
 import { enqueueJob, INLINE_MAX_DELAY_S, schedulerEnabled, type SendCtx } from "@/lib/messaging/send-steps"
-import { advance, type FlowGraph } from "@/lib/flows/engine"
+import { advance, type FlowContext, type FlowGraph } from "@/lib/flows/engine"
+import { flowNeedsContactFacts, flowUsesFollowRule, flowUsesRuleKind } from "@/lib/flows/conditions"
+import { checkFollowStatus } from "@/lib/messaging/follow-check"
+import { loadContactFacts, removeTagFromContact, saveContactVariable } from "@/lib/contacts/variables"
 import { addTagToContact } from "@/lib/contacts/tag-actions"
 import { generateFlowReply } from "@/lib/flows/ai-reply"
 import { releaseDm, reserveAiRun, reserveDm } from "@/lib/billing/usage"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { expandLinksForUser } from "@/lib/links/store"
+import { buildQuickRepliesApi } from "@/lib/messaging/quick-replies"
 
 export type { FlowGraph }
 
@@ -21,15 +25,53 @@ export async function runFlow(
   flow: FlowGraph,
   currentNodeId: string,
   incomingText: string | null,
-  opts: { ctx?: SendCtx; skipFirstDelay?: boolean; automationId?: string } = {},
+  opts: {
+    ctx?: SendCtx
+    skipFirstDelay?: boolean
+    automationId?: string
+    /** Still inside the 24 hour window (the webhook knows; the scheduler resumes inside it). Default true. */
+    inWindow?: boolean
+    /** message.quick_reply.payload of the chip the person just tapped, for "tapped quick reply" conditions. */
+    quickReplyPayload?: string | null
+  } = {},
 ): Promise<{ nodeId: string | null; sentTexts: string[]; scheduled?: boolean }> {
-  const { actions, nodeId: stopNode } = advance(flow, currentNodeId, incomingText)
+  // Facts the conditions may look at. Looked up only when the flow can use them: plain flows (no rules, no {{variables}})
+  // cost exactly what they did before. "Follows us" calls Instagram only when a condition asks for it.
+  const flowCtx: FlowContext = { inWindow: opts.inWindow ?? true, quickReplyPayload: opts.quickReplyPayload ?? null }
+  if (opts.ctx && flowNeedsContactFacts(flow)) {
+    const supabase = await getSupabaseServerClient()
+    const facts = await loadContactFacts(supabase, opts.ctx.userId, psid)
+    flowCtx.variables = facts.variables
+    flowCtx.tags = facts.tags
+  }
+  // "Inside the 24 hour window" is read from the conversation, because a delayed step may run long after the message that
+  // started the flow.
+  if (opts.ctx && flowUsesRuleKind(flow, "in_window")) {
+    try {
+      const supabase = await getSupabaseServerClient()
+      const { data: conv } = await supabase.from("conversations").select("last_inbound_at").eq("user_id", opts.ctx.userId).eq("recipient_id", psid).single()
+      if (conv?.last_inbound_at) flowCtx.inWindow = Date.now() - new Date(conv.last_inbound_at).getTime() <= 24 * 60 * 60 * 1000
+    } catch {
+      // keep the caller's value
+    }
+  }
+  if (flowUsesFollowRule(flow)) flowCtx.follows = await checkFollowStatus(accessToken, psid)
+
+  const { actions, nodeId: stopNode } = advance(flow, currentNodeId, incomingText, flowCtx)
   const sentTexts: string[] = []
   let skipDelay = !!opts.skipFirstDelay
 
   for (const action of actions) {
     if (action.kind === "tag") {
       if (opts.ctx) await addTagToContact(opts.ctx.userId, psid, action.tag)
+      continue
+    }
+    if (action.kind === "remove_tag") {
+      if (opts.ctx) await removeTagFromContact(await getSupabaseServerClient(), opts.ctx.userId, psid, action.tag)
+      continue
+    }
+    if (action.kind === "set_variable") {
+      if (opts.ctx) await saveContactVariable(await getSupabaseServerClient(), opts.ctx.userId, psid, action.name, action.value)
       continue
     }
 
@@ -71,7 +113,16 @@ export async function runFlow(
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ recipient: { id: psid }, message: { text } }),
+          body: JSON.stringify({
+            recipient: { id: psid },
+            message: {
+              text,
+              // Quick reply chips of a message node (max 13 / 20 chars, sanitised in quick-replies.ts).
+              ...(action.kind === "message" && text && buildQuickRepliesApi(action.quickReplies).length > 0
+                ? { quick_replies: buildQuickRepliesApi(action.quickReplies) }
+                : {}),
+            },
+          }),
         },
       )
       const json = await res.json()

@@ -6,19 +6,24 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2, Lock, Film, ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, Send, AtSign, Heart, MessageSquare, ListOrdered, Clock, ListChecks } from "lucide-react"
+import { Plus, Trash2, Lock, Film, ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, Send, AtSign, Heart, MessageSquare, ListOrdered, Clock, ListChecks, QrCode as QrCodeIcon } from "lucide-react"
 import { TagInput } from "@/components/ui/tag-input"
-import type { ProButton } from "@/lib/types"
 import type { AutomationTemplate } from "@/lib/automation-templates"
 import { toast } from "sonner"
 import { hasPlaceholders } from "@/lib/audit/recommendations"
 import { PhonePreview } from "@/components/dashboard/PhonePreview"
-import { CardImageField } from "@/components/dashboard/CardImageField"
-import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
+import { RefLinkField } from "@/components/dashboard/RefLinkField"
+import { isValidRefCode } from "@/lib/automations/referral"
+import { CommentScopeField } from "@/components/dashboard/CommentScopeField"
+import type { CommentScope } from "@/lib/automations/comment-scope"
+import { CardCarouselEditor, cardDraftToContent, newCardDraft, type CardDraft } from "@/components/dashboard/CardCarouselEditor"
+import { QuickRepliesField, quickRepliesToContent, type QuickReplyDraft } from "@/components/dashboard/QuickRepliesField"
+import { PublicReplyField, defaultPublicReplyDraft, publicReplyToContent } from "@/components/dashboard/PublicReplyField"
 
 interface CreateRuleFormProps {
   userId: string
+  /** Instagram username of the connected account (without @), needed to show the ref link. */
+  username?: string | null
   triggerSource: 'comment' | 'dm' | 'story' | 'live'
   onSuccess: () => void
   template?: AutomationTemplate | null
@@ -29,25 +34,29 @@ interface CreateRuleFormProps {
   strict?: boolean
 }
 
-export function CreateRuleForm({ userId, triggerSource, onSuccess, template, strict }: CreateRuleFormProps) {
+export function CreateRuleForm({ userId, username, triggerSource, onSuccess, template, strict }: CreateRuleFormProps) {
   const [step, setStep] = useState(1)
   const d = template?.defaults
 
   // Step 1: Trigger
   const [replyToAll, setReplyToAll] = useState(d?.replyToAll ?? false)
+  // DM rules can also start from an ig.me link or QR code carrying a ref code (see lib/automations/referral.ts).
+  const [refMode, setRefMode] = useState(false)
+  const [refCode, setRefCode] = useState("")
   const [triggers, setTriggers] = useState<string[]>(d?.triggers ?? [])
   const [storyTriggerType, setStoryTriggerType] = useState<'mention' | 'reaction' | 'reply'>(d?.storyTriggerType ?? 'mention')
   const [selectedReel, setSelectedReel] = useState<any | null>(null)
+  // Comment rules: one post, all posts, or the next post you publish (see lib/automations/comment-scope.ts).
+  const [commentScope, setCommentScope] = useState<CommentScope>(strict || d?.replyToAll ? "specific" : "all")
   const [showReelPicker, setShowReelPicker] = useState(false)
 
   // Step 2: Response
   const [type, setType] = useState<"text" | "card" | "sequence" | "leadgen">(d?.type ?? "text")
   const [messageText, setMessageText] = useState(d?.messageText ?? "")
-  const [cardTitle, setCardTitle] = useState("")
-  const [cardSubtitle, setCardSubtitle] = useState("")
-  const [cardImage, setCardImage] = useState("")
-  const [buttons, setButtons] = useState<ProButton[]>([])
-  const [steps, setSteps] = useState<{ id: string; text: string; delay_seconds: number }[]>(
+  // One card or a carousel (up to 10): see components/dashboard/CardCarouselEditor.tsx
+  const [cards, setCards] = useState<CardDraft[]>(() => [newCardDraft()])
+  const [textChips, setTextChips] = useState<QuickReplyDraft[]>([])
+  const [steps, setSteps] = useState<{ id: string; text: string; delay_seconds: number; chips?: QuickReplyDraft[] }[]>(
     d?.steps?.length ? d.steps.map((s, i) => ({ id: String(i + 1), ...s })) : [{ id: "1", text: "", delay_seconds: 0 }],
   )
   const [questions, setQuestions] = useState<{ id: string; field: string; prompt: string }[]>(
@@ -59,6 +68,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   const [name, setName] = useState(d?.name ?? "")
   const [checkFollow, setCheckFollow] = useState(d?.checkFollow ?? false)
   const [oncePerPerson, setOncePerPerson] = useState(false)
+  const [publicReply, setPublicReply] = useState(defaultPublicReplyDraft())
 
   // Media
   const [reels, setReels] = useState<any[]>([])
@@ -74,7 +84,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   useEffect(() => {
     if (name) return // Don't overwrite user's custom name
     if (replyToAll) {
-      setName(triggerSource === 'dm' ? `All DMs → Reply` : `All Comments → Reply`)
+      setName(triggerSource === 'dm' ? `All DMs → Reply` : triggerSource === 'live' ? `All Live Comments → DM` : `All Comments → Reply`)
     } else if (triggers.length > 0) {
       setName(`${triggers.slice(0, 2).join(", ")} → Auto Reply`)
     }
@@ -96,19 +106,6 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
     }
   }
 
-  const handleAddButton = () => {
-    if (buttons.length >= 3) return
-    setButtons([...buttons, { id: Date.now().toString(), type: "web_url", title: "", url: "", payload: "" }])
-  }
-
-  const updateButton = (id: string, field: keyof ProButton, value: string) => {
-    setButtons(buttons.map((b) => (b.id === id ? { ...b, [field]: value } : b)))
-  }
-
-  const removeButton = (id: string) => {
-    setButtons(buttons.filter((b) => b.id !== id))
-  }
-
   const handleAddStep = () => {
     if (steps.length >= 5) return
     setSteps([...steps, { id: Date.now().toString(), text: "", delay_seconds: 3 }])
@@ -117,6 +114,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   const updateStep = (id: string, field: "text" | "delay_seconds", value: string | number) => {
     setSteps(steps.map((s) => (s.id === id ? { ...s, [field]: value } : s)))
   }
+  const setStepChips = (id: string, chips: QuickReplyDraft[]) => setSteps(steps.map((s) => (s.id === id ? { ...s, chips } : s)))
 
   const removeStep = (id: string) => {
     if (steps.length <= 1) return
@@ -150,9 +148,20 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       return false
     }
     const isStoryMentionOrReaction = triggerSource === 'story' && (storyTriggerType === 'mention' || storyTriggerType === 'reaction')
-    if (triggerSource === 'comment' && replyToAll && !selectedReel) {
-      toast.error("Select a Post", { description: "Reply-All requires selecting a specific post." })
+    if (triggerSource === 'comment' && replyToAll && commentScope === 'all') {
+      toast.error("Choose which post", { description: "Reply-All needs one post, or your next post. It cannot run on every post." })
       return false
+    }
+    if (triggerSource === 'comment' && commentScope === 'specific' && !selectedReel) {
+      toast.error("Select a Post", { description: "Pick the post or reel this applies to, or choose another option." })
+      return false
+    }
+    if (triggerSource === 'dm' && refMode) {
+      if (!isValidRefCode(refCode)) {
+        toast.error("Add a link code", { description: "Use lowercase letters, numbers, - or _ (for example summer-sale)." })
+        return false
+      }
+      return true
     }
     if (!replyToAll && !isStoryMentionOrReaction && triggers.length === 0) {
       toast.error("Add Keywords", { description: "Add at least one keyword trigger." })
@@ -177,8 +186,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       toast.error("Missing Reply", { description: "Enter the message to auto-send." })
       return false
     }
-    if (type === "card" && !cardTitle.trim()) {
-      toast.error("Missing Title", { description: "Rich cards need a title." })
+    if (type === "card" && cards.some((c) => !c.title.trim())) {
+      toast.error("Missing Title", { description: cards.length > 1 ? "Every card in the carousel needs a title." : "Rich cards need a title." })
+      return false
+    }
+    if (type === "card" && cards.some((c) => !c.subtitle.trim() && !c.image.trim() && c.buttons.filter((b) => b.title.trim()).length === 0)) {
+      toast.error("Add a bit more", { description: "Instagram needs each card to have an image, a subtitle or a button besides the title." })
       return false
     }
     if (type === "sequence" && !steps.some((s) => s.text.trim())) {
@@ -199,7 +212,9 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
     }
 
     const content: any = { check_follow: checkFollow }
-    if (triggerSource === 'comment' && oncePerPerson) content.once_per_person = true
+    if ((triggerSource === 'comment' || (triggerSource === 'dm' && refMode)) && oncePerPerson) content.once_per_person = true
+    if (triggerSource === 'comment') content.comment_scope = commentScope
+    if (triggerSource === 'comment') content.public_reply = publicReplyToContent(publicReply)
     if (type === "leadgen") {
       content.questions = questions
         .filter((q) => q.field.trim() && q.prompt.trim())
@@ -208,29 +223,20 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
     } else if (type === "sequence") {
       content.steps = steps
         .filter((s) => s.text.trim())
-        .map((s, idx) => ({ type: "text", text: s.text.trim(), delay_seconds: idx === 0 ? 0 : s.delay_seconds || 0 }))
+        .map((s, idx) => {
+          const chips = quickRepliesToContent(s.chips ?? [], true)
+          return { type: "text", text: s.text.trim(), delay_seconds: idx === 0 ? 0 : s.delay_seconds || 0, ...(chips.length ? { quick_replies: chips } : {}) }
+        })
     } else if (type === "text") {
       content.message = messageText
+      const chips = quickRepliesToContent(textChips, true)
+      if (chips.length) content.quick_replies = chips
     } else {
-      const cleanButtons = buttons
-        .map((b) => {
-          if (b.type === "web_url") {
-            let cleanUrl = b.url?.trim() || ""
-            if (cleanUrl.startsWith("https://https://")) cleanUrl = cleanUrl.replace("https://https://", "https://")
-            return { type: "web_url", title: b.title, url: cleanUrl }
-          }
-          // "Pay" button: the amount is typed in the shared value box. Razorpay creates the link at send time.
-          if (b.type === "pay") return { type: "pay", title: b.title, amount_inr: Number(b.payload) || 0 }
-          return { type: "postback", title: b.title, payload: b.payload }
-        })
-        .filter((b) => b.title)
-
-      content.card = {
-        title: cardTitle,
-        subtitle: cardSubtitle || undefined,
-        image_url: cardImage || undefined,
-        buttons: cleanButtons,
-      }
+      // One card keeps the exact old shape (`card`). Several cards are saved as `cards` (the API also mirrors the first
+      // into `card` so older readers still work).
+      const built = cards.map(cardDraftToContent)
+      if (built.length === 1) content.card = built[0]
+      else content.cards = built
     }
 
     try {
@@ -242,15 +248,17 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
           userId,
           name,
           trigger_source: triggerSource,
-          trigger_type: replyToAll
-            ? (triggerSource === 'dm' ? "wildcard" : "reply_all")
-            : (triggerSource === 'story' ? storyTriggerType : "keyword"),
-          trigger_value: replyToAll ? (triggerSource === 'dm' ? "ALL_DMS" : "ALL_COMMENTS") :
+          trigger_type: triggerSource === 'dm' && refMode
+            ? "ref"
+            : replyToAll
+              ? (triggerSource === 'dm' ? "wildcard" : "reply_all")
+              : (triggerSource === 'story' ? storyTriggerType : "keyword"),
+          trigger_value: triggerSource === 'dm' && refMode ? refCode : replyToAll ? (triggerSource === 'dm' ? "ALL_DMS" : "ALL_COMMENTS") :
             (triggerSource === 'story' && storyTriggerType === 'mention') ? "ALL_MENTIONS" :
               (triggerSource === 'story' && storyTriggerType === 'reaction' && triggers.length === 0) ? "ALL_REACTIONS" :
                 triggers.length > 0 ? triggers.join(", ") : "ALL",
           content,
-          specific_media_id: selectedReel?.id || null,
+          specific_media_id: triggerSource === 'comment' ? (commentScope === 'specific' ? selectedReel?.id || null : null) : (selectedReel?.id || null),
         }),
       })
 
@@ -262,21 +270,24 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         setName("")
         setTriggers([])
         setReplyToAll(false)
+        setRefMode(false)
+        setRefCode("")
         setMessageText("")
-        setCardTitle("")
-        setCardSubtitle("")
-        setCardImage("")
-        setButtons([])
+        setTextChips([])
+        setCards([newCardDraft()])
         setSteps([{ id: "1", text: "", delay_seconds: 0 }])
         setQuestions([{ id: "1", field: "name", prompt: "What's your name?" }])
         setClosingMessage("Thanks! We'll get back to you shortly.")
         setType("text")
         setSelectedReel(null)
+        setCommentScope(strict ? "specific" : "all")
         setCheckFollow(false)
         setOncePerPerson(false)
+        setPublicReply(defaultPublicReplyDraft())
         onSuccess()
       } else {
-        toast.error("Failed", { description: "Please try again." })
+        const apiError = await res.json().then((j: any) => j?.error).catch(() => null)
+        toast.error("Failed", { description: typeof apiError === "string" && res.status === 400 ? apiError : "Please try again." })
       }
     } catch (err) {
       toast.error("Network Error")
@@ -385,7 +396,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
             : triggerSource === 'dm'
               ? 'Auto-reply when someone DMs these keywords.'
               : triggerSource === 'live'
-                ? 'Auto-DM when someone comments these keywords during your live broadcast. Requires Meta Advanced Access approval and the live_comments webhook field enabled.'
+                ? 'Auto-DM when someone comments these keywords while you are live. Instagram only allows this private reply during the broadcast, so nothing is sent once you end the live. Needs the live_comments webhook field turned on for your app.'
                 : 'Engage when someone interacts with your story.'}
         </p>
       </div>
@@ -415,11 +426,15 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         </div>
       )}
 
-      {/* Reply to all toggle — comments only */}
-      {triggerSource === 'comment' && (
+      {/* Reply to all toggle — comments and live comments */}
+      {(triggerSource === 'comment' || triggerSource === 'live') && (
         <button
           type="button"
-          onClick={() => setReplyToAll(!replyToAll)}
+          onClick={() => {
+            // "All posts" + reply to every comment would answer every comment on the account: move to one post instead.
+            if (!replyToAll && triggerSource === 'comment' && commentScope === 'all') setCommentScope('specific')
+            setReplyToAll(!replyToAll)
+          }}
           className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
             replyToAll ? 'border-brand/50 bg-brand-soft' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
           }`}
@@ -430,8 +445,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="text-left flex-1">
-            <p className={`text-sm font-bold ${replyToAll ? 'text-brand' : 'text-foreground'}`}>Reply to All Comments</p>
-            <p className="text-[11px] text-muted-foreground">Auto-reply to every comment on a specific post</p>
+            <p className={`text-sm font-bold ${replyToAll ? 'text-brand' : 'text-foreground'}`}>{triggerSource === 'live' ? 'Reply to every live comment' : 'Reply to All Comments'}</p>
+            <p className="text-[11px] text-muted-foreground">{triggerSource === 'live' ? 'Send your DM to everyone who comments during the live (keywords are ignored)' : 'Auto-reply to every comment on a specific post'}</p>
           </div>
           <div className={`w-5 h-5 rounded-full border-2 transition-all ${
             replyToAll ? 'border-brand bg-brand' : 'border-border'
@@ -441,8 +456,37 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         </button>
       )}
 
-      {/* Reply to all toggle — DMs only */}
+      {/* Start from a link or QR code — DMs only */}
       {triggerSource === 'dm' && (
+        <button
+          type="button"
+          onClick={() => {
+            const next = !refMode
+            setRefMode(next)
+            if (next) { setReplyToAll(false); setOncePerPerson(true) } else setOncePerPerson(false)
+          }}
+          aria-pressed={refMode}
+          className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
+            refMode ? 'border-brand/50 bg-brand-soft' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
+          }`}
+        >
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${refMode ? 'bg-brand-soft text-brand' : 'bg-secondary text-muted-foreground'}`}>
+            <QrCodeIcon className="w-5 h-5" />
+          </div>
+          <div className="text-left flex-1">
+            <p className={`text-sm font-bold ${refMode ? 'text-brand' : 'text-foreground'}`}>Start from a link or QR code</p>
+            <p className="text-[11px] text-muted-foreground">Share a link that opens a chat with you and runs this automation. Contacts are labelled with the link they came from.</p>
+          </div>
+          <div className={`w-5 h-5 rounded-full border-2 transition-all ${refMode ? 'border-brand bg-brand' : 'border-border'}`}>
+            {refMode && <Check className="w-3 h-3 text-white m-auto mt-0.5" />}
+          </div>
+        </button>
+      )}
+
+      {triggerSource === 'dm' && refMode && <RefLinkField username={username} code={refCode} onChange={setRefCode} nameHint={name} />}
+
+      {/* Reply to all toggle — DMs only */}
+      {triggerSource === 'dm' && !refMode && (
         <button
           type="button"
           onClick={() => setReplyToAll(!replyToAll)}
@@ -468,7 +512,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       )}
 
       {/* Keyword input — conditional */}
-      {!(replyToAll && (triggerSource === 'comment' || triggerSource === 'dm')) && !(triggerSource === 'story' && storyTriggerType === 'mention') && (
+      {!(triggerSource === 'dm' && refMode) && !(replyToAll && (triggerSource === 'comment' || triggerSource === 'dm' || triggerSource === 'live')) && !(triggerSource === 'story' && storyTriggerType === 'mention') && (
         <div className="space-y-2">
           <Label className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider ml-1">
             {triggerSource === 'story' && storyTriggerType === 'reaction' ? 'Emoji Filter (optional)' : 'Keywords'}
@@ -486,11 +530,15 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         </div>
       )}
 
+      {triggerSource === 'comment' && (
+        <CommentScopeField value={commentScope} onChange={setCommentScope} disabled={strict} disabledKeys={replyToAll ? ['all'] : []} />
+      )}
+
       {/* Post/Reel picker */}
-      {(triggerSource === 'comment' || triggerSource === 'story') && (
+      {((triggerSource === 'comment' && commentScope === 'specific') || triggerSource === 'story') && (
         <div className="space-y-2">
           <Label className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider ml-1">
-            {replyToAll || strict ? 'Select Post (Required)' :
+            {triggerSource === 'comment' || replyToAll || strict ? 'Select Post (Required)' :
               triggerSource === 'story' ? 'Story (Optional)' : 'Post/Reel (Optional)'}
           </Label>
           <div className="relative">
@@ -553,7 +601,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
           }`}
         >
           <Send className="w-4 h-4" />
-          <span className="text-sm font-bold">Rich Card</span>
+          <span className="text-sm font-bold">Card / Carousel</span>
         </button>
         <button
           type="button"
@@ -680,6 +728,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
                   <Label className="text-[11px] text-muted-foreground">seconds, then send</Label>
                 </div>
               )}
+              <QuickRepliesField value={s.chips ?? []} onChange={(c) => setStepChips(s.id, c)} compact />
             </div>
           ))}
           <Button
@@ -701,72 +750,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
             placeholder="Type your auto-reply message here..."
           />
           <p className="text-[10px] text-muted-foreground text-right">{messageText.length}/1000</p>
+          <QuickRepliesField value={textChips} onChange={setTextChips} />
         </div>
       ) : (
-        <div className="space-y-3">
-          <div className="space-y-2 p-4 rounded-xl bg-secondary/20 border border-border">
-            <Input
-              value={cardTitle}
-              onChange={(e) => setCardTitle(e.target.value)}
-              className="bg-background border-border font-bold text-foreground"
-              placeholder="Card Title"
-            />
-            <Input
-              value={cardSubtitle}
-              onChange={(e) => setCardSubtitle(e.target.value)}
-              className="bg-background border-border text-sm text-foreground"
-              placeholder="Subtitle (Optional)"
-            />
-            <CardImageField
-              value={cardImage}
-              onChange={setCardImage}
-              linkUrl={buttons.find((b) => b.type === "web_url" && b.url?.trim())?.url || ""}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Buttons ({buttons.length}/3)</span>
-              <Button size="sm" variant="ghost" onClick={handleAddButton} disabled={buttons.length >= 3} className="h-7 text-xs hover:bg-secondary">
-                <Plus className="w-3 h-3 mr-1" /> Add
-              </Button>
-            </div>
-            {buttons.map((btn) => (
-              <div key={btn.id} className="space-y-1.5 bg-secondary/40 p-2 rounded-lg border border-border animate-in fade-in">
-                <div className="flex gap-2 items-center">
-                <Input
-                  value={btn.title}
-                  onChange={(e) => updateButton(btn.id, "title", e.target.value)}
-                  className="h-8 text-xs flex-1 bg-background border border-border px-2 text-foreground"
-                  placeholder="Label"
-                />
-                <Select value={btn.type} onValueChange={(v) => updateButton(btn.id, "type", v as any)}>
-                  <SelectTrigger className="h-8 w-[80px] text-[10px] bg-background border border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="web_url">Link</SelectItem>
-                    <SelectItem value="postback">Flow</SelectItem>
-                    <SelectItem value="pay">Pay</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  value={btn.type === "web_url" ? btn.url : btn.payload}
-                  onChange={(e) => updateButton(btn.id, btn.type === "web_url" ? "url" : "payload", e.target.value)}
-                  className="h-8 text-xs flex-1 bg-background border border-border px-2 text-foreground"
-                  placeholder={btn.type === "web_url" ? "https://..." : btn.type === "pay" ? "Amount in Rs, e.g. 499" : "Keyword"}
-                />
-                <Button size="icon" variant="ghost" onClick={() => removeButton(btn.id)} className="h-6 w-6 text-destructive hover:bg-destructive/10">
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-                </div>
-                {btn.type === "web_url" && (
-                  <TrackedLinkPicker url={btn.url || ""} label={btn.title} onChange={(v) => updateButton(btn.id, "url", v)} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <CardCarouselEditor cards={cards} onChange={setCards} />
       )}
 
     </div>
@@ -815,7 +802,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         </div>
       </button>
 
-      {triggerSource === 'comment' && (
+      {(triggerSource === 'comment' || (triggerSource === 'dm' && refMode)) && (
         <label className="w-full p-4 rounded-xl border border-border hover:border-muted-foreground/30 hover:bg-secondary transition-all flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
@@ -824,13 +811,17 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
             className="mt-1 h-4 w-4 accent-primary cursor-pointer"
           />
           <div className="text-left flex-1">
-            <p className="text-sm font-bold text-foreground">Once per person per post</p>
+            <p className="text-sm font-bold text-foreground">{triggerSource === 'dm' ? 'Once per person' : 'Once per person per post'}</p>
             <p className="text-[11px] text-muted-foreground">
-              Repeat comments from the same person on the same post won't get another reply or DM
+              {triggerSource === 'dm'
+                ? "If the same person opens this link again, they won't get the messages again"
+                : "Repeat comments from the same person on the same post won't get another reply or DM"}
             </p>
           </div>
         </label>
       )}
+
+      {triggerSource === 'comment' && <PublicReplyField value={publicReply} onChange={setPublicReply} />}
 
       {/* Summary card */}
       <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3">
@@ -838,7 +829,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground font-medium">When:</span>
           <span className="text-foreground font-semibold">
-            {replyToAll ? (triggerSource === 'dm' ? 'Any DM' : 'Any comment') :
+            {triggerSource === 'dm' && refMode ? `Link code: ${refCode || '...'}` : replyToAll ? (triggerSource === 'dm' ? 'Any DM' : triggerSource === 'live' ? 'Any live comment' : 'Any comment') :
               triggerSource === 'story' && storyTriggerType === 'mention' ? 'Story mention' :
                 triggers.length > 0 ? triggers.join(", ") : 'All messages'}
           </span>
@@ -852,7 +843,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
                 ? `${steps.filter(s => s.text.trim()).length} messages in sequence`
                 : type === 'text'
                   ? messageText.slice(0, 40) + (messageText.length > 40 ? '...' : '')
-                  : `Card: ${cardTitle}`}
+                  : cards.length > 1 ? `Carousel: ${cards.length} cards` : `Card: ${cards[0]?.title}`}
           </span>
         </div>
         {checkFollow && (
@@ -920,7 +911,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
           media: selectedReel ? { thumb: selectedReel.thumbnail_url || selectedReel.media_url, caption: selectedReel.caption } : null,
           type,
           text: messageText,
-          card: { title: cardTitle, subtitle: cardSubtitle, image: cardImage, buttons: buttons.map((b) => ({ title: b.title })) },
+          card: { title: cards[0]?.title ?? "", subtitle: cards[0]?.subtitle ?? "", image: cards[0]?.image ?? "", buttons: (cards[0]?.buttons ?? []).map((b) => ({ title: b.title })) },
           steps: steps.map((x) => ({ text: x.text, delay_seconds: x.delay_seconds })),
           questions: questions.map((q) => ({ prompt: q.prompt })),
           closing: closingMessage,

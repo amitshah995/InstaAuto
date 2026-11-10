@@ -8,12 +8,29 @@ import { emitEvent } from "@/lib/webhooks/events"
 import { checkFollowStatus } from "@/lib/messaging/follow-check"
 import { matchesAnyKeyword } from "@/lib/matching/keywords"
 import { isOncePerPerson, onceKey } from "@/lib/automations/once"
+import { extractReferral, findRefRule, sourceForRef } from "@/lib/automations/referral"
+import { recordContactSource } from "@/lib/contacts/source"
+import { fetchMediaMeta, needsMediaTimestamp, pickCommentAutomation, pinNextPostRule } from "@/lib/automations/comment-scope"
+import { findQuickReplyRule, findQuickReplyTarget } from "@/lib/messaging/quick-replies"
+import { firstNameFrom, resolvePublicReply, variantsNeedName } from "@/lib/automations/public-reply"
+import {
+  LIVE_COMMENT_FIELD,
+  LIVE_RETRY_WINDOW_MS,
+  isStaleLiveEvent,
+  normalizeEntryChanges,
+  pickLiveAutomation,
+  readCommentValue,
+} from "@/lib/automations/comment-events"
 
 // No default token: a guessable fallback would let anyone subscribe. If this env var is unset, verification fails.
 const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || ""
 
 // Long delayed-reply sequences and AI "typing" waits can exceed the default function time limit.
 export const maxDuration = 60
+
+// Last public-reply variant used per rule on this server instance, so two comments in a row do not get the same text.
+// Best effort only (serverless instances do not share memory); the random pick is the real rotation.
+const lastPublicReplyIndex = new Map<string, number>()
 
 // Keyword matching lives in lib/matching/keywords.ts (Unicode-aware, whole-word).
 
@@ -272,10 +289,15 @@ export async function POST(request: NextRequest) {
       // ============================================================
       //  PART A: COMMENTS
       // ============================================================
-      if (entry.changes) {
-        for (const change of entry.changes) {
-          if (change.field === "comments" && change.value?.text) {
-            const commentId = change.value.id
+      // Live comments arrive on their own webhook field ("live_comments") with the same payload as "comments".
+      // normalizeEntryChanges also accepts the flat entry.field/entry.value layout Meta shows in its docs.
+      const commentChanges = normalizeEntryChanges(entry)
+      if (commentChanges.length > 0) {
+        for (const change of commentChanges) {
+          const isLive = change.field === LIVE_COMMENT_FIELD
+          const parsedComment = change.field === "comments" || isLive ? readCommentValue(change.value) : null
+          if (parsedComment) {
+            const commentId = parsedComment.commentId
 
             // --- Idempotency guard: skip if this exact comment was already processed ---
             if (await isDuplicateEvent(supabase, `comment_${commentId}`, "comment")) {
@@ -283,9 +305,15 @@ export async function POST(request: NextRequest) {
               continue
             }
 
-            const commentText = change.value.text.toLowerCase().trim()
-            const senderId = change.value.from.id
-            const mediaId = change.value.media.id
+            // Live: Meta only allows a private reply while the broadcast is on air, so a late redelivery is dropped.
+            if (isLive && isStaleLiveEvent(entry.time, Date.now())) {
+              console.log(`[v0] ⏭️ Stale live comment skipped (broadcast over): ${commentId}`)
+              continue
+            }
+
+            const commentText = parsedComment.text.toLowerCase().trim()
+            const senderId = parsedComment.senderId
+            const mediaId = parsedComment.mediaId
 
             // Safety check for self-reply
             if (senderId === webhookId || senderId === user.business_account_id || senderId === user.page_id) continue
@@ -293,33 +321,27 @@ export async function POST(request: NextRequest) {
             // ============================================================
             // 🧠 SMART MATCHING LOGIC
             // ============================================================
-            const commentAutomations = automations.filter((a: any) => a.trigger_source === 'comment')
+            const commentAutomations = automations.filter((a: any) => a.trigger_source === (isLive ? 'live' : 'comment'))
 
-            // Priority 1: Reply-All (Specific post, ALL comments)
-            let match = commentAutomations.find(
-              (a: any) => a.specific_media_id === mediaId && a.trigger_type === "reply_all",
-            )
-
-            // Priority 2: Specific Post + Keyword Match
-            if (!match) {
-              match = commentAutomations.find(
-                (a: any) =>
-                  a.specific_media_id === mediaId &&
-                  a.trigger_type === "keyword" &&
-                  matchesAnyKeyword(commentText, a.trigger_value),
-              )
-            }
-
-            // Priority 3: Global Keyword Match (Only if no specific match found).
-            // Searches commentAutomations only: before, this searched ALL automations, so a DM-keyword
-            // or story rule with the same word could fire on a public comment.
-            if (!match) {
-              match = commentAutomations.find(
-                (a: any) =>
-                  !a.specific_media_id &&
-                  a.trigger_type === "keyword" &&
-                  matchesAnyKeyword(commentText, a.trigger_value),
-              )
+            // Live comments only ever fire rules created on the Live tab (see lib/automations/comment-events.ts).
+            // Post/reel comments: bound-to-this-post rules, then a pending "next post" rule, then "all posts" keyword
+            // rules (see lib/automations/comment-scope.ts for the priority and for how "next post" binds).
+            let match: any = null
+            let pinNextPost = false
+            if (isLive) {
+              match = pickLiveAutomation(commentAutomations, commentText)
+            } else {
+              let publishedMs: number | null = null
+              let productType: string | null = parsedComment.mediaProductType
+              // Only ask Instagram for the post's publish time when a pending "next post" rule could match this comment.
+              if (needsMediaTimestamp(commentAutomations, commentText)) {
+                const meta = await fetchMediaMeta(user.access_token, mediaId)
+                publishedMs = meta.publishedMs
+                productType = meta.productType ?? productType
+              }
+              const pick = pickCommentAutomation(commentAutomations, { mediaId, text: commentText, mediaPublishedMs: publishedMs, mediaProductType: productType })
+              match = pick.match
+              pinNextPost = pick.pin
             }
 
             if (!match) {
@@ -339,6 +361,17 @@ export async function POST(request: NextRequest) {
 
             console.log(`[v0] ✅ Comment Match: "${match.name}" (ID: ${match.id})`)
             const content = match.response_content
+
+            // "Next post" rule seeing its first eligible post: bind it to this post before anything is sent.
+            if (pinNextPost) {
+              const pinned = await pinNextPostRule(supabase, String(match.id), String(mediaId))
+              if (!pinned) {
+                console.log(`[v0] ⏭️ Next-post rule ${match.id} is already bound to another post`)
+                continue
+              }
+              match.specific_media_id = mediaId
+              console.log(`[v0] 📌 Next-post rule "${match.name}" pinned to media ${mediaId}`)
+            }
 
             // "Once per person per post": claim (rule, person, post) atomically. A repeat comment
             // gets neither the public reply nor the DM.
@@ -361,31 +394,50 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            const replies = ["Check your DMs! 📥", "Sent! 🔥", "Check inbox! ✨"]
-            const randomReply = replies[Math.floor(Math.random() * replies.length)]
-
+            // Public reply under the comment. What it says, whether it is sent at all, and the {first_name} /
+            // {username} placeholders come from the rule (lib/automations/public-reply.ts). Rules without a
+            // public_reply keep the old three phrases; live comments get none unless the rule turns it on.
             let publicReplyOk = true
-
-            // Public Reply
-            try {
-              const pubRes = await fetch(
-                `https://graph.instagram.com/v24.0/${commentId}/replies?access_token=${encodeURIComponent(user.access_token)}`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ message: randomReply }),
-                },
-              )
-              const pubJson = await pubRes.json()
-              if (pubJson.error) {
-                console.error("[v0] 🔴 Public Reply Failed:", JSON.stringify(pubJson.error))
-                publicReplyOk = false
-              } else {
-                console.log("[v0] 🟢 Public Reply Sent!", pubJson)
+            const publicVars = { username: parsedComment.username, firstName: firstNameFrom(null, parsedComment.username) }
+            if (Array.isArray(content?.public_reply?.variants) && variantsNeedName(content.public_reply.variants)) {
+              try {
+                const { data: knownContact } = await supabase
+                  .from("contacts")
+                  .select("name")
+                  .eq("user_id", user.id)
+                  .eq("igsid", senderId)
+                  .single()
+                publicVars.firstName = firstNameFrom(knownContact?.name, parsedComment.username)
+              } catch {
+                // no saved name: the username fallback above is used
               }
-            } catch (e) {
-              console.error("[v0] 🔴 Public Reply Network Error:", e)
-              publicReplyOk = false
+            }
+            const publicChoice = resolvePublicReply(content, publicVars, {
+              isLive,
+              lastIndex: lastPublicReplyIndex.get(String(match.id)) ?? null,
+            })
+            if (publicChoice.text !== null) {
+              if (publicChoice.index !== null) lastPublicReplyIndex.set(String(match.id), publicChoice.index)
+              try {
+                const pubRes = await fetch(
+                  `https://graph.instagram.com/v24.0/${commentId}/replies?access_token=${encodeURIComponent(user.access_token)}`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: publicChoice.text }),
+                  },
+                )
+                const pubJson = await pubRes.json()
+                if (pubJson.error) {
+                  console.error("[v0] 🔴 Public Reply Failed:", JSON.stringify(pubJson.error))
+                  publicReplyOk = false
+                } else {
+                  console.log("[v0] 🟢 Public Reply Sent!", pubJson)
+                }
+              } catch (e) {
+                console.error("[v0] 🔴 Public Reply Network Error:", e)
+                publicReplyOk = false
+              }
             }
 
             // Private Reply (DM) — one or more sequential steps
@@ -394,7 +446,8 @@ export async function POST(request: NextRequest) {
               { comment_id: commentId },
               senderId,
               content,
-              { userId: user.id },
+              // Live: a failed private reply may only be retried while the broadcast can still be on air.
+              { userId: user.id, windowUntil: isLive ? new Date(Date.now() + LIVE_RETRY_WINDOW_MS) : undefined },
             )
 
             if (!dmOk) {
@@ -478,7 +531,7 @@ export async function POST(request: NextRequest) {
                     user_id: user.id,
                     sender_id: senderId,
                     sender_username: "User",
-                    content: `💬 Commented: "${change.value.text}"`,
+                    content: `${isLive ? "📡 Live comment" : "💬 Commented"}: "${parsedComment.text}"`,
                     is_from_instagram: true,
                   })
 
@@ -606,9 +659,15 @@ export async function POST(request: NextRequest) {
           const senderId = event.sender.id
           if (senderId === webhookId || senderId === user.business_account_id || senderId === user.page_id) continue
 
+          // Referral data from an ig.me link can ride inside message, inside postback, or alone (lib/automations/referral.ts).
+          const referral = extractReferral(event)
           let triggerType = "",
             triggerValue = ""
           const rawMessageText = event.message?.text || ""
+          // Tapping a quick reply chip posts its title as text AND adds message.quick_reply.payload
+          // (https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-instagram-login/messaging-api/quick-replies).
+          // The text path below keeps working (flow answers, keywords); the payload lets a chip answer by itself.
+          const quickReplyPayload: string | null = event.message?.quick_reply?.payload ? String(event.message.quick_reply.payload) : null
 
           if (event.message?.text) {
             triggerType = "keyword"
@@ -616,6 +675,11 @@ export async function POST(request: NextRequest) {
           } else if (event.postback?.payload) {
             triggerType = "postback"
             triggerValue = event.postback.payload
+          } else if (referral) {
+            // Someone opened an ig.me/m/<you>?ref=<code> link in an existing chat: the event holds only the referral
+            // (webhook field messaging_referral). Meta gives the app 24 hours to reply.
+            triggerType = "ref"
+            triggerValue = referral.ref.toLowerCase()
           } else {
             continue
           }
@@ -624,7 +688,9 @@ export async function POST(request: NextRequest) {
           const dmEventId =
             triggerType === "keyword"
               ? event.message?.mid || `dm_${senderId}_${event.timestamp || Date.now()}`
-              : `postback_${senderId}_${event.timestamp || triggerValue}`
+              : triggerType === "ref"
+                ? `ref_${senderId}_${event.timestamp || triggerValue}`
+                : `postback_${senderId}_${event.timestamp || triggerValue}`
           if (await isDuplicateEvent(supabase, `dm_${dmEventId}`, "dm")) {
             console.log(`[v0] 🔁 Duplicate DM event skipped: ${dmEventId}`)
             continue
@@ -693,13 +759,17 @@ export async function POST(request: NextRequest) {
                 user_id: user.id,
                 sender_id: senderId,
                 sender_username: "User",
-                content: triggerValue,
+                content: triggerType === "ref" ? `🔗 Opened your chat link (code: ${triggerValue})` : triggerValue,
                 is_from_instagram: true,
               })
             }
           } catch (err) {
             console.error("[v0] Failed to save incoming message DB", err)
           }
+
+          // Source tracking: remember which link/QR brought this person in (first touch wins). Independent of
+          // whether a rule matches or the chat is handed to a human.
+          if (referral) await recordContactSource(supabase, user.id, senderId, sourceForRef(referral.ref))
           // ============================================================
 
           // ============================================================
@@ -739,7 +809,9 @@ export async function POST(request: NextRequest) {
           // lead-qualification automation asked a question), this message is
           // the ANSWER to that question, not something to keyword-match.
           // ============================================================
-          if (triggerType === "keyword" && conv?.active_flow_automation_id && withinWindow) {
+          // Opening a ref link means "start that automation", so it wins over answering the previous flow.
+          const refRule = referral ? findRefRule(automations, referral.ref) : null
+          if (triggerType === "keyword" && !refRule && conv?.active_flow_automation_id && withinWindow) {
             const flowAutomation = automations.find((a: any) => a.id === conv.active_flow_automation_id)
             const questions = flowAutomation?.response_content?.questions
             const stepIndex = conv.active_flow_step ?? 0
@@ -813,7 +885,7 @@ export async function POST(request: NextRequest) {
           // 🌳 BRANCHING FLOW — if this conversation is paused at a condition
           // node in a Flow Builder automation, resume it with this reply.
           // ============================================================
-          if (triggerType === "keyword" && conv?.active_flow_automation_id && conv?.active_flow_node_id && withinWindow) {
+          if (triggerType === "keyword" && !refRule && conv?.active_flow_automation_id && conv?.active_flow_node_id && withinWindow) {
             const flowAutomation = automations.find((a: any) => a.id === conv.active_flow_automation_id)
             const flow = flowAutomation?.response_content?.flow
 
@@ -824,7 +896,7 @@ export async function POST(request: NextRequest) {
                 flow,
                 conv.active_flow_node_id,
                 rawMessageText.trim(),
-                { ctx: { userId: user.id }, automationId: flowAutomation.id },
+                { ctx: { userId: user.id }, automationId: flowAutomation.id, inWindow: withinWindow, quickReplyPayload },
               )
               const nextNodeId = flowScheduled ? null : runNodeId
 
@@ -905,8 +977,25 @@ export async function POST(request: NextRequest) {
               (a: any) => a.trigger_source === 'dm' || !a.trigger_source
             )
 
-            // Priority 1: specific keyword match
-            match = dmAutomations.find(
+            // Priority -1: an ig.me ref link. The "ref" rule with that code runs first, even when the first
+            // message carries text, because the link says exactly which automation the person asked for.
+            if (refRule) match = refRule
+
+            // Priority 0: a tapped quick reply chip. A chip with its own reply answers by itself; a rule can also be
+            // triggered by the chip payload (trigger_type quick_reply). Anything else falls through to keywords,
+            // because the chip title also arrived as ordinary text.
+            if (!match && quickReplyPayload) {
+              const chip = findQuickReplyTarget(automations, quickReplyPayload)
+              if (chip) {
+                match = { id: chip.automation.id, name: `Quick reply: ${chip.title}`, response_content: { message: chip.reply } }
+              } else {
+                match = findQuickReplyRule(dmAutomations, quickReplyPayload)
+              }
+            }
+
+            // Priority 1: specific keyword match. A link opened with no text (triggerType "ref") is not a message, so
+            // keyword and "any DM" rules stay out of it; only a ref rule answers it.
+            if (!match && triggerType !== "ref") match = dmAutomations.find(
               (a: any) =>
                 a.trigger_type === "keyword" &&
                 matchesAnyKeyword(triggerValue, a.trigger_value),
@@ -914,7 +1003,7 @@ export async function POST(request: NextRequest) {
 
             // Priority 2: wildcard catch-all — matches ANY DM. Only used when no
             // specific keyword automation matched, so keyword rules always win.
-            if (!match) {
+            if (!match && triggerType !== "ref") {
               match = dmAutomations.find((a: any) => a.trigger_type === "wildcard")
             }
           }
@@ -1266,11 +1355,32 @@ STRICT RULES — follow every single one:
           console.log(`[v0] ✅ Match: "${match.name}"`)
           const content = match.response_content
 
+          // Ref links: "once per person" (default on in the rule form) so re-opening the link does not repeat the welcome.
+          // Claimed atomically like the comment rules; released below if nothing could be sent.
+          let refOnceClaim: string | null = null
+          if (match.trigger_type === "ref" && isOncePerPerson(content)) {
+            refOnceClaim = onceKey(String(match.id), String(senderId), `ref:${triggerValue}`)
+            if (await isDuplicateEvent(supabase, refOnceClaim, "once")) {
+              console.log(`[v0] ⏭️ Skipped: ${senderId} already got ref rule "${match.name}"`)
+              await logRun(supabase, {
+                userId: user.id,
+                igsid: senderId,
+                automationId: match.id,
+                eventType: "dm",
+                triggerText: triggerValue,
+                matched: true,
+                actionStatus: "skipped",
+                errorMessage: "Already sent once to this person for this link",
+              })
+              continue
+            }
+          }
+
           // Lead-qualification flow: instead of sending the configured reply
           // directly, ask the first question and mark this conversation as
           // "in a flow" — the next inbound DM is captured as the answer by
           // the flow-answer block above, not matched against keywords.
-          if (triggerType === "keyword" && conv && Array.isArray(content.questions) && content.questions.length > 0) {
+          if ((triggerType === "keyword" || triggerType === "ref") && conv && Array.isArray(content.questions) && content.questions.length > 0) {
             const firstQuestion = content.questions[0]
             await supabase
               .from("conversations")
@@ -1310,14 +1420,14 @@ STRICT RULES — follow every single one:
           // Branching flow (Flow Builder): walk the graph from its start node,
           // auto-sending messages until it hits a condition node (then pause
           // and wait for the reply) or the end.
-          if (triggerType === "keyword" && conv && content.flow?.nodes && content.flow?.startNodeId) {
+          if ((triggerType === "keyword" || triggerType === "ref") && conv && content.flow?.nodes && content.flow?.startNodeId) {
             const { nodeId: runNodeId, sentTexts, scheduled: flowScheduled } = await runFlow(
               user.access_token,
               senderId,
               content.flow,
               content.flow.startNodeId,
               null,
-              { ctx: { userId: user.id }, automationId: match.id },
+              { ctx: { userId: user.id }, automationId: match.id, inWindow: withinWindow },
             )
             // A delayed node is owned by the scheduler; don't leave the chat parked on it.
             const nextNodeId = flowScheduled ? null : runNodeId
@@ -1395,6 +1505,13 @@ STRICT RULES — follow every single one:
           if (!dmOk) {
             const lastError = dmResults[dmResults.length - 1]?.error
             console.error("[v0] 🔴 Reply Failed:", lastError)
+            if (refOnceClaim) {
+              try {
+                await supabase.from("processed_events").delete().eq("event_id", refOnceClaim)
+              } catch (e) {
+                console.error("[v0] ⚠️ Could not release ref once-per-person claim:", e)
+              }
+            }
             await logRun(supabase, {
               userId: user.id,
               igsid: senderId,
