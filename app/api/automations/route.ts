@@ -3,6 +3,23 @@ import { snapshotAutomation } from "@/lib/flows/versions"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { authorizeUser, isEnforced } from "@/lib/auth"
 import { sanitizeResponseContent } from "@/lib/automations/sanitize"
+import { isValidRefCode, normalizeRefCode } from "@/lib/automations/referral"
+
+/**
+ * Checks a "ref" rule before it is saved. Called by POST and PUT below. Ref rules answer ig.me links, which only open DMs,
+ * so the source must be "dm"; the code must be a valid ref code (lib/automations/referral.ts); and no other rule of the
+ * same account may use the same code, because the link could only ever start one of them.
+ * Returns an error message for the client, or null when the rule is fine.
+ */
+async function validateRefRule(supabase: any, userId: number | string | null, source: string, rawCode: string, ownId: string | null): Promise<string | null> {
+  if (source !== "dm") return "Link and QR code triggers only work for DMs"
+  const code = normalizeRefCode(rawCode)
+  if (!isValidRefCode(code)) return "The link code can use lowercase letters, numbers, - and _ (up to 64 characters)"
+  if (userId === null) return null
+  const { data } = await supabase.from("automations").select("id").eq("user_id", userId).eq("trigger_type", "ref").eq("trigger_value", code)
+  if ((data || []).some((r: any) => r.id !== ownId)) return "Another automation already uses this link code"
+  return null
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,6 +63,12 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await getSupabaseServerClient()
+
+    // Ref-link rules ("start from a link or QR code"): DM only, valid code, one rule per code.
+    if (trigger_type === "ref") {
+      const refError = await validateRefRule(supabase, userId, trigger_source, trigger_value, null)
+      if (refError) return NextResponse.json({ error: refError }, { status: 400 })
+    }
 
     // STABLE FIX: Always save to the Login ID
     const finalTriggerValue =
@@ -118,6 +141,11 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabase = await getSupabaseServerClient()
+
+    if (trigger_type === "ref") {
+      const refError = await validateRefRule(supabase, ownerId, trigger_source || "dm", trigger_value, id)
+      if (refError) return NextResponse.json({ error: refError }, { status: 400 })
+    }
 
     const updateData: any = {
       name,

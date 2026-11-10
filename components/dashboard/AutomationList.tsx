@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Globe, AtSign, Zap, ArrowRight, Lock, MessageCircle, Send, Compass, Eye, Pencil } from "lucide-react"
+import { Trash2, Link2, Globe, AtSign, Zap, ArrowRight, Lock, MessageCircle, Send, Compass, Eye, Pencil } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Automation } from "@/lib/types"
 import { isNextPostPending } from "@/lib/automations/comment-scope"
+import { RefLinkField } from "@/components/dashboard/RefLinkField"
 import { EditRuleModal } from "@/components/dashboard/EditRuleModal"
 
 interface AutomationListProps {
@@ -14,10 +15,12 @@ interface AutomationListProps {
   onDelete: (id: string) => void
   onUpdate?: () => void
   userId: string
+  /** Instagram username, needed to show the link of ref rules. */
+  username?: string | null
   onPreview?: (rule: Automation) => void
 }
 
-export function AutomationList({ automations, onDelete, onUpdate, userId, onPreview }: AutomationListProps) {
+export function AutomationList({ automations, onDelete, onUpdate, userId, username, onPreview }: AutomationListProps) {
   const [mediaMap, setMediaMap] = useState<Record<string, string>>({})
   const [editingRule, setEditingRule] = useState<Automation | null>(null)
   const router = useRouter()
@@ -76,7 +79,7 @@ export function AutomationList({ automations, onDelete, onUpdate, userId, onPrev
               <span className="text-[11px] font-normal text-muted-foreground">({waitingRules.length})</span>
             </div>
             {waitingRules.map((rule, idx) => (
-              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={(r) => setEditingRule(r)} index={idx} router={router} onPreview={onPreview} />
+              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={(r) => setEditingRule(r)} index={idx} router={router} onPreview={onPreview} username={username} />
             ))}
           </div>
         )}
@@ -90,7 +93,7 @@ export function AutomationList({ automations, onDelete, onUpdate, userId, onPrev
               <span className="text-[11px] font-normal text-muted-foreground">({globalRules.length})</span>
             </div>
             {globalRules.map((rule, idx) => (
-              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={(r) => setEditingRule(r)} index={idx} router={router} onPreview={onPreview} />
+              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={(r) => setEditingRule(r)} index={idx} router={router} onPreview={onPreview} username={username} />
             ))}
           </div>
         )}
@@ -104,7 +107,7 @@ export function AutomationList({ automations, onDelete, onUpdate, userId, onPrev
               <span className="text-[11px] font-normal text-muted-foreground">({postSpecificRules.length})</span>
             </div>
             {postSpecificRules.map((rule, idx) => (
-              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={(r) => setEditingRule(r)} index={idx} mediaUrl={mediaMap[rule.specific_media_id || ""]} isSpecific router={router} onPreview={onPreview} />
+              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={(r) => setEditingRule(r)} index={idx} mediaUrl={mediaMap[rule.specific_media_id || ""]} isSpecific router={router} onPreview={onPreview} username={username} />
             ))}
           </div>
         )}
@@ -126,7 +129,7 @@ export function AutomationList({ automations, onDelete, onUpdate, userId, onPrev
   )
 }
 
-function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router, onPreview }: {
+function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router, onPreview, username }: {
   rule: Automation
   onDelete: (id: string) => void
   onEdit?: (rule: Automation) => void
@@ -135,8 +138,10 @@ function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router,
   mediaUrl?: string
   router: any
   onPreview?: (rule: Automation) => void
+  username?: string | null
 }) {
   const [confirming, setConfirming] = useState(false)
+  const [showLink, setShowLink] = useState(false)
   const keywords = rule.trigger_value.split(",").map(k => k.trim()).filter(Boolean)
   const isCard = !!rule.response_content?.card
   const cardCount = Array.isArray(rule.response_content?.cards) ? rule.response_content.cards.length : 0
@@ -248,12 +253,24 @@ function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router,
               <span className="text-[11px] text-muted-foreground truncate max-w-[150px]">{responsePreview}</span>
             </div>
 
+            {rule.trigger_type === "ref" && (
+              <button
+                type="button"
+                onClick={() => setShowLink((v) => !v)}
+                aria-expanded={showLink}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand border border-brand/30 rounded-md px-1.5 py-0.5 hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-brand"
+              >
+                <Link2 className="w-2.5 h-2.5" /> {showLink ? "Hide link" : "Link & QR"}
+              </button>
+            )}
+
             {rule.response_content?.check_follow && (
               <Badge variant="secondary" className="bg-primary/10 text-warn border border-primary/20 text-[10px] px-1.5 py-0">
                 <Lock className="w-2.5 h-2.5 mr-0.5" /> Follow
               </Badge>
             )}
           </div>
+          {rule.trigger_type === "ref" && showLink && <RefLinkField readOnly username={username} code={String(rule.trigger_value || "")} onChange={() => {}} />}
         </div>
       </div>
     </div>

@@ -21,7 +21,7 @@ const TEMPLATE_BADGE_STYLE: Record<string, string> = {
 }
 
 export default function AutomationsPage() {
-    const { userId, isLoading: isSessionLoading } = useInstagramSession()
+    const { userId, username, isLoading: isSessionLoading } = useInstagramSession()
     const router = useRouter()
     const [automations, setAutomations] = useState<Automation[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -283,6 +283,7 @@ export default function AutomationsPage() {
                             strict={isAuditRecipe && activeTab === "comment"}
                             key={selectedTemplate?.id || 'blank'}
                             userId={userId}
+                            username={username}
                             triggerSource={activeTab}
                             template={selectedTemplate}
                             onSuccess={() => {
@@ -383,6 +384,7 @@ export default function AutomationsPage() {
                         onDelete={handleDeleteRule}
                         onUpdate={fetchAutomations}
                         userId={userId}
+                        username={username}
                         onPreview={(rule) => setPreviewAutomation(rule)}
                     />
                 )}

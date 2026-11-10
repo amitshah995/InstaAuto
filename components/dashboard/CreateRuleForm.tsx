@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { Plus, Trash2, Lock, Film, ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, Send, AtSign, Heart, MessageSquare, ListOrdered, Clock, ListChecks } from "lucide-react"
+import { Plus, Trash2, Lock, Film, ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, Send, AtSign, Heart, MessageSquare, ListOrdered, Clock, ListChecks, QrCode as QrCodeIcon } from "lucide-react"
 import { TagInput } from "@/components/ui/tag-input"
 import type { AutomationTemplate } from "@/lib/automation-templates"
 import { toast } from "sonner"
 import { hasPlaceholders } from "@/lib/audit/recommendations"
 import { PhonePreview } from "@/components/dashboard/PhonePreview"
+import { RefLinkField } from "@/components/dashboard/RefLinkField"
+import { isValidRefCode } from "@/lib/automations/referral"
 import { CommentScopeField } from "@/components/dashboard/CommentScopeField"
 import type { CommentScope } from "@/lib/automations/comment-scope"
 import { CardCarouselEditor, cardDraftToContent, newCardDraft, type CardDraft } from "@/components/dashboard/CardCarouselEditor"
@@ -20,6 +22,8 @@ import { PublicReplyField, defaultPublicReplyDraft, publicReplyToContent } from 
 
 interface CreateRuleFormProps {
   userId: string
+  /** Instagram username of the connected account (without @), needed to show the ref link. */
+  username?: string | null
   triggerSource: 'comment' | 'dm' | 'story' | 'live'
   onSuccess: () => void
   template?: AutomationTemplate | null
@@ -30,12 +34,15 @@ interface CreateRuleFormProps {
   strict?: boolean
 }
 
-export function CreateRuleForm({ userId, triggerSource, onSuccess, template, strict }: CreateRuleFormProps) {
+export function CreateRuleForm({ userId, username, triggerSource, onSuccess, template, strict }: CreateRuleFormProps) {
   const [step, setStep] = useState(1)
   const d = template?.defaults
 
   // Step 1: Trigger
   const [replyToAll, setReplyToAll] = useState(d?.replyToAll ?? false)
+  // DM rules can also start from an ig.me link or QR code carrying a ref code (see lib/automations/referral.ts).
+  const [refMode, setRefMode] = useState(false)
+  const [refCode, setRefCode] = useState("")
   const [triggers, setTriggers] = useState<string[]>(d?.triggers ?? [])
   const [storyTriggerType, setStoryTriggerType] = useState<'mention' | 'reaction' | 'reply'>(d?.storyTriggerType ?? 'mention')
   const [selectedReel, setSelectedReel] = useState<any | null>(null)
@@ -149,6 +156,13 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       toast.error("Select a Post", { description: "Pick the post or reel this applies to, or choose another option." })
       return false
     }
+    if (triggerSource === 'dm' && refMode) {
+      if (!isValidRefCode(refCode)) {
+        toast.error("Add a link code", { description: "Use lowercase letters, numbers, - or _ (for example summer-sale)." })
+        return false
+      }
+      return true
+    }
     if (!replyToAll && !isStoryMentionOrReaction && triggers.length === 0) {
       toast.error("Add Keywords", { description: "Add at least one keyword trigger." })
       return false
@@ -198,7 +212,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
     }
 
     const content: any = { check_follow: checkFollow }
-    if (triggerSource === 'comment' && oncePerPerson) content.once_per_person = true
+    if ((triggerSource === 'comment' || (triggerSource === 'dm' && refMode)) && oncePerPerson) content.once_per_person = true
     if (triggerSource === 'comment') content.comment_scope = commentScope
     if (triggerSource === 'comment') content.public_reply = publicReplyToContent(publicReply)
     if (type === "leadgen") {
@@ -234,10 +248,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
           userId,
           name,
           trigger_source: triggerSource,
-          trigger_type: replyToAll
-            ? (triggerSource === 'dm' ? "wildcard" : "reply_all")
-            : (triggerSource === 'story' ? storyTriggerType : "keyword"),
-          trigger_value: replyToAll ? (triggerSource === 'dm' ? "ALL_DMS" : "ALL_COMMENTS") :
+          trigger_type: triggerSource === 'dm' && refMode
+            ? "ref"
+            : replyToAll
+              ? (triggerSource === 'dm' ? "wildcard" : "reply_all")
+              : (triggerSource === 'story' ? storyTriggerType : "keyword"),
+          trigger_value: triggerSource === 'dm' && refMode ? refCode : replyToAll ? (triggerSource === 'dm' ? "ALL_DMS" : "ALL_COMMENTS") :
             (triggerSource === 'story' && storyTriggerType === 'mention') ? "ALL_MENTIONS" :
               (triggerSource === 'story' && storyTriggerType === 'reaction' && triggers.length === 0) ? "ALL_REACTIONS" :
                 triggers.length > 0 ? triggers.join(", ") : "ALL",
@@ -254,6 +270,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         setName("")
         setTriggers([])
         setReplyToAll(false)
+        setRefMode(false)
+        setRefCode("")
         setMessageText("")
         setTextChips([])
         setCards([newCardDraft()])
@@ -268,7 +286,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         setPublicReply(defaultPublicReplyDraft())
         onSuccess()
       } else {
-        toast.error("Failed", { description: "Please try again." })
+        const apiError = await res.json().then((j: any) => j?.error).catch(() => null)
+        toast.error("Failed", { description: typeof apiError === "string" && res.status === 400 ? apiError : "Please try again." })
       }
     } catch (err) {
       toast.error("Network Error")
@@ -437,8 +456,37 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         </button>
       )}
 
-      {/* Reply to all toggle — DMs only */}
+      {/* Start from a link or QR code — DMs only */}
       {triggerSource === 'dm' && (
+        <button
+          type="button"
+          onClick={() => {
+            const next = !refMode
+            setRefMode(next)
+            if (next) { setReplyToAll(false); setOncePerPerson(true) } else setOncePerPerson(false)
+          }}
+          aria-pressed={refMode}
+          className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
+            refMode ? 'border-brand/50 bg-brand-soft' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
+          }`}
+        >
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${refMode ? 'bg-brand-soft text-brand' : 'bg-secondary text-muted-foreground'}`}>
+            <QrCodeIcon className="w-5 h-5" />
+          </div>
+          <div className="text-left flex-1">
+            <p className={`text-sm font-bold ${refMode ? 'text-brand' : 'text-foreground'}`}>Start from a link or QR code</p>
+            <p className="text-[11px] text-muted-foreground">Share a link that opens a chat with you and runs this automation. Contacts are labelled with the link they came from.</p>
+          </div>
+          <div className={`w-5 h-5 rounded-full border-2 transition-all ${refMode ? 'border-brand bg-brand' : 'border-border'}`}>
+            {refMode && <Check className="w-3 h-3 text-white m-auto mt-0.5" />}
+          </div>
+        </button>
+      )}
+
+      {triggerSource === 'dm' && refMode && <RefLinkField username={username} code={refCode} onChange={setRefCode} nameHint={name} />}
+
+      {/* Reply to all toggle — DMs only */}
+      {triggerSource === 'dm' && !refMode && (
         <button
           type="button"
           onClick={() => setReplyToAll(!replyToAll)}
@@ -464,7 +512,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       )}
 
       {/* Keyword input — conditional */}
-      {!(replyToAll && (triggerSource === 'comment' || triggerSource === 'dm' || triggerSource === 'live')) && !(triggerSource === 'story' && storyTriggerType === 'mention') && (
+      {!(triggerSource === 'dm' && refMode) && !(replyToAll && (triggerSource === 'comment' || triggerSource === 'dm' || triggerSource === 'live')) && !(triggerSource === 'story' && storyTriggerType === 'mention') && (
         <div className="space-y-2">
           <Label className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider ml-1">
             {triggerSource === 'story' && storyTriggerType === 'reaction' ? 'Emoji Filter (optional)' : 'Keywords'}
@@ -754,7 +802,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         </div>
       </button>
 
-      {triggerSource === 'comment' && (
+      {(triggerSource === 'comment' || (triggerSource === 'dm' && refMode)) && (
         <label className="w-full p-4 rounded-xl border border-border hover:border-muted-foreground/30 hover:bg-secondary transition-all flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
@@ -763,9 +811,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
             className="mt-1 h-4 w-4 accent-primary cursor-pointer"
           />
           <div className="text-left flex-1">
-            <p className="text-sm font-bold text-foreground">Once per person per post</p>
+            <p className="text-sm font-bold text-foreground">{triggerSource === 'dm' ? 'Once per person' : 'Once per person per post'}</p>
             <p className="text-[11px] text-muted-foreground">
-              Repeat comments from the same person on the same post won't get another reply or DM
+              {triggerSource === 'dm'
+                ? "If the same person opens this link again, they won't get the messages again"
+                : "Repeat comments from the same person on the same post won't get another reply or DM"}
             </p>
           </div>
         </label>
@@ -779,7 +829,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground font-medium">When:</span>
           <span className="text-foreground font-semibold">
-            {replyToAll ? (triggerSource === 'dm' ? 'Any DM' : triggerSource === 'live' ? 'Any live comment' : 'Any comment') :
+            {triggerSource === 'dm' && refMode ? `Link code: ${refCode || '...'}` : replyToAll ? (triggerSource === 'dm' ? 'Any DM' : triggerSource === 'live' ? 'Any live comment' : 'Any comment') :
               triggerSource === 'story' && storyTriggerType === 'mention' ? 'Story mention' :
                 triggers.length > 0 ? triggers.join(", ") : 'All messages'}
           </span>
