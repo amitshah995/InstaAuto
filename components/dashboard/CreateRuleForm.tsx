@@ -16,6 +16,7 @@ import { hasPlaceholders } from "@/lib/audit/recommendations"
 import { PhonePreview } from "@/components/dashboard/PhonePreview"
 import { CardImageField } from "@/components/dashboard/CardImageField"
 import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
+import { QuickRepliesField, quickRepliesToContent, type QuickReplyDraft } from "@/components/dashboard/QuickRepliesField"
 import { PublicReplyField, defaultPublicReplyDraft, publicReplyToContent } from "@/components/dashboard/PublicReplyField"
 
 interface CreateRuleFormProps {
@@ -48,7 +49,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   const [cardSubtitle, setCardSubtitle] = useState("")
   const [cardImage, setCardImage] = useState("")
   const [buttons, setButtons] = useState<ProButton[]>([])
-  const [steps, setSteps] = useState<{ id: string; text: string; delay_seconds: number }[]>(
+  const [textChips, setTextChips] = useState<QuickReplyDraft[]>([])
+  const [steps, setSteps] = useState<{ id: string; text: string; delay_seconds: number; chips?: QuickReplyDraft[] }[]>(
     d?.steps?.length ? d.steps.map((s, i) => ({ id: String(i + 1), ...s })) : [{ id: "1", text: "", delay_seconds: 0 }],
   )
   const [questions, setQuestions] = useState<{ id: string; field: string; prompt: string }[]>(
@@ -119,6 +121,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   const updateStep = (id: string, field: "text" | "delay_seconds", value: string | number) => {
     setSteps(steps.map((s) => (s.id === id ? { ...s, [field]: value } : s)))
   }
+  const setStepChips = (id: string, chips: QuickReplyDraft[]) => setSteps(steps.map((s) => (s.id === id ? { ...s, chips } : s)))
 
   const removeStep = (id: string) => {
     if (steps.length <= 1) return
@@ -211,9 +214,14 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
     } else if (type === "sequence") {
       content.steps = steps
         .filter((s) => s.text.trim())
-        .map((s, idx) => ({ type: "text", text: s.text.trim(), delay_seconds: idx === 0 ? 0 : s.delay_seconds || 0 }))
+        .map((s, idx) => {
+          const chips = quickRepliesToContent(s.chips ?? [], true)
+          return { type: "text", text: s.text.trim(), delay_seconds: idx === 0 ? 0 : s.delay_seconds || 0, ...(chips.length ? { quick_replies: chips } : {}) }
+        })
     } else if (type === "text") {
       content.message = messageText
+      const chips = quickRepliesToContent(textChips, true)
+      if (chips.length) content.quick_replies = chips
     } else {
       const cleanButtons = buttons
         .map((b) => {
@@ -266,6 +274,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         setTriggers([])
         setReplyToAll(false)
         setMessageText("")
+        setTextChips([])
         setCardTitle("")
         setCardSubtitle("")
         setCardImage("")
@@ -684,6 +693,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
                   <Label className="text-[11px] text-muted-foreground">seconds, then send</Label>
                 </div>
               )}
+              <QuickRepliesField value={s.chips ?? []} onChange={(c) => setStepChips(s.id, c)} compact />
             </div>
           ))}
           <Button
@@ -705,6 +715,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
             placeholder="Type your auto-reply message here..."
           />
           <p className="text-[10px] text-muted-foreground text-right">{messageText.length}/1000</p>
+          <QuickRepliesField value={textChips} onChange={setTextChips} />
         </div>
       ) : (
         <div className="space-y-3">

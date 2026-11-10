@@ -4,17 +4,18 @@
  * will in production.
  *
  * Graph node shapes:
- *   message   { type, text, delay_seconds?, next }
+ *   message   { type, text, delay_seconds?, quick_replies?, next }
  *   tag       { type, tag, next }              // adds a CRM tag to the contact
  *   ai        { type, instruction, next }      // AI writes one reply from the instruction
  *   condition { type, branches:[{keyword,next}], default_next }
  */
 import { textMatchesKeyword } from "../matching/keywords.ts"
+import { sanitizeQuickReplies, type QuickReply } from "../messaging/quick-replies.ts"
 
 export type FlowGraph = { startNodeId: string; nodes: Record<string, any> }
 
 export type FlowAction =
-  | { kind: "message"; nodeId: string; text: string; delaySeconds: number }
+  | { kind: "message"; nodeId: string; text: string; delaySeconds: number; quickReplies: QuickReply[] }
   | { kind: "tag"; nodeId: string; tag: string }
   | { kind: "ai"; nodeId: string; instruction: string }
 
@@ -50,7 +51,7 @@ export function advance(
 
     if (node.type === "condition") return { actions, nodeId, truncated: false } // wait for the reply
     if (node.type === "message") {
-      actions.push({ kind: "message", nodeId, text: node.text || "", delaySeconds: node.delay_seconds || 0 })
+      actions.push({ kind: "message", nodeId, text: node.text || "", delaySeconds: node.delay_seconds || 0, quickReplies: sanitizeQuickReplies(node.quick_replies) })
     } else if (node.type === "tag") {
       actions.push({ kind: "tag", nodeId, tag: node.tag || "" })
     } else if (node.type === "ai") {
@@ -66,15 +67,18 @@ export function advance(
 export type SimLine = { from: "bot" | "user" | "system"; text: string }
 
 /** Plays a flow against scripted replies without sending anything. */
-export function simulate(flow: FlowGraph, replies: string[]): { lines: SimLine[]; tags: string[]; finished: boolean; waitingFor: string[] } {
+export function simulate(flow: FlowGraph, replies: string[]): { lines: SimLine[]; tags: string[]; finished: boolean; waitingFor: string[]; quickReplies: string[] } {
   const lines: SimLine[] = []
   const tags: string[] = []
+  // Chips on the most recent bot message, shown as tappable suggestions in the test panel.
+  let lastChips: string[] = []
   const run = (from: string, incoming: string | null): string | null => {
     const r = advance(flow, from, incoming)
     for (const a of r.actions) {
       if (a.kind === "message") {
         if (a.delaySeconds > 0) lines.push({ from: "system", text: `Waits ${a.delaySeconds}s` })
         lines.push({ from: "bot", text: a.text })
+        lastChips = a.quickReplies.map((q) => q.title)
       } else if (a.kind === "ai") {
         lines.push({ from: "system", text: "AI reply (written live for each follower)" })
         lines.push({ from: "bot", text: `✨ AI reply based on: "${a.instruction.slice(0, 80)}"` })
@@ -103,5 +107,5 @@ export function simulate(flow: FlowGraph, replies: string[]): { lines: SimLine[]
     waiting?.type === "condition"
       ? (waiting.branches || []).map((b: any) => String(b.keyword || "").trim()).filter(Boolean)
       : []
-  return { lines, tags, finished: current === null, waitingFor }
+  return { lines, tags, finished: current === null, waitingFor, quickReplies: current ? lastChips : [] }
 }

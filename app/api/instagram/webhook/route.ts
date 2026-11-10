@@ -8,6 +8,7 @@ import { emitEvent } from "@/lib/webhooks/events"
 import { checkFollowStatus } from "@/lib/messaging/follow-check"
 import { matchesAnyKeyword } from "@/lib/matching/keywords"
 import { isOncePerPerson, onceKey } from "@/lib/automations/once"
+import { findQuickReplyRule, findQuickReplyTarget } from "@/lib/messaging/quick-replies"
 import { firstNameFrom, resolvePublicReply, variantsNeedName } from "@/lib/automations/public-reply"
 import {
   LIVE_COMMENT_FIELD,
@@ -654,6 +655,10 @@ export async function POST(request: NextRequest) {
           let triggerType = "",
             triggerValue = ""
           const rawMessageText = event.message?.text || ""
+          // Tapping a quick reply chip posts its title as text AND adds message.quick_reply.payload
+          // (https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-instagram-login/messaging-api/quick-replies).
+          // The text path below keeps working (flow answers, keywords); the payload lets a chip answer by itself.
+          const quickReplyPayload: string | null = event.message?.quick_reply?.payload ? String(event.message.quick_reply.payload) : null
 
           if (event.message?.text) {
             triggerType = "keyword"
@@ -950,8 +955,20 @@ export async function POST(request: NextRequest) {
               (a: any) => a.trigger_source === 'dm' || !a.trigger_source
             )
 
+            // Priority 0: a tapped quick reply chip. A chip with its own reply answers by itself; a rule can also be
+            // triggered by the chip payload (trigger_type quick_reply). Anything else falls through to keywords,
+            // because the chip title also arrived as ordinary text.
+            if (quickReplyPayload) {
+              const chip = findQuickReplyTarget(automations, quickReplyPayload)
+              if (chip) {
+                match = { id: chip.automation.id, name: `Quick reply: ${chip.title}`, response_content: { message: chip.reply } }
+              } else {
+                match = findQuickReplyRule(dmAutomations, quickReplyPayload)
+              }
+            }
+
             // Priority 1: specific keyword match
-            match = dmAutomations.find(
+            if (!match) match = dmAutomations.find(
               (a: any) =>
                 a.trigger_type === "keyword" &&
                 matchesAnyKeyword(triggerValue, a.trigger_value),

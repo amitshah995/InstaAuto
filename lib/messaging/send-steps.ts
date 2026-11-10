@@ -4,6 +4,7 @@ import { expandTokens } from "@/lib/links/core"
 import { getEntitlement, releaseDm, reserveDm, type Entitlement } from "@/lib/billing/usage"
 import { createPaymentLink } from "@/lib/payments/payment-link"
 import { classifyFailure, withRetry, type MetaError } from "@/lib/messaging/retry"
+import { buildQuickRepliesApi } from "@/lib/messaging/quick-replies"
 import { DM_WINDOW_MS, PRIVATE_REPLY_WINDOW_MS, recordFailedSend } from "@/lib/messaging/failed-sends"
 
 /**
@@ -123,7 +124,7 @@ export async function sendSteps(
   const steps: any[] =
     Array.isArray(content.steps) && content.steps.length > 0
       ? content.steps
-      : [{ text: content.message, card: content.card, delay_seconds: content.delay_seconds }]
+      : [{ text: content.message, card: content.card, quick_replies: content.quick_replies, delay_seconds: content.delay_seconds }]
 
   const results: SendResult[] = []
   let allOk = true
@@ -190,6 +191,9 @@ export async function sendSteps(
     } else {
       const finalText = await expand(step.text)
       apiBody.message = { text: finalText }
+      // Quick reply chips ride on text messages only (max 13, title max 20 chars; see lib/messaging/quick-replies.ts).
+      const chips = buildQuickRepliesApi(step.quick_replies)
+      if (chips.length > 0 && finalText) apiBody.message.quick_replies = chips
       textLog = finalText
     }
 
@@ -205,7 +209,15 @@ export async function sendSteps(
     }
 
     // Retry transient Meta errors briefly inline (webhook stays fast: ~2s worst case), permanent ones fail at once.
-    const sent = await postGraphMessage(accessToken, apiBody)
+    let sent = await postGraphMessage(accessToken, apiBody)
+    // Meta documents quick replies for normal DMs; whether a private reply to a comment accepts them is not
+    // documented. If that very first message is rejected as an invalid request, resend it once as plain text so the
+    // person still gets the DM (they can then type the answer).
+    if (!sent.ok && apiBody.message?.quick_replies && i === 0 && firstRecipient?.comment_id && sent.error?.code === 100) {
+      console.warn("[v0] ⚠️ Private reply rejected with quick replies; resending without them")
+      delete apiBody.message.quick_replies
+      sent = await postGraphMessage(accessToken, apiBody)
+    }
     if (!sent.ok) {
       // A DM that never went out is not billed.
       if (ctx && entitlement) await releaseDm(ctx.userId)

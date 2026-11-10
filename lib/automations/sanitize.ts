@@ -8,6 +8,7 @@
  * rules, templates and imports behave exactly as before.
  */
 import { sanitizePublicReply } from "./public-reply.ts"
+import { sanitizeQuickReplies } from "../messaging/quick-replies.ts"
 
 /** Returns a copy of `content` with the Batch 1 fields clamped. Unknown fields pass through unchanged. */
 export function sanitizeResponseContent(content: any): any {
@@ -18,6 +19,19 @@ export function sanitizeResponseContent(content: any): any {
     const pr = sanitizePublicReply(out.public_reply)
     if (pr) out.public_reply = pr
     else delete out.public_reply
+  }
+
+  // Quick reply chips: on the single message, on each sequence step, and on flow message nodes.
+  if ("quick_replies" in out) out.quick_replies = sanitizeQuickReplies(out.quick_replies)
+  if (Array.isArray(out.steps)) {
+    out.steps = out.steps.map((s: any) => (s && typeof s === "object" && "quick_replies" in s ? { ...s, quick_replies: sanitizeQuickReplies(s.quick_replies) } : s))
+  }
+  if (out.flow?.nodes && typeof out.flow.nodes === "object") {
+    const nodes: Record<string, any> = {}
+    for (const [id, n] of Object.entries<any>(out.flow.nodes)) {
+      nodes[id] = n && typeof n === "object" && "quick_replies" in n ? { ...n, quick_replies: sanitizeQuickReplies(n.quick_replies) } : n
+    }
+    out.flow = { ...out.flow, nodes }
   }
   return out
 }

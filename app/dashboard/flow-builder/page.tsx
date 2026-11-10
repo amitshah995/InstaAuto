@@ -29,6 +29,7 @@ import { toast } from "sonner"
 import { FlowTester } from "@/components/flows/flow-tester"
 import { VersionHistory } from "@/components/flows/version-history"
 import { BRAND_NAME } from "@/lib/site"
+import { QuickRepliesField, quickRepliesFromContent, quickRepliesToContent, type QuickReplyDraft } from "@/components/dashboard/QuickRepliesField"
 
 interface Node {
   id: string
@@ -39,6 +40,7 @@ interface Node {
   content: string
   extra?: string
   delaySeconds?: number // message nodes only — seconds to wait before sending
+  quickReplies?: QuickReplyDraft[] // message nodes only — tappable chips under the message (max 13, 20 chars each)
 }
 
 interface Connection {
@@ -98,6 +100,7 @@ function deserializeFlow(flow: { startNodeId: string; nodes: Record<string, any>
         extra: gNode.type === "tag" ? "SaaS CRM Tag" : gNode.type === "ai" ? "AI writes the reply" : undefined,
         content: gNode.type === "message" ? gNode.text || "" : gNode.type === "tag" ? gNode.tag || "" : gNode.type === "ai" ? gNode.instruction || "" : "",
         delaySeconds: gNode.type === "message" ? gNode.delay_seconds || 0 : undefined,
+        quickReplies: gNode.type === "message" ? quickRepliesFromContent(gNode.quick_replies) : undefined,
       })
     })
   }
@@ -165,6 +168,9 @@ function buildGraph(nodes: Node[], connections: Connection[], triggerId: string)
         type: "message",
         text: node.content,
         delay_seconds: node.delaySeconds || delay || 0,
+        ...(quickRepliesToContent(node.quickReplies ?? [], false).length > 0
+          ? { quick_replies: quickRepliesToContent(node.quickReplies ?? [], false) }
+          : {}),
         next: nextId,
       }
     } else if (node.type === "action" && isAiNode(node)) {
@@ -554,6 +560,11 @@ function FlowBuilderContent() {
     }))
   }
 
+  const setSelectedQuickReplies = (chips: QuickReplyDraft[]) => {
+    if (!selectedNodeId) return
+    setNodes(prev => prev.map(node => (node.id === selectedNodeId ? { ...node, quickReplies: chips } : node)))
+  }
+
   const updateConnectionLabel = (connId: string, label: string) => {
     setConnections(prev => prev.map(c => c.id === connId ? { ...c, label } : c))
   }
@@ -611,6 +622,8 @@ function FlowBuilderContent() {
             trigger_source: triggerSource,
             trigger_value: triggerNode.content,
             content: {
+              // Keep settings this canvas does not edit (public reply, once per person, comment scope...).
+              ...(originalContent || {}),
               flow: { startNodeId: graph.startNodeId, nodes: graph.nodes },
               check_follow: isFollowGateActive,
             },
@@ -965,6 +978,11 @@ function FlowBuilderContent() {
                       className="w-full h-10 px-3 rounded-xl border border-border bg-background text-xs font-semibold outline-none focus:border-primary/60 transition-colors"
                     />
                   </div>
+                )}
+
+                {/* Quick reply chips — message nodes only */}
+                {selectedNode.type === "message" && (
+                  <QuickRepliesField value={selectedNode.quickReplies ?? []} onChange={setSelectedQuickReplies} showReply={false} compact />
                 )}
 
                 {/* Branches list — condition nodes only */}

@@ -5,6 +5,7 @@ import { generateFlowReply } from "@/lib/flows/ai-reply"
 import { releaseDm, reserveAiRun, reserveDm } from "@/lib/billing/usage"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { expandLinksForUser } from "@/lib/links/store"
+import { buildQuickRepliesApi } from "@/lib/messaging/quick-replies"
 
 export type { FlowGraph }
 
@@ -71,7 +72,16 @@ export async function runFlow(
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ recipient: { id: psid }, message: { text } }),
+          body: JSON.stringify({
+            recipient: { id: psid },
+            message: {
+              text,
+              // Quick reply chips of a message node (max 13 / 20 chars, sanitised in quick-replies.ts).
+              ...(action.kind === "message" && text && buildQuickRepliesApi(action.quickReplies).length > 0
+                ? { quick_replies: buildQuickRepliesApi(action.quickReplies) }
+                : {}),
+            },
+          }),
         },
       )
       const json = await res.json()

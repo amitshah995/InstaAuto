@@ -15,6 +15,9 @@ export function FlowTester({ graph, account = "your_brand" }: { graph: FlowGraph
 
   const result = useMemo(() => (graph ? simulate(graph, replies) : null), [graph, replies])
 
+  // Tappable suggestions: the quick reply chips on the last message plus the keywords the next condition waits for.
+  const chips = result ? Array.from(new Set([...result.quickReplies, ...result.waitingFor])) : []
+
   const send = (text?: string) => {
     const t = (text ?? draft).trim()
     if (!t || result?.finished) return
@@ -49,9 +52,9 @@ export function FlowTester({ graph, account = "your_brand" }: { graph: FlowGraph
             lines={result.finished ? [...result.lines, { from: "system", text: "Flow finished" }] : result.lines}
             footer={
               <div style={{ display: "grid", gap: 8 }}>
-                {!result.finished && result.waitingFor.length > 0 && (
+                {!result.finished && chips.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {result.waitingFor.map((k) => (
+                    {chips.map((k) => (
                       <button
                         key={k}
                         onClick={() => send(k)}
