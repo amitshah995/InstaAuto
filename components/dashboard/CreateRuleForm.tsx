@@ -74,7 +74,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   useEffect(() => {
     if (name) return // Don't overwrite user's custom name
     if (replyToAll) {
-      setName(triggerSource === 'dm' ? `All DMs → Reply` : `All Comments → Reply`)
+      setName(triggerSource === 'dm' ? `All DMs → Reply` : triggerSource === 'live' ? `All Live Comments → DM` : `All Comments → Reply`)
     } else if (triggers.length > 0) {
       setName(`${triggers.slice(0, 2).join(", ")} → Auto Reply`)
     }
@@ -385,7 +385,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
             : triggerSource === 'dm'
               ? 'Auto-reply when someone DMs these keywords.'
               : triggerSource === 'live'
-                ? 'Auto-DM when someone comments these keywords during your live broadcast. Requires Meta Advanced Access approval and the live_comments webhook field enabled.'
+                ? 'Auto-DM when someone comments these keywords while you are live. Instagram only allows this private reply during the broadcast, so nothing is sent once you end the live. Needs the live_comments webhook field turned on for your app.'
                 : 'Engage when someone interacts with your story.'}
         </p>
       </div>
@@ -415,8 +415,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         </div>
       )}
 
-      {/* Reply to all toggle — comments only */}
-      {triggerSource === 'comment' && (
+      {/* Reply to all toggle — comments and live comments */}
+      {(triggerSource === 'comment' || triggerSource === 'live') && (
         <button
           type="button"
           onClick={() => setReplyToAll(!replyToAll)}
@@ -430,8 +430,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="text-left flex-1">
-            <p className={`text-sm font-bold ${replyToAll ? 'text-brand' : 'text-foreground'}`}>Reply to All Comments</p>
-            <p className="text-[11px] text-muted-foreground">Auto-reply to every comment on a specific post</p>
+            <p className={`text-sm font-bold ${replyToAll ? 'text-brand' : 'text-foreground'}`}>{triggerSource === 'live' ? 'Reply to every live comment' : 'Reply to All Comments'}</p>
+            <p className="text-[11px] text-muted-foreground">{triggerSource === 'live' ? 'Send your DM to everyone who comments during the live (keywords are ignored)' : 'Auto-reply to every comment on a specific post'}</p>
           </div>
           <div className={`w-5 h-5 rounded-full border-2 transition-all ${
             replyToAll ? 'border-brand bg-brand' : 'border-border'
@@ -468,7 +468,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       )}
 
       {/* Keyword input — conditional */}
-      {!(replyToAll && (triggerSource === 'comment' || triggerSource === 'dm')) && !(triggerSource === 'story' && storyTriggerType === 'mention') && (
+      {!(replyToAll && (triggerSource === 'comment' || triggerSource === 'dm' || triggerSource === 'live')) && !(triggerSource === 'story' && storyTriggerType === 'mention') && (
         <div className="space-y-2">
           <Label className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider ml-1">
             {triggerSource === 'story' && storyTriggerType === 'reaction' ? 'Emoji Filter (optional)' : 'Keywords'}
@@ -838,7 +838,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground font-medium">When:</span>
           <span className="text-foreground font-semibold">
-            {replyToAll ? (triggerSource === 'dm' ? 'Any DM' : 'Any comment') :
+            {replyToAll ? (triggerSource === 'dm' ? 'Any DM' : triggerSource === 'live' ? 'Any live comment' : 'Any comment') :
               triggerSource === 'story' && storyTriggerType === 'mention' ? 'Story mention' :
                 triggers.length > 0 ? triggers.join(", ") : 'All messages'}
           </span>

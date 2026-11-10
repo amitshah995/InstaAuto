@@ -8,6 +8,14 @@ import { emitEvent } from "@/lib/webhooks/events"
 import { checkFollowStatus } from "@/lib/messaging/follow-check"
 import { matchesAnyKeyword } from "@/lib/matching/keywords"
 import { isOncePerPerson, onceKey } from "@/lib/automations/once"
+import {
+  LIVE_COMMENT_FIELD,
+  LIVE_RETRY_WINDOW_MS,
+  isStaleLiveEvent,
+  normalizeEntryChanges,
+  pickLiveAutomation,
+  readCommentValue,
+} from "@/lib/automations/comment-events"
 
 // No default token: a guessable fallback would let anyone subscribe. If this env var is unset, verification fails.
 const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || ""
@@ -272,10 +280,15 @@ export async function POST(request: NextRequest) {
       // ============================================================
       //  PART A: COMMENTS
       // ============================================================
-      if (entry.changes) {
-        for (const change of entry.changes) {
-          if (change.field === "comments" && change.value?.text) {
-            const commentId = change.value.id
+      // Live comments arrive on their own webhook field ("live_comments") with the same payload as "comments".
+      // normalizeEntryChanges also accepts the flat entry.field/entry.value layout Meta shows in its docs.
+      const commentChanges = normalizeEntryChanges(entry)
+      if (commentChanges.length > 0) {
+        for (const change of commentChanges) {
+          const isLive = change.field === LIVE_COMMENT_FIELD
+          const parsedComment = change.field === "comments" || isLive ? readCommentValue(change.value) : null
+          if (parsedComment) {
+            const commentId = parsedComment.commentId
 
             // --- Idempotency guard: skip if this exact comment was already processed ---
             if (await isDuplicateEvent(supabase, `comment_${commentId}`, "comment")) {
@@ -283,9 +296,15 @@ export async function POST(request: NextRequest) {
               continue
             }
 
-            const commentText = change.value.text.toLowerCase().trim()
-            const senderId = change.value.from.id
-            const mediaId = change.value.media.id
+            // Live: Meta only allows a private reply while the broadcast is on air, so a late redelivery is dropped.
+            if (isLive && isStaleLiveEvent(entry.time, Date.now())) {
+              console.log(`[v0] ⏭️ Stale live comment skipped (broadcast over): ${commentId}`)
+              continue
+            }
+
+            const commentText = parsedComment.text.toLowerCase().trim()
+            const senderId = parsedComment.senderId
+            const mediaId = parsedComment.mediaId
 
             // Safety check for self-reply
             if (senderId === webhookId || senderId === user.business_account_id || senderId === user.page_id) continue
@@ -293,15 +312,16 @@ export async function POST(request: NextRequest) {
             // ============================================================
             // 🧠 SMART MATCHING LOGIC
             // ============================================================
-            const commentAutomations = automations.filter((a: any) => a.trigger_source === 'comment')
+            const commentAutomations = automations.filter((a: any) => a.trigger_source === (isLive ? 'live' : 'comment'))
 
+            // Live comments only ever fire rules created on the Live tab (see lib/automations/comment-events.ts).
             // Priority 1: Reply-All (Specific post, ALL comments)
-            let match = commentAutomations.find(
-              (a: any) => a.specific_media_id === mediaId && a.trigger_type === "reply_all",
-            )
+            let match = isLive
+              ? pickLiveAutomation(commentAutomations, commentText)
+              : commentAutomations.find((a: any) => a.specific_media_id === mediaId && a.trigger_type === "reply_all")
 
             // Priority 2: Specific Post + Keyword Match
-            if (!match) {
+            if (!match && !isLive) {
               match = commentAutomations.find(
                 (a: any) =>
                   a.specific_media_id === mediaId &&
@@ -313,7 +333,7 @@ export async function POST(request: NextRequest) {
             // Priority 3: Global Keyword Match (Only if no specific match found).
             // Searches commentAutomations only: before, this searched ALL automations, so a DM-keyword
             // or story rule with the same word could fire on a public comment.
-            if (!match) {
+            if (!match && !isLive) {
               match = commentAutomations.find(
                 (a: any) =>
                   !a.specific_media_id &&
@@ -366,8 +386,8 @@ export async function POST(request: NextRequest) {
 
             let publicReplyOk = true
 
-            // Public Reply
-            try {
+            // Public Reply (not for live comments: replying under a live comment is not part of the live_comments flow)
+            if (!isLive) try {
               const pubRes = await fetch(
                 `https://graph.instagram.com/v24.0/${commentId}/replies?access_token=${encodeURIComponent(user.access_token)}`,
                 {
@@ -394,7 +414,8 @@ export async function POST(request: NextRequest) {
               { comment_id: commentId },
               senderId,
               content,
-              { userId: user.id },
+              // Live: a failed private reply may only be retried while the broadcast can still be on air.
+              { userId: user.id, windowUntil: isLive ? new Date(Date.now() + LIVE_RETRY_WINDOW_MS) : undefined },
             )
 
             if (!dmOk) {
@@ -478,7 +499,7 @@ export async function POST(request: NextRequest) {
                     user_id: user.id,
                     sender_id: senderId,
                     sender_username: "User",
-                    content: `💬 Commented: "${change.value.text}"`,
+                    content: `${isLive ? "📡 Live comment" : "💬 Commented"}: "${parsedComment.text}"`,
                     is_from_instagram: true,
                   })
 

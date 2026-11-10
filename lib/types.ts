@@ -31,7 +31,7 @@ export interface Automation {
   name: string
   trigger_source: 'comment' | 'dm' | 'story' | 'live'  // NEW: Where the automation triggers
   trigger_value: string
-  trigger_type: 'keyword' | 'postback' | 'reply_all'  // Simplified types
+  trigger_type: 'keyword' | 'postback' | 'reply_all' | 'wildcard' | 'ref' | 'mention' | 'reaction' | 'reply'
   response_content: any
   is_active: boolean
   created_at: string
