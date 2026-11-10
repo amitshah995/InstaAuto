@@ -6,16 +6,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Trash2, Lock, Film, ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, Send, AtSign, Heart, MessageSquare, ListOrdered, Clock, ListChecks } from "lucide-react"
 import { TagInput } from "@/components/ui/tag-input"
-import type { ProButton } from "@/lib/types"
 import type { AutomationTemplate } from "@/lib/automation-templates"
 import { toast } from "sonner"
 import { hasPlaceholders } from "@/lib/audit/recommendations"
 import { PhonePreview } from "@/components/dashboard/PhonePreview"
-import { CardImageField } from "@/components/dashboard/CardImageField"
-import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
+import { CardCarouselEditor, cardDraftToContent, newCardDraft, type CardDraft } from "@/components/dashboard/CardCarouselEditor"
 import { QuickRepliesField, quickRepliesToContent, type QuickReplyDraft } from "@/components/dashboard/QuickRepliesField"
 import { PublicReplyField, defaultPublicReplyDraft, publicReplyToContent } from "@/components/dashboard/PublicReplyField"
 
@@ -45,10 +42,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   // Step 2: Response
   const [type, setType] = useState<"text" | "card" | "sequence" | "leadgen">(d?.type ?? "text")
   const [messageText, setMessageText] = useState(d?.messageText ?? "")
-  const [cardTitle, setCardTitle] = useState("")
-  const [cardSubtitle, setCardSubtitle] = useState("")
-  const [cardImage, setCardImage] = useState("")
-  const [buttons, setButtons] = useState<ProButton[]>([])
+  // One card or a carousel (up to 10): see components/dashboard/CardCarouselEditor.tsx
+  const [cards, setCards] = useState<CardDraft[]>(() => [newCardDraft()])
   const [textChips, setTextChips] = useState<QuickReplyDraft[]>([])
   const [steps, setSteps] = useState<{ id: string; text: string; delay_seconds: number; chips?: QuickReplyDraft[] }[]>(
     d?.steps?.length ? d.steps.map((s, i) => ({ id: String(i + 1), ...s })) : [{ id: "1", text: "", delay_seconds: 0 }],
@@ -98,19 +93,6 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
     } finally {
       setLoadingReels(false)
     }
-  }
-
-  const handleAddButton = () => {
-    if (buttons.length >= 3) return
-    setButtons([...buttons, { id: Date.now().toString(), type: "web_url", title: "", url: "", payload: "" }])
-  }
-
-  const updateButton = (id: string, field: keyof ProButton, value: string) => {
-    setButtons(buttons.map((b) => (b.id === id ? { ...b, [field]: value } : b)))
-  }
-
-  const removeButton = (id: string) => {
-    setButtons(buttons.filter((b) => b.id !== id))
   }
 
   const handleAddStep = () => {
@@ -182,8 +164,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       toast.error("Missing Reply", { description: "Enter the message to auto-send." })
       return false
     }
-    if (type === "card" && !cardTitle.trim()) {
-      toast.error("Missing Title", { description: "Rich cards need a title." })
+    if (type === "card" && cards.some((c) => !c.title.trim())) {
+      toast.error("Missing Title", { description: cards.length > 1 ? "Every card in the carousel needs a title." : "Rich cards need a title." })
+      return false
+    }
+    if (type === "card" && cards.some((c) => !c.subtitle.trim() && !c.image.trim() && c.buttons.filter((b) => b.title.trim()).length === 0)) {
+      toast.error("Add a bit more", { description: "Instagram needs each card to have an image, a subtitle or a button besides the title." })
       return false
     }
     if (type === "sequence" && !steps.some((s) => s.text.trim())) {
@@ -223,25 +209,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       const chips = quickRepliesToContent(textChips, true)
       if (chips.length) content.quick_replies = chips
     } else {
-      const cleanButtons = buttons
-        .map((b) => {
-          if (b.type === "web_url") {
-            let cleanUrl = b.url?.trim() || ""
-            if (cleanUrl.startsWith("https://https://")) cleanUrl = cleanUrl.replace("https://https://", "https://")
-            return { type: "web_url", title: b.title, url: cleanUrl }
-          }
-          // "Pay" button: the amount is typed in the shared value box. Razorpay creates the link at send time.
-          if (b.type === "pay") return { type: "pay", title: b.title, amount_inr: Number(b.payload) || 0 }
-          return { type: "postback", title: b.title, payload: b.payload }
-        })
-        .filter((b) => b.title)
-
-      content.card = {
-        title: cardTitle,
-        subtitle: cardSubtitle || undefined,
-        image_url: cardImage || undefined,
-        buttons: cleanButtons,
-      }
+      // One card keeps the exact old shape (`card`). Several cards are saved as `cards` (the API also mirrors the first
+      // into `card` so older readers still work).
+      const built = cards.map(cardDraftToContent)
+      if (built.length === 1) content.card = built[0]
+      else content.cards = built
     }
 
     try {
@@ -275,10 +247,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         setReplyToAll(false)
         setMessageText("")
         setTextChips([])
-        setCardTitle("")
-        setCardSubtitle("")
-        setCardImage("")
-        setButtons([])
+        setCards([newCardDraft()])
         setSteps([{ id: "1", text: "", delay_seconds: 0 }])
         setQuestions([{ id: "1", field: "name", prompt: "What's your name?" }])
         setClosingMessage("Thanks! We'll get back to you shortly.")
@@ -566,7 +535,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
           }`}
         >
           <Send className="w-4 h-4" />
-          <span className="text-sm font-bold">Rich Card</span>
+          <span className="text-sm font-bold">Card / Carousel</span>
         </button>
         <button
           type="button"
@@ -718,70 +687,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
           <QuickRepliesField value={textChips} onChange={setTextChips} />
         </div>
       ) : (
-        <div className="space-y-3">
-          <div className="space-y-2 p-4 rounded-xl bg-secondary/20 border border-border">
-            <Input
-              value={cardTitle}
-              onChange={(e) => setCardTitle(e.target.value)}
-              className="bg-background border-border font-bold text-foreground"
-              placeholder="Card Title"
-            />
-            <Input
-              value={cardSubtitle}
-              onChange={(e) => setCardSubtitle(e.target.value)}
-              className="bg-background border-border text-sm text-foreground"
-              placeholder="Subtitle (Optional)"
-            />
-            <CardImageField
-              value={cardImage}
-              onChange={setCardImage}
-              linkUrl={buttons.find((b) => b.type === "web_url" && b.url?.trim())?.url || ""}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Buttons ({buttons.length}/3)</span>
-              <Button size="sm" variant="ghost" onClick={handleAddButton} disabled={buttons.length >= 3} className="h-7 text-xs hover:bg-secondary">
-                <Plus className="w-3 h-3 mr-1" /> Add
-              </Button>
-            </div>
-            {buttons.map((btn) => (
-              <div key={btn.id} className="space-y-1.5 bg-secondary/40 p-2 rounded-lg border border-border animate-in fade-in">
-                <div className="flex gap-2 items-center">
-                <Input
-                  value={btn.title}
-                  onChange={(e) => updateButton(btn.id, "title", e.target.value)}
-                  className="h-8 text-xs flex-1 bg-background border border-border px-2 text-foreground"
-                  placeholder="Label"
-                />
-                <Select value={btn.type} onValueChange={(v) => updateButton(btn.id, "type", v as any)}>
-                  <SelectTrigger className="h-8 w-[80px] text-[10px] bg-background border border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="web_url">Link</SelectItem>
-                    <SelectItem value="postback">Flow</SelectItem>
-                    <SelectItem value="pay">Pay</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  value={btn.type === "web_url" ? btn.url : btn.payload}
-                  onChange={(e) => updateButton(btn.id, btn.type === "web_url" ? "url" : "payload", e.target.value)}
-                  className="h-8 text-xs flex-1 bg-background border border-border px-2 text-foreground"
-                  placeholder={btn.type === "web_url" ? "https://..." : btn.type === "pay" ? "Amount in Rs, e.g. 499" : "Keyword"}
-                />
-                <Button size="icon" variant="ghost" onClick={() => removeButton(btn.id)} className="h-6 w-6 text-destructive hover:bg-destructive/10">
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-                </div>
-                {btn.type === "web_url" && (
-                  <TrackedLinkPicker url={btn.url || ""} label={btn.title} onChange={(v) => updateButton(btn.id, "url", v)} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <CardCarouselEditor cards={cards} onChange={setCards} />
       )}
 
     </div>
@@ -869,7 +775,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
                 ? `${steps.filter(s => s.text.trim()).length} messages in sequence`
                 : type === 'text'
                   ? messageText.slice(0, 40) + (messageText.length > 40 ? '...' : '')
-                  : `Card: ${cardTitle}`}
+                  : cards.length > 1 ? `Carousel: ${cards.length} cards` : `Card: ${cards[0]?.title}`}
           </span>
         </div>
         {checkFollow && (
@@ -937,7 +843,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
           media: selectedReel ? { thumb: selectedReel.thumbnail_url || selectedReel.media_url, caption: selectedReel.caption } : null,
           type,
           text: messageText,
-          card: { title: cardTitle, subtitle: cardSubtitle, image: cardImage, buttons: buttons.map((b) => ({ title: b.title })) },
+          card: { title: cards[0]?.title ?? "", subtitle: cards[0]?.subtitle ?? "", image: cards[0]?.image ?? "", buttons: (cards[0]?.buttons ?? []).map((b) => ({ title: b.title })) },
           steps: steps.map((x) => ({ text: x.text, delay_seconds: x.delay_seconds })),
           questions: questions.map((q) => ({ prompt: q.prompt })),
           closing: closingMessage,

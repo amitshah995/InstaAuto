@@ -8,6 +8,7 @@
  * rules, templates and imports behave exactly as before.
  */
 import { sanitizePublicReply } from "./public-reply.ts"
+import { normalizeCards } from "../messaging/cards.ts"
 import { sanitizeQuickReplies } from "../messaging/quick-replies.ts"
 
 /** Returns a copy of `content` with the Batch 1 fields clamped. Unknown fields pass through unchanged. */
@@ -19,6 +20,18 @@ export function sanitizeResponseContent(content: any): any {
     const pr = sanitizePublicReply(out.public_reply)
     if (pr) out.public_reply = pr
     else delete out.public_reply
+  }
+
+  // Carousel: clamp to 10 cards in Meta's limits. `card` (legacy, single) is left untouched, but when a carousel is saved
+  // the first card is mirrored into `card` so older readers (previews, the Android app) still show something.
+  if ("cards" in out) {
+    const cards = Array.isArray(out.cards) ? normalizeCards({ cards: out.cards }) : []
+    if (cards.length > 0) {
+      out.cards = cards
+      out.card = cards[0]
+    } else {
+      delete out.cards
+    }
   }
 
   // Quick reply chips: on the single message, on each sequence step, and on flow message nodes.
