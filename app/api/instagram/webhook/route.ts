@@ -896,7 +896,7 @@ export async function POST(request: NextRequest) {
                 flow,
                 conv.active_flow_node_id,
                 rawMessageText.trim(),
-                { ctx: { userId: user.id }, automationId: flowAutomation.id },
+                { ctx: { userId: user.id }, automationId: flowAutomation.id, inWindow: withinWindow, quickReplyPayload },
               )
               const nextNodeId = flowScheduled ? null : runNodeId
 
@@ -1427,7 +1427,7 @@ STRICT RULES — follow every single one:
               content.flow,
               content.flow.startNodeId,
               null,
-              { ctx: { userId: user.id }, automationId: match.id },
+              { ctx: { userId: user.id }, automationId: match.id, inWindow: withinWindow },
             )
             // A delayed node is owned by the scheduler; don't leave the chat parked on it.
             const nextNodeId = flowScheduled ? null : runNodeId
