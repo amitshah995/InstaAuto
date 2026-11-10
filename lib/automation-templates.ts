@@ -126,6 +126,25 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     },
   },
   {
+    // Closest thing to "DM when someone follows" that Meta's PUBLIC API allows.
+    // A true on-follow DM needs Meta's closed "Follow to DM" beta; there is no public follow webhook
+    // and we cannot message someone who has not messaged us first. So the new follower is invited
+    // (bio line / pinned story: "DM WELCOME") and the reply is sent after the follow is checked.
+    id: "welcome-new-follower",
+    title: "Welcome new followers (DM WELCOME)",
+    description: "Put \"DM WELCOME\" in your bio or pinned story. New followers who send it get your welcome message and link, after we check they follow you.",
+    triggerSource: "dm",
+    goal: "Grow followers",
+    badge: "New",
+    defaults: {
+      triggers: ["welcome", "hi", "hello", "hey", "start"],
+      type: "text",
+      checkFollow: true,
+      messageText: "Hey, thanks for following! 👋 Here is a great place to start: [your link]. (This is an automatic reply.)",
+      name: "Welcome New Followers",
+    },
+  },
+  {
     id: "faq-auto-reply",
     title: "Answer FAQs in DM",
     description: "Auto-reply instantly when someone DMs a common question keyword.",
