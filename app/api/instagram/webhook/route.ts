@@ -8,6 +8,7 @@ import { emitEvent } from "@/lib/webhooks/events"
 import { checkFollowStatus } from "@/lib/messaging/follow-check"
 import { matchesAnyKeyword } from "@/lib/matching/keywords"
 import { isOncePerPerson, onceKey } from "@/lib/automations/once"
+import { firstNameFrom, resolvePublicReply, variantsNeedName } from "@/lib/automations/public-reply"
 import {
   LIVE_COMMENT_FIELD,
   LIVE_RETRY_WINDOW_MS,
@@ -22,6 +23,10 @@ const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || ""
 
 // Long delayed-reply sequences and AI "typing" waits can exceed the default function time limit.
 export const maxDuration = 60
+
+// Last public-reply variant used per rule on this server instance, so two comments in a row do not get the same text.
+// Best effort only (serverless instances do not share memory); the random pick is the real rotation.
+const lastPublicReplyIndex = new Map<string, number>()
 
 // Keyword matching lives in lib/matching/keywords.ts (Unicode-aware, whole-word).
 
@@ -381,31 +386,50 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            const replies = ["Check your DMs! 📥", "Sent! 🔥", "Check inbox! ✨"]
-            const randomReply = replies[Math.floor(Math.random() * replies.length)]
-
+            // Public reply under the comment. What it says, whether it is sent at all, and the {first_name} /
+            // {username} placeholders come from the rule (lib/automations/public-reply.ts). Rules without a
+            // public_reply keep the old three phrases; live comments get none unless the rule turns it on.
             let publicReplyOk = true
-
-            // Public Reply (not for live comments: replying under a live comment is not part of the live_comments flow)
-            if (!isLive) try {
-              const pubRes = await fetch(
-                `https://graph.instagram.com/v24.0/${commentId}/replies?access_token=${encodeURIComponent(user.access_token)}`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ message: randomReply }),
-                },
-              )
-              const pubJson = await pubRes.json()
-              if (pubJson.error) {
-                console.error("[v0] 🔴 Public Reply Failed:", JSON.stringify(pubJson.error))
-                publicReplyOk = false
-              } else {
-                console.log("[v0] 🟢 Public Reply Sent!", pubJson)
+            const publicVars = { username: parsedComment.username, firstName: firstNameFrom(null, parsedComment.username) }
+            if (Array.isArray(content?.public_reply?.variants) && variantsNeedName(content.public_reply.variants)) {
+              try {
+                const { data: knownContact } = await supabase
+                  .from("contacts")
+                  .select("name")
+                  .eq("user_id", user.id)
+                  .eq("igsid", senderId)
+                  .single()
+                publicVars.firstName = firstNameFrom(knownContact?.name, parsedComment.username)
+              } catch {
+                // no saved name: the username fallback above is used
               }
-            } catch (e) {
-              console.error("[v0] 🔴 Public Reply Network Error:", e)
-              publicReplyOk = false
+            }
+            const publicChoice = resolvePublicReply(content, publicVars, {
+              isLive,
+              lastIndex: lastPublicReplyIndex.get(String(match.id)) ?? null,
+            })
+            if (publicChoice.text !== null) {
+              if (publicChoice.index !== null) lastPublicReplyIndex.set(String(match.id), publicChoice.index)
+              try {
+                const pubRes = await fetch(
+                  `https://graph.instagram.com/v24.0/${commentId}/replies?access_token=${encodeURIComponent(user.access_token)}`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: publicChoice.text }),
+                  },
+                )
+                const pubJson = await pubRes.json()
+                if (pubJson.error) {
+                  console.error("[v0] 🔴 Public Reply Failed:", JSON.stringify(pubJson.error))
+                  publicReplyOk = false
+                } else {
+                  console.log("[v0] 🟢 Public Reply Sent!", pubJson)
+                }
+              } catch (e) {
+                console.error("[v0] 🔴 Public Reply Network Error:", e)
+                publicReplyOk = false
+              }
             }
 
             // Private Reply (DM) — one or more sequential steps

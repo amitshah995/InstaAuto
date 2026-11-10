@@ -16,6 +16,7 @@ import { hasPlaceholders } from "@/lib/audit/recommendations"
 import { PhonePreview } from "@/components/dashboard/PhonePreview"
 import { CardImageField } from "@/components/dashboard/CardImageField"
 import { TrackedLinkPicker } from "@/components/dashboard/TrackedLinkPicker"
+import { PublicReplyField, defaultPublicReplyDraft, publicReplyToContent } from "@/components/dashboard/PublicReplyField"
 
 interface CreateRuleFormProps {
   userId: string
@@ -59,6 +60,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   const [name, setName] = useState(d?.name ?? "")
   const [checkFollow, setCheckFollow] = useState(d?.checkFollow ?? false)
   const [oncePerPerson, setOncePerPerson] = useState(false)
+  const [publicReply, setPublicReply] = useState(defaultPublicReplyDraft())
 
   // Media
   const [reels, setReels] = useState<any[]>([])
@@ -200,6 +202,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
 
     const content: any = { check_follow: checkFollow }
     if (triggerSource === 'comment' && oncePerPerson) content.once_per_person = true
+    if (triggerSource === 'comment') content.public_reply = publicReplyToContent(publicReply)
     if (type === "leadgen") {
       content.questions = questions
         .filter((q) => q.field.trim() && q.prompt.trim())
@@ -274,6 +277,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         setSelectedReel(null)
         setCheckFollow(false)
         setOncePerPerson(false)
+        setPublicReply(defaultPublicReplyDraft())
         onSuccess()
       } else {
         toast.error("Failed", { description: "Please try again." })
@@ -831,6 +835,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
           </div>
         </label>
       )}
+
+      {triggerSource === 'comment' && <PublicReplyField value={publicReply} onChange={setPublicReply} />}
 
       {/* Summary card */}
       <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3">

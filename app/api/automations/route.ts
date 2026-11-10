@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { snapshotAutomation } from "@/lib/flows/versions"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { authorizeUser, isEnforced } from "@/lib/auth"
+import { sanitizeResponseContent } from "@/lib/automations/sanitize"
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
         trigger_type: trigger_type || "keyword",
         trigger_value: finalTriggerValue,
         response_type: "pro",
-        response_content: content,
+        response_content: sanitizeResponseContent(content),
         is_active: true,
         specific_media_id: specific_media_id || null,
       })
@@ -122,7 +123,7 @@ export async function PUT(request: NextRequest) {
       name,
       trigger_type: trigger_type || "keyword",
       trigger_value: trigger_value.toLowerCase(),
-      response_content: content,
+      response_content: sanitizeResponseContent(content),
       specific_media_id: specific_media_id || null,
     }
 
