@@ -8,6 +8,7 @@
  * rules, templates and imports behave exactly as before.
  */
 import { sanitizePublicReply } from "./public-reply.ts"
+import { isValidScope } from "./comment-scope.ts"
 import { normalizeCards } from "../messaging/cards.ts"
 import { sanitizeQuickReplies } from "../messaging/quick-replies.ts"
 
@@ -21,6 +22,8 @@ export function sanitizeResponseContent(content: any): any {
     if (pr) out.public_reply = pr
     else delete out.public_reply
   }
+
+  if ("comment_scope" in out && !isValidScope(out.comment_scope)) delete out.comment_scope
 
   // Carousel: clamp to 10 cards in Meta's limits. `card` (legacy, single) is left untouched, but when a carousel is saved
   // the first card is mirrored into `card` so older readers (previews, the Android app) still show something.

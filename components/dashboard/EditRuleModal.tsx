@@ -33,6 +33,8 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
   const [cardButtons, setCardButtons] = useState<{ type: string; title: string; url: string; payload?: string }[]>([])
   const [saving, setSaving] = useState(false)
   const [oncePerPerson, setOncePerPerson] = useState(false)
+  // A carousel (2+ cards) is edited by creating a new automation; this modal edits one card only.
+  const [carouselCount, setCarouselCount] = useState(0)
 
   useEffect(() => {
     if (!rule) return
@@ -42,6 +44,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
 
     const content = rule.response_content || {}
     setOncePerPerson(content.once_per_person === true)
+    setCarouselCount(Array.isArray(content.cards) && content.cards.length > 1 ? content.cards.length : 0)
     if (Array.isArray(content.steps) && content.steps.length > 0) {
       setContentType("sequence")
       setIsCard(false)
@@ -94,7 +97,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
       return
     }
 
-    if (contentType === "card" && !cardTitle.trim()) {
+    if (contentType === "card" && carouselCount === 0 && !cardTitle.trim()) {
       toast.error("Card Title Required", { description: "Cards require a title." })
       return
     }
@@ -109,7 +112,7 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
     }
     if (rule.trigger_source === "comment") updatedContent.once_per_person = oncePerPerson
 
-    if (contentType === "card") {
+    if (contentType === "card" && carouselCount === 0) {
       const updatedButtons = cardButtons
         .filter((b) => b.title.trim())
         .map((b) => {
@@ -303,7 +306,12 @@ export function EditRuleModal({ rule, userId, onClose, onSuccess }: EditRuleModa
           )}
 
           {/* 4. Rich Card Fields (Only if this rule uses a Card template) */}
-          {contentType === "card" && (
+          {contentType === "card" && carouselCount > 0 && (
+            <div className="p-4 rounded-xl border border-border bg-secondary/30 text-xs text-muted-foreground">
+              This automation sends a carousel of {carouselCount} cards. To change the cards, create a new automation with the card editor; name and keywords can still be edited here.
+            </div>
+          )}
+          {contentType === "card" && carouselCount === 0 && (
             <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-3.5">
               <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                 <Send className="w-3.5 h-3.5 text-brand" /> Rich Card Settings

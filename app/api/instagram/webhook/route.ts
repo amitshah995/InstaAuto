@@ -8,6 +8,7 @@ import { emitEvent } from "@/lib/webhooks/events"
 import { checkFollowStatus } from "@/lib/messaging/follow-check"
 import { matchesAnyKeyword } from "@/lib/matching/keywords"
 import { isOncePerPerson, onceKey } from "@/lib/automations/once"
+import { fetchMediaMeta, needsMediaTimestamp, pickCommentAutomation, pinNextPostRule } from "@/lib/automations/comment-scope"
 import { findQuickReplyRule, findQuickReplyTarget } from "@/lib/messaging/quick-replies"
 import { firstNameFrom, resolvePublicReply, variantsNeedName } from "@/lib/automations/public-reply"
 import {
@@ -321,31 +322,24 @@ export async function POST(request: NextRequest) {
             const commentAutomations = automations.filter((a: any) => a.trigger_source === (isLive ? 'live' : 'comment'))
 
             // Live comments only ever fire rules created on the Live tab (see lib/automations/comment-events.ts).
-            // Priority 1: Reply-All (Specific post, ALL comments)
-            let match = isLive
-              ? pickLiveAutomation(commentAutomations, commentText)
-              : commentAutomations.find((a: any) => a.specific_media_id === mediaId && a.trigger_type === "reply_all")
-
-            // Priority 2: Specific Post + Keyword Match
-            if (!match && !isLive) {
-              match = commentAutomations.find(
-                (a: any) =>
-                  a.specific_media_id === mediaId &&
-                  a.trigger_type === "keyword" &&
-                  matchesAnyKeyword(commentText, a.trigger_value),
-              )
-            }
-
-            // Priority 3: Global Keyword Match (Only if no specific match found).
-            // Searches commentAutomations only: before, this searched ALL automations, so a DM-keyword
-            // or story rule with the same word could fire on a public comment.
-            if (!match && !isLive) {
-              match = commentAutomations.find(
-                (a: any) =>
-                  !a.specific_media_id &&
-                  a.trigger_type === "keyword" &&
-                  matchesAnyKeyword(commentText, a.trigger_value),
-              )
+            // Post/reel comments: bound-to-this-post rules, then a pending "next post" rule, then "all posts" keyword
+            // rules (see lib/automations/comment-scope.ts for the priority and for how "next post" binds).
+            let match: any = null
+            let pinNextPost = false
+            if (isLive) {
+              match = pickLiveAutomation(commentAutomations, commentText)
+            } else {
+              let publishedMs: number | null = null
+              let productType: string | null = parsedComment.mediaProductType
+              // Only ask Instagram for the post's publish time when a pending "next post" rule could match this comment.
+              if (needsMediaTimestamp(commentAutomations, commentText)) {
+                const meta = await fetchMediaMeta(user.access_token, mediaId)
+                publishedMs = meta.publishedMs
+                productType = meta.productType ?? productType
+              }
+              const pick = pickCommentAutomation(commentAutomations, { mediaId, text: commentText, mediaPublishedMs: publishedMs, mediaProductType: productType })
+              match = pick.match
+              pinNextPost = pick.pin
             }
 
             if (!match) {
@@ -365,6 +359,17 @@ export async function POST(request: NextRequest) {
 
             console.log(`[v0] ✅ Comment Match: "${match.name}" (ID: ${match.id})`)
             const content = match.response_content
+
+            // "Next post" rule seeing its first eligible post: bind it to this post before anything is sent.
+            if (pinNextPost) {
+              const pinned = await pinNextPostRule(supabase, String(match.id), String(mediaId))
+              if (!pinned) {
+                console.log(`[v0] ⏭️ Next-post rule ${match.id} is already bound to another post`)
+                continue
+              }
+              match.specific_media_id = mediaId
+              console.log(`[v0] 📌 Next-post rule "${match.name}" pinned to media ${mediaId}`)
+            }
 
             // "Once per person per post": claim (rule, person, post) atomically. A repeat comment
             // gets neither the public reply nor the DM.

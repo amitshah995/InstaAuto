@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Trash2, Globe, AtSign, Zap, ArrowRight, Lock, MessageCircle, Send, Compass, Eye, Pencil } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Automation } from "@/lib/types"
+import { isNextPostPending } from "@/lib/automations/comment-scope"
 import { EditRuleModal } from "@/components/dashboard/EditRuleModal"
 
 interface AutomationListProps {
@@ -21,7 +22,9 @@ export function AutomationList({ automations, onDelete, onUpdate, userId, onPrev
   const [editingRule, setEditingRule] = useState<Automation | null>(null)
   const router = useRouter()
 
-  const globalRules = automations.filter((rule) => !rule.specific_media_id)
+  // "Next post" rules that have not met their post yet are neither global nor post-specific.
+  const waitingRules = automations.filter((rule) => isNextPostPending(rule))
+  const globalRules = automations.filter((rule) => !rule.specific_media_id && !isNextPostPending(rule))
   const postSpecificRules = automations.filter((rule) => rule.specific_media_id)
 
   useEffect(() => {
@@ -64,6 +67,20 @@ export function AutomationList({ automations, onDelete, onUpdate, userId, onPrev
       </div>
 
       <div className="space-y-4">
+        {/* "Next post" rules still waiting for the post they will bind to */}
+        {waitingRules.length > 0 && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground ml-1">
+              <Zap className="w-3.5 h-3.5 text-brand" />
+              <span>Waiting for your next post</span>
+              <span className="text-[11px] font-normal text-muted-foreground">({waitingRules.length})</span>
+            </div>
+            {waitingRules.map((rule, idx) => (
+              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={(r) => setEditingRule(r)} index={idx} router={router} onPreview={onPreview} />
+            ))}
+          </div>
+        )}
+
         {/* Global rules */}
         {globalRules.length > 0 && (
           <div className="space-y-2.5">
@@ -122,8 +139,9 @@ function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router,
   const [confirming, setConfirming] = useState(false)
   const keywords = rule.trigger_value.split(",").map(k => k.trim()).filter(Boolean)
   const isCard = !!rule.response_content?.card
+  const cardCount = Array.isArray(rule.response_content?.cards) ? rule.response_content.cards.length : 0
   const responsePreview = isCard
-    ? rule.response_content.card.title
+    ? (cardCount > 1 ? `Carousel: ${cardCount} cards` : rule.response_content.card.title)
     : rule.response_content?.message?.slice(0, 50) + (rule.response_content?.message?.length > 50 ? "..." : "")
 
   return (

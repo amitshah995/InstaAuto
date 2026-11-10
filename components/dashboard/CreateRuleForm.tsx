@@ -12,6 +12,8 @@ import type { AutomationTemplate } from "@/lib/automation-templates"
 import { toast } from "sonner"
 import { hasPlaceholders } from "@/lib/audit/recommendations"
 import { PhonePreview } from "@/components/dashboard/PhonePreview"
+import { CommentScopeField } from "@/components/dashboard/CommentScopeField"
+import type { CommentScope } from "@/lib/automations/comment-scope"
 import { CardCarouselEditor, cardDraftToContent, newCardDraft, type CardDraft } from "@/components/dashboard/CardCarouselEditor"
 import { QuickRepliesField, quickRepliesToContent, type QuickReplyDraft } from "@/components/dashboard/QuickRepliesField"
 import { PublicReplyField, defaultPublicReplyDraft, publicReplyToContent } from "@/components/dashboard/PublicReplyField"
@@ -37,6 +39,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
   const [triggers, setTriggers] = useState<string[]>(d?.triggers ?? [])
   const [storyTriggerType, setStoryTriggerType] = useState<'mention' | 'reaction' | 'reply'>(d?.storyTriggerType ?? 'mention')
   const [selectedReel, setSelectedReel] = useState<any | null>(null)
+  // Comment rules: one post, all posts, or the next post you publish (see lib/automations/comment-scope.ts).
+  const [commentScope, setCommentScope] = useState<CommentScope>(strict || d?.replyToAll ? "specific" : "all")
   const [showReelPicker, setShowReelPicker] = useState(false)
 
   // Step 2: Response
@@ -137,8 +141,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       return false
     }
     const isStoryMentionOrReaction = triggerSource === 'story' && (storyTriggerType === 'mention' || storyTriggerType === 'reaction')
-    if (triggerSource === 'comment' && replyToAll && !selectedReel) {
-      toast.error("Select a Post", { description: "Reply-All requires selecting a specific post." })
+    if (triggerSource === 'comment' && replyToAll && commentScope === 'all') {
+      toast.error("Choose which post", { description: "Reply-All needs one post, or your next post. It cannot run on every post." })
+      return false
+    }
+    if (triggerSource === 'comment' && commentScope === 'specific' && !selectedReel) {
+      toast.error("Select a Post", { description: "Pick the post or reel this applies to, or choose another option." })
       return false
     }
     if (!replyToAll && !isStoryMentionOrReaction && triggers.length === 0) {
@@ -191,6 +199,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
 
     const content: any = { check_follow: checkFollow }
     if (triggerSource === 'comment' && oncePerPerson) content.once_per_person = true
+    if (triggerSource === 'comment') content.comment_scope = commentScope
     if (triggerSource === 'comment') content.public_reply = publicReplyToContent(publicReply)
     if (type === "leadgen") {
       content.questions = questions
@@ -233,7 +242,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
               (triggerSource === 'story' && storyTriggerType === 'reaction' && triggers.length === 0) ? "ALL_REACTIONS" :
                 triggers.length > 0 ? triggers.join(", ") : "ALL",
           content,
-          specific_media_id: selectedReel?.id || null,
+          specific_media_id: triggerSource === 'comment' ? (commentScope === 'specific' ? selectedReel?.id || null : null) : (selectedReel?.id || null),
         }),
       })
 
@@ -253,6 +262,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         setClosingMessage("Thanks! We'll get back to you shortly.")
         setType("text")
         setSelectedReel(null)
+        setCommentScope(strict ? "specific" : "all")
         setCheckFollow(false)
         setOncePerPerson(false)
         setPublicReply(defaultPublicReplyDraft())
@@ -401,7 +411,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
       {(triggerSource === 'comment' || triggerSource === 'live') && (
         <button
           type="button"
-          onClick={() => setReplyToAll(!replyToAll)}
+          onClick={() => {
+            // "All posts" + reply to every comment would answer every comment on the account: move to one post instead.
+            if (!replyToAll && triggerSource === 'comment' && commentScope === 'all') setCommentScope('specific')
+            setReplyToAll(!replyToAll)
+          }}
           className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
             replyToAll ? 'border-brand/50 bg-brand-soft' : 'border-border hover:border-muted-foreground/30 hover:bg-secondary'
           }`}
@@ -468,11 +482,15 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, template, str
         </div>
       )}
 
+      {triggerSource === 'comment' && (
+        <CommentScopeField value={commentScope} onChange={setCommentScope} disabled={strict} disabledKeys={replyToAll ? ['all'] : []} />
+      )}
+
       {/* Post/Reel picker */}
-      {(triggerSource === 'comment' || triggerSource === 'story') && (
+      {((triggerSource === 'comment' && commentScope === 'specific') || triggerSource === 'story') && (
         <div className="space-y-2">
           <Label className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider ml-1">
-            {replyToAll || strict ? 'Select Post (Required)' :
+            {triggerSource === 'comment' || replyToAll || strict ? 'Select Post (Required)' :
               triggerSource === 'story' ? 'Story (Optional)' : 'Post/Reel (Optional)'}
           </Label>
           <div className="relative">
