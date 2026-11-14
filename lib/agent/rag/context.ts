@@ -11,6 +11,7 @@
  */
 import type { Knowledge } from "../types.ts"
 import type { Retrieval } from "./retrieve.ts"
+import type { SourceKind } from "./store.ts"
 
 /** Knowledge up to this many characters (caption + offer + FAQs) counts as small. */
 export const SMALL_KNOWLEDGE_CHARS = 3500
@@ -22,11 +23,11 @@ export function knowledgeSize(k: Knowledge | null): number {
 
 export type KnowledgeView =
   | { mode: "stuffing" }
-  | { mode: "rag"; passages: { title: string; content: string }[]; noneFound: boolean }
+  | { mode: "rag"; passages: { title: string; content: string; kind?: SourceKind }[]; noneFound: boolean }
 
 export function chooseKnowledgeView(k: Knowledge | null, r: Retrieval | null | undefined): KnowledgeView {
   if (!k || !r || !r.indexed) return { mode: "stuffing" }
-  if (r.chunks.length > 0) return { mode: "rag", passages: r.chunks.map((c) => ({ title: c.title, content: c.content })), noneFound: false }
+  if (r.chunks.length > 0) return { mode: "rag", passages: r.chunks.map((c) => ({ title: c.title, content: c.content, kind: c.sourceKind })), noneFound: false }
   if (knowledgeSize(k) <= SMALL_KNOWLEDGE_CHARS) return { mode: "stuffing" }
   return { mode: "rag", passages: [], noneFound: true }
 }

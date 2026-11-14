@@ -232,8 +232,10 @@ export async function runTurn(input: TurnInput, deps: LlmDeps = {}): Promise<Tur
     }
   }
   const view = chooseKnowledgeView(ctx.knowledge, retrieval)
-  // Links are allowed if they are in the owner's knowledge text or in a passage retrieved for this turn.
-  const turnUrls = view.mode === "rag" ? extractUrls(...view.passages.map((p) => p.content)) : []
+  // Links are allowed if they are in the owner's knowledge text or in an owner-authored passage (offer, caption, FAQ, pasted
+  // document) retrieved for this turn. An IMPORTED WEB PAGE is third-party text: its links are never passed through (unless the
+  // same link is also in the owner's own text). A passage without a known kind is treated as untrusted.
+  const turnUrls = view.mode === "rag" ? extractUrls(...view.passages.filter((p) => p.kind && p.kind !== "website").map((p) => p.content)) : []
   const allowedUrls = [...allowedUrlsFor(ctx), ...turnUrls]
   let modelText = ""
   let failed = false
