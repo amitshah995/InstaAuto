@@ -103,7 +103,7 @@ Delivery: event id is deterministic per (account, person, Reel, kind), so retrie
 
 ## Quotas and billing
 
-Each agent model call reserves one unit of a separate daily counter `agent_day` (`reserveAgentTurn`, plan field `agentTurnsPerDay`: 40 / 400 / 2000 on free / starter / pro, illustrative and editable in `lib/billing/plans.ts`). Blocking happens only when `BILLING_ENABLED` is on, like the other counters. The agent's outgoing DMs go through `sendSteps`, so they count as DMs as usual. The "Test the agent" panel uses the same counter. Not shown on the billing page yet.
+Each agent model call reserves one unit of a separate daily counter `agent_day` (`reserveAgentTurn`, plan field `agentTurnsPerDay`: 2000 on every plan for now (owner decision, to be tuned when pricing is final), editable in `lib/billing/plans.ts`). Blocking happens only when `BILLING_ENABLED` is on, like the other counters. The agent's outgoing DMs go through `sendSteps`, so they count as DMs as usual. The "Test the agent" panel uses the same counter. Not shown on the billing page yet.
 
 ## Environment
 

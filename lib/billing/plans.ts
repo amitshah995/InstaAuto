@@ -43,7 +43,7 @@ export const PLANS: Record<PlanId, Plan> = {
     priceInrMonthly: 0,
     dmsPerMonth: 500,
     aiRunsPerDay: 3,
-    agentTurnsPerDay: 40,
+    agentTurnsPerDay: 2000, // temporary: same for every plan until pricing is final
     seats: 1,
     highlights: ["Comment-to-DM and story replies", "DM flows, contacts and tags", "Reports and the free audit"],
   },
@@ -53,7 +53,7 @@ export const PLANS: Record<PlanId, Plan> = {
     priceInrMonthly: 499,
     dmsPerMonth: 5000,
     aiRunsPerDay: 20,
-    agentTurnsPerDay: 400,
+    agentTurnsPerDay: 2000, // temporary: same for every plan until pricing is final
     seats: 2,
     highlights: ["Every feature in Free", "10 times the monthly DMs", "AI replies at 20 runs a day", "Team seats for a helper"],
   },
