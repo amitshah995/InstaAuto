@@ -7,7 +7,7 @@
  * the agent says it will connect a human. Never throws: any failure degrades to keywords, then to "nothing found".
  * Pure ranking/selection functions are exported for tests; the store and the embedder are injected.
  */
-import { extractSearchTerms, termHits, toTsQuery } from "./keywords.ts"
+import { conceptCount, extractSearchTerms, termHits, toTsQuery } from "./keywords.ts"
 import type { ChunkHit, RagStore } from "./store.ts"
 
 export const MAX_CHUNKS = 5
@@ -63,17 +63,18 @@ export function selectChunks(hits: ChunkHit[], userId: string | number, opts: { 
 }
 
 /**
- * Keyword ranking over candidate rows: score = share of the query terms found in the chunk. Needs at least 2 hits when the
- * query has 3+ terms (one shared word like "hair" should not make an unrelated chunk "relevant"), otherwise 1.
+ * Keyword ranking over candidate rows: score = share of the query's concepts found in the chunk (synonyms of one intent group
+ * count once, see termHits). Needs at least 2 concepts when the query has 3+ (one shared word like "hair" should not make an
+ * unrelated chunk "relevant"), otherwise 1.
  */
 export function rankKeywordHits(rows: ChunkHit[], terms: string[]): ChunkHit[] {
   if (terms.length === 0) return []
-  const minHits = terms.length >= 3 ? 2 : 1
+  const minHits = conceptCount(terms) >= 3 ? 2 : 1
   return rows
     .map((r) => ({ r, hits: termHits(`${r.title} ${r.content}`, terms) }))
     .filter((x) => x.hits >= minHits)
     .sort((a, b) => b.hits - a.hits || b.r.score - a.r.score)
-    .map((x) => ({ ...x.r, score: Math.min(1, x.hits / terms.length) }))
+    .map((x) => ({ ...x.r, score: Math.min(1, x.hits / conceptCount(terms)) }))
 }
 
 /** Retrieves for one question. mediaId null = business-wide chunks only. */

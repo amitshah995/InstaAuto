@@ -31,7 +31,14 @@ const GROUPS: string[][] = [
   ["refund", "cancel", "cancellation", "return", "वापसी"],
 ]
 const GROUP_OF = new Map<string, string[]>()
-for (const g of GROUPS) for (const w of g) if (!w.includes(" ")) GROUP_OF.set(w, g.filter((x) => !x.includes(" ")))
+const GROUP_ID = new Map<string, number>()
+GROUPS.forEach((g, gi) => { for (const w of g) if (!w.includes(" ")) { GROUP_OF.set(w, g.filter((x) => !x.includes(" "))); GROUP_ID.set(w, gi) } })
+
+/** The idea a term stands for: all words of one intent group ("price", "fees", "kitna", ...) are ONE concept, other terms are their own. */
+export function conceptOf(term: string): string {
+  const g = GROUP_ID.get(term)
+  return g === undefined ? term : `#${g}`
+}
 
 /** Strips a common English ending so "charges/charged" and "surgeries" meet their root. Left alone for non-Latin words. */
 function trim(word: string): string {
@@ -69,12 +76,27 @@ export function extractSearchTerms(query: string, max = 24): string[] {
   return out.slice(0, max)
 }
 
-/** How many of the terms appear in the text (substring match, so "fee" is found inside "fees"). */
+/**
+ * How many distinct concepts of the query appear in the text. Synonyms of one intent group count ONCE (a query "kitna" expands to
+ * ~20 price words; a chunk that says only "Consultation charge: 500" must still count as a full match), and terms of 3 characters
+ * or fewer ("rs", "fee", "off") must match a whole word so "rs" is not found inside "hours" or "off" inside "coffee".
+ * Longer terms match as a substring, so "fee" style prefixes still find "fees".
+ */
 export function termHits(text: string, terms: string[]): number {
   const lower = String(text ?? "").toLowerCase()
-  let n = 0
-  for (const t of terms) if (lower.includes(t)) n++
-  return n
+  const words = new Set(tokenize(lower))
+  const hit = new Set<string>()
+  for (const t of terms) {
+    const c = conceptOf(t)
+    if (hit.has(c)) continue
+    if (Array.from(t).length <= 3 ? words.has(t) : lower.includes(t)) hit.add(c)
+  }
+  return hit.size
+}
+
+/** Number of distinct concepts in a term list (what "the query has 3+ terms" should be measured in). */
+export function conceptCount(terms: string[]): number {
+  return new Set(terms.map(conceptOf)).size
 }
 
 /** Postgres tsquery text: prefix-matched terms joined with OR. Terms are letters/digits only, so this cannot inject operators. */
