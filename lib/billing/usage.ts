@@ -60,7 +60,7 @@ export async function getEntitlement(userId: string | number): Promise<Entitleme
   return { plan: getPlan(effectivePlanId(sub)), enforce: true }
 }
 
-async function reserve(userId: string | number, kind: "dm_month" | "ai_day" | "agent_day", limit: number): Promise<boolean> {
+async function reserve(userId: string | number, kind: "dm_month" | "ai_day" | "agent_day" | "embed_day", limit: number): Promise<boolean> {
   const { month, day } = periodKeys()
   const period = kind === "dm_month" ? month : day // ai_day and agent_day are both daily
   try {
@@ -78,7 +78,7 @@ async function reserve(userId: string | number, kind: "dm_month" | "ai_day" | "a
   }
 }
 
-async function release(userId: string | number, kind: "dm_month" | "ai_day" | "agent_day"): Promise<void> {
+async function release(userId: string | number, kind: "dm_month" | "ai_day" | "agent_day" | "embed_day"): Promise<void> {
   const { month, day } = periodKeys()
   try {
     await rawQuery(
@@ -121,6 +121,18 @@ export async function reserveAgentTurn(userId: string | number): Promise<Reserve
   const e = await getEntitlement(userId)
   const ok = await reserve(userId, "agent_day", e.enforce ? e.plan.agentTurnsPerDay : UNLIMITED)
   return ok ? { allowed: true } : { allowed: false, message: `You have used all ${e.plan.agentTurnsPerDay} AI Sales Agent replies included in the ${e.plan.name} plan today. It resumes tomorrow, or upgrade your plan.` }
+}
+
+/**
+ * Reserve one embeddings call (daily, separate counter "embed_day", limit = twice the plan's agent replies per day: one call per
+ * agent turn, plus one per 64 chunks when knowledge is indexed). Called by lib/agent/rag/service.ts. A blocked call is NOT an
+ * error for the agent: retrieval falls back to keyword search and ingest stores chunks without vectors. Embeddings are cheap, so
+ * this exists to stop runaway cost, not to meter normal use. Like the other counters it only blocks when BILLING_ENABLED is on.
+ */
+export async function reserveEmbedding(userId: string | number): Promise<ReserveResult> {
+  const e = await getEntitlement(userId)
+  const ok = await reserve(userId, "embed_day", e.enforce ? e.plan.agentTurnsPerDay * 2 : UNLIMITED)
+  return ok ? { allowed: true } : { allowed: false, message: "Daily embedding limit reached" }
 }
 
 export interface UsageSummary {

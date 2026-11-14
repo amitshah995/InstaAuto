@@ -9,6 +9,9 @@
  */
 import { applyUserMessage, CONSENT_LINE, EMAIL_OFFER_LINE, emptyConsent, markAsked, shouldAskConsent } from "./consent.ts"
 import { cleanUntrusted, detectInjection, extractUrls, sanitizeReply, truncateAtWord } from "./injection.ts"
+import { chooseKnowledgeView } from "./rag/context.ts"
+import { buildRetrievalQuery } from "./rag/keywords.ts"
+import type { Retrieval } from "./rag/retrieve.ts"
 import { buildIntroSystemPrompt, buildMessages, buildSystemPrompt, type AnthropicMessage } from "./prompt.ts"
 import { runTool, TOOL_DEFS, validateToolInput } from "./tools.ts"
 import {
@@ -136,6 +139,11 @@ export interface TurnInput {
   history: HistoryItem[]
   userText: string
   now: Date
+  /**
+   * Knowledge retrieval for this turn (lib/agent/rag/service.ts). Optional: without it, or when it returns nothing usable, the
+   * whole knowledge is placed in the prompt as before. It must never throw (a throw is caught and treated as "no retrieval").
+   */
+  retrieve?: (query: string) => Promise<Retrieval>
 }
 
 export interface TurnResult {
@@ -147,6 +155,8 @@ export interface TurnResult {
   modelCalls: number
   injectionSuspected: boolean
   usedFallback: boolean
+  /** What retrieval did this turn (for the Test panel and debugging). No message text. */
+  retrieval?: { mode: string; knowledgeMode: "stuffing" | "rag"; sourceTitles: string[]; chunks: number; fallbackReason: string | null }
 }
 
 /**
@@ -211,6 +221,20 @@ export async function runTurn(input: TurnInput, deps: LlmDeps = {}): Promise<Tur
   let tokens = 0
   let modelCalls = 0
   const messages: AnthropicMessage[] = buildMessages(input.history, userText)
+
+  // Retrieval: search the owner's knowledge for this question (and the last exchange, for short follow-ups like "kitna?").
+  let retrieval: Retrieval | null = null
+  if (input.retrieve) {
+    try {
+      retrieval = await input.retrieve(buildRetrievalQuery(userText, input.history))
+    } catch {
+      retrieval = null
+    }
+  }
+  const view = chooseKnowledgeView(ctx.knowledge, retrieval)
+  // Links are allowed if they are in the owner's knowledge text or in a passage retrieved for this turn.
+  const turnUrls = view.mode === "rag" ? extractUrls(...view.passages.map((p) => p.content)) : []
+  const allowedUrls = [...allowedUrlsFor(ctx), ...turnUrls]
   let modelText = ""
   let failed = false
   let handoff = effects.some((e) => e.type === "handoff")
@@ -218,7 +242,7 @@ export async function runTurn(input: TurnInput, deps: LlmDeps = {}): Promise<Tur
 
   for (let i = 0; i < MAX_MODEL_CALLS; i++) {
     const res = await callAnthropic(deps, {
-      system: buildSystemPrompt(ctx, { consent: state.consent, emailOffered: state.emailOffered, injectionSuspected: injection, phoneCaptured: state.phoneCaptured }),
+      system: buildSystemPrompt(ctx, { consent: state.consent, emailOffered: state.emailOffered, injectionSuspected: injection, phoneCaptured: state.phoneCaptured }, view),
       messages,
       tools: TOOL_DEFS,
     })
@@ -248,7 +272,7 @@ export async function runTurn(input: TurnInput, deps: LlmDeps = {}): Promise<Tur
     if (res.stopReason !== "tool_use") break
   }
 
-  let reply = failed && !modelText ? null : sanitizeReply(modelText, { allowedUrls: allowedUrlsFor(ctx), maxChars: DM_TEXT_MAX })
+  let reply = failed && !modelText ? null : sanitizeReply(modelText, { allowedUrls, maxChars: DM_TEXT_MAX })
   const usedFallback = reply === null
   if (reply === null) reply = handoff ? HANDOFF_REPLY : UNAVAILABLE_REPLY
 
@@ -264,5 +288,10 @@ export async function runTurn(input: TurnInput, deps: LlmDeps = {}): Promise<Tur
   state.tokensUsed += tokens
   if (handoff) state.status = "handoff"
   else if (ended) state.status = "ended"
-  return result(composeReply(reply, extra), { tokens, modelCalls, injectionSuspected: injection, usedFallback })
+  return result(composeReply(reply, extra), {
+    tokens, modelCalls, injectionSuspected: injection, usedFallback,
+    retrieval: retrieval
+      ? { mode: retrieval.mode, knowledgeMode: view.mode, sourceTitles: retrieval.sourceTitles, chunks: retrieval.chunks.length, fallbackReason: retrieval.fallbackReason }
+      : undefined,
+  })
 }

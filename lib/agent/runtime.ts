@@ -18,6 +18,7 @@ import { createAgentStore, type AgentSettings } from "./store.ts"
 import { applyLeadEvent, isLeadStatus, type LeadEvent, type LeadStatus } from "./scoring.ts"
 import { LEAD_EVENT_EMAIL, LEAD_EVENT_WHATSAPP, buildLeadEventData, leadEventId } from "./payload.ts"
 import { slideWindow } from "./rate.ts"
+import { retrieverFor } from "./rag/service.ts"
 import type { AgentContext, AgentState, Effect, HistoryItem } from "./types.ts"
 
 export const agentStore = () => createAgentStore(rawQuery)
@@ -156,7 +157,8 @@ export async function handleAgentDm(user: any, conv: { id: string | number } | n
       await store.applyLead(user.id, senderId, { ...n, mediaId: ac.mediaId })
     }
 
-    const turn: TurnResult = await runTurn({ ctx, state: ac.state, history, userText: text, now: new Date() })
+    // Retrieval is scoped to this Reel (only while its knowledge is active) plus business-wide documents.
+    const turn: TurnResult = await runTurn({ ctx, state: ac.state, history, userText: text, now: new Date(), retrieve: retrieverFor(user.id, ctx.knowledge ? ac.mediaId : null) })
     // Compare-and-set BEFORE sending: if another request already handled this conversation turn, drop this one.
     const saved = await store.saveConversation(user.id, senderId, ac.version, turn.state)
     if (!saved) return { handled: true, status: "skipped", note: "Conversation advanced by another request" }
@@ -198,6 +200,6 @@ export async function runSimulation(user: any, mediaId: string | null, state: Ag
   if (!gate.ok) return { ok: false as const, error: gate.reason }
   const { ctx } = await buildContext(user, mediaId)
   if (!ctx.knowledge && !ctx.businessContext) return { ok: false as const, error: "Add Reel knowledge (or business context in Settings) first." }
-  const turn = await runTurn({ ctx, state, history, userText: text, now: new Date() })
+  const turn = await runTurn({ ctx, state, history, userText: text, now: new Date(), retrieve: retrieverFor(user.id, ctx.knowledge ? mediaId : null) })
   return { ok: true as const, turn }
 }

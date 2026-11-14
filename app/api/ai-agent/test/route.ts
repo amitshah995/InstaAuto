@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
         : e.type === "handoff" ? { type: e.type, note: `Would hand over to a human (${e.reason})` }
         : { type: e.type, note: "Conversation would end" }),
       injectionSuspected: t.injectionSuspected,
+      // Which knowledge was used for this reply (titles only, no text).
+      retrieval: t.retrieval ?? null,
     })
   } catch (e) {
     return failure("test", e)
