@@ -397,6 +397,36 @@ export async function POST(request: NextRequest) {
               }
             }
 
+            // AI Sales Agent rule: the first private reply is written by the agent from this Reel's knowledge
+            // (lib/agent/*). Still exactly one private reply per comment. If the agent cannot run (not configured, no
+            // knowledge, quota) nothing is sent and the reason is logged, so a person never gets a half-working bot.
+            // This runs BEFORE the public reply: otherwise the comment would say "Check your DMs" while no DM is coming.
+            const agentRule = isAgentRule(content)
+            let agentIntro: Awaited<ReturnType<typeof prepareAgentIntro>> | null = null
+            if (agentRule) {
+              agentIntro = await prepareAgentIntro(user, String(mediaId))
+              if (!agentIntro.ok) {
+                if (onceClaimKey) {
+                  try {
+                    await supabase.from("processed_events").delete().eq("event_id", onceClaimKey)
+                  } catch (e) {
+                    console.error("[v0] ⚠️ Could not release once-per-person claim:", e)
+                  }
+                }
+                await logRun(supabase, {
+                  userId: user.id,
+                  igsid: senderId,
+                  automationId: match.id,
+                  eventType: "comment",
+                  triggerText: commentText,
+                  matched: true,
+                  actionStatus: "skipped",
+                  errorMessage: `AI Sales Agent: ${agentIntro.reason}`,
+                })
+                continue
+              }
+            }
+
             // Public reply under the comment. What it says, whether it is sent at all, and the {first_name} /
             // {username} placeholders come from the rule (lib/automations/public-reply.ts). Rules without a
             // public_reply keep the old three phrases; live comments get none unless the rule turns it on.
@@ -440,35 +470,6 @@ export async function POST(request: NextRequest) {
               } catch (e) {
                 console.error("[v0] 🔴 Public Reply Network Error:", e)
                 publicReplyOk = false
-              }
-            }
-
-            // AI Sales Agent rule: the first private reply is written by the agent from this Reel's knowledge
-            // (lib/agent/*). Still exactly one private reply per comment. If the agent cannot run (not configured, no
-            // knowledge, quota) nothing is sent and the reason is logged, so a person never gets a half-working bot.
-            const agentRule = isAgentRule(content)
-            let agentIntro: Awaited<ReturnType<typeof prepareAgentIntro>> | null = null
-            if (agentRule) {
-              agentIntro = await prepareAgentIntro(user, String(mediaId))
-              if (!agentIntro.ok) {
-                if (onceClaimKey) {
-                  try {
-                    await supabase.from("processed_events").delete().eq("event_id", onceClaimKey)
-                  } catch (e) {
-                    console.error("[v0] ⚠️ Could not release once-per-person claim:", e)
-                  }
-                }
-                await logRun(supabase, {
-                  userId: user.id,
-                  igsid: senderId,
-                  automationId: match.id,
-                  eventType: "comment",
-                  triggerText: commentText,
-                  matched: true,
-                  actionStatus: "skipped",
-                  errorMessage: `AI Sales Agent: ${agentIntro.reason}`,
-                })
-                continue
               }
             }
 
