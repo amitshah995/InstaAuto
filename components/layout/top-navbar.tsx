@@ -18,6 +18,7 @@ import {
   ClipboardCheck,
   Wrench,
   CreditCard,
+  Bot,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -32,10 +33,13 @@ interface TopNavbarProps {
   isConnected?: boolean
 }
 
-const navItems = [
+type NavEntry = { href: string; icon: React.ReactNode; label: string; exact?: boolean; also?: string[]; badge?: string }
+
+const navItems: NavEntry[] = [
   { href: "/dashboard", icon: <Zap className="w-4 h-4" />, label: "Home", exact: true },
   { href: "/dashboard/automations", icon: <Zap className="w-4 h-4" />, label: "Automations" },
   { href: "/dashboard/inbox", icon: <MessageSquare className="w-4 h-4" />, label: "Inbox" },
+  { href: "/dashboard/ai-agent", icon: <Bot className="w-4 h-4" />, label: "AI Sales Agent", badge: "New" },
   { href: "/dashboard/contacts", icon: <Users className="w-4 h-4" />, label: "Contacts" },
   { href: "/dashboard/links", icon: <Link2 className="w-4 h-4" />, label: "Links" },
   { href: "/dashboard/studio", icon: <Clapperboard className="w-4 h-4" />, label: "Studio" },
@@ -55,9 +59,9 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
 
   React.useEffect(() => { setMounted(true) }, [])
 
-  const isActive = (item: typeof navItems[0]) => {
+  const isActive = (item: NavEntry) => {
     if (item.exact) return pathname === item.href
-    const extra = (item as { also?: string[] }).also ?? []
+    const extra = item.also ?? []
     return [item.href, ...extra].some((p) => pathname === p || pathname.startsWith(p + "/"))
   }
 
@@ -85,6 +89,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
                   )}
                 >
                   {item.label}
+                  {item.badge && <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 align-middle text-[10px] font-bold leading-none text-primary-foreground">{item.badge}</span>}
                 </Link>
               ))}
               <Link
@@ -177,6 +182,7 @@ export function TopNavbar({ username = "User", profilePictureUrl, onLogout, isCo
               >
                 {item.icon}
                 {item.label}
+                {item.badge && <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground">{item.badge}</span>}
               </Link>
             ))}
             <Link
