@@ -8,7 +8,7 @@
  * Who calls it: components/ai-agent/KnowledgeBase.tsx (Knowledge tab and Setup step 2). Everything is scoped to the session user.
  */
 import { type NextRequest, NextResponse } from "next/server"
-import { agentUser, failure } from "@/lib/agent/api"
+import { agentUser, failure, rateAllowed, readJsonLimited, tooBigResponse, tooManyResponse } from "@/lib/agent/api"
 import { addDocument, hasEmbeddingKey, importWebsite, ragEnabled, ragStore } from "@/lib/agent/rag/service"
 import { MAX_SOURCE_CHARS } from "@/lib/agent/rag/chunk"
 
@@ -27,9 +27,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}))
+  const read = await readJsonLimited(request, 700_000)
+  if (read.tooBig) return tooBigResponse()
+  const body = read.body
   const u = agentUser(request, body?.userId)
   if (!u.ok) return u.res
+  if (!rateAllowed(u.userId, "kb-add", 10)) return tooManyResponse() // each add may call the embeddings API and fetch a page
   const mediaId = body?.mediaId == null || body.mediaId === "" ? null : String(body.mediaId).trim()
   if (mediaId !== null && !/^\d{5,40}$/.test(mediaId)) return NextResponse.json({ error: "Choose a Reel or leave it for the whole business." }, { status: 400 })
   try {

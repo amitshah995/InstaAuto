@@ -4,14 +4,17 @@
  * embedding counter like a live turn.) Who calls it: the "Search test" box in the Knowledge tab.
  */
 import { type NextRequest, NextResponse } from "next/server"
-import { agentUser, failure } from "@/lib/agent/api"
+import { agentUser, failure, rateAllowed, readJsonLimited, tooBigResponse, tooManyResponse } from "@/lib/agent/api"
 import { retrieverFor } from "@/lib/agent/rag/service"
 import { cleanUntrusted } from "@/lib/agent/injection"
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}))
+  const read = await readJsonLimited(request, 10_000)
+  if (read.tooBig) return tooBigResponse()
+  const body = read.body
   const u = agentUser(request, body?.userId)
   if (!u.ok) return u.res
+  if (!rateAllowed(u.userId, "kb-search", 20)) return tooManyResponse() // each search may embed the question (OpenAI cost)
   const query = cleanUntrusted(body?.query, 300)
   if (!query) return NextResponse.json({ error: "Type a question." }, { status: 400 })
   const mediaId = typeof body?.mediaId === "string" && /^\d{5,40}$/.test(body.mediaId) ? body.mediaId : null
