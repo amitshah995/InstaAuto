@@ -20,15 +20,55 @@ export function decodeEntities(s: string): string {
   })
 }
 
+/** ASCII-only lowercase: unlike toLowerCase() it never changes the string length, so indexes stay valid. */
+const asciiLower = (s: string) => s.replace(/[A-Z]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 32))
+
+/**
+ * Removes every `open ... close` block in ONE linear pass. A regex like /<nav\b[\s\S]*?<\/nav>/g is quadratic on a page with
+ * thousands of unclosed "<nav" (each attempt scans to the end): a 1.5 MB hostile page blocked the server for 10-30 seconds.
+ * Here, once no closing marker exists after a position, none exists for any later opening either, so we stop.
+ * `closeTag` true: close is "</tag" and the block ends at the next ">". `block` false: only the tag itself is removed.
+ */
+function stripBlocks(h: string, open: string, close: string, closeTag: boolean): string {
+  const lower = asciiLower(h)
+  const parts: string[] = []
+  let pos = 0
+  let from = 0
+  for (;;) {
+    const i = lower.indexOf(open, from)
+    if (i < 0) break
+    if (closeTag && /[a-z0-9_-]/.test(lower[i + open.length] ?? "")) { from = i + open.length; continue } // "<navigation" is not "<nav"
+    const j = lower.indexOf(close, i + open.length)
+    if (j < 0) break
+    let end = j + close.length
+    if (closeTag) { const gt = lower.indexOf(">", end); end = gt < 0 ? lower.length : gt + 1 }
+    parts.push(h.slice(pos, i), " ")
+    pos = end
+    from = end
+  }
+  parts.push(h.slice(pos))
+  return parts.join("")
+}
+
+/** Text of the first <title>...</title>, or "" (linear). */
+function firstTitle(h: string): string {
+  const lower = asciiLower(h)
+  let i = lower.indexOf("<title")
+  while (i >= 0 && /[a-z0-9_-]/.test(lower[i + 6] ?? "")) i = lower.indexOf("<title", i + 6)
+  if (i < 0) return ""
+  const gt = lower.indexOf(">", i)
+  const end = gt < 0 ? -1 : lower.indexOf("</title", gt)
+  return end < 0 ? "" : h.slice(gt + 1, end)
+}
+
 export function extractTextFromHtml(html: string, maxChars = 200_000): string {
   let h = String(html ?? "").slice(0, maxChars * 3)
-  h = h.replace(/<!--[\s\S]*?-->/g, " ")
+  h = stripBlocks(h, "<!--", "-->", false)
   for (const tag of ["script", "style", "noscript", "nav", "header", "footer", "aside", "form", "svg", "iframe", "template", "select", "button"]) {
-    h = h.replace(new RegExp(`<${tag}\\b[\\s\\S]*?</${tag}\\s*>`, "gi"), " ")
+    h = stripBlocks(h, `<${tag}`, `</${tag}`, true)
   }
-  const title = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(h)?.[1]
-  h = h
-    .replace(/<title[\s\S]*?<\/title>/gi, " ")
+  const title = firstTitle(h)
+  h = stripBlocks(h, "<title", "</title", true)
     .replace(/<\/(p|div|h[1-6]|li|tr|section|article|table|ul|ol|blockquote)\s*>/gi, "\n\n")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<[^>]*>?/g, " ")
