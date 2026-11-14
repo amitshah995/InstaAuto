@@ -111,8 +111,8 @@ export function createRagStore(q: QueryFn) {
     },
 
     /**
-     * Replace-all for one source in ONE statement (delete old chunks + insert new ones), so a crash or a concurrent search never
-     * sees a half-replaced source. rows may be empty: then the source simply ends up with no chunks. A chunk whose embedding
+     * Replace-all for one source in ONE statement (upsert the new chunks, delete the surplus old ones), so a crash or a concurrent search
+     * never sees a half-replaced source. rows may be empty: then the source simply ends up with no chunks. A chunk whose embedding
      * is null is stored anyway (keyword search still finds it).
      */
     async replaceChunks(userId: string | number, src: { id: string; mediaId: string | null; kind: SourceKind; title: string }, rows: (Chunk & { embedding: number[] | null })[]) {
@@ -120,15 +120,26 @@ export function createRagStore(q: QueryFn) {
         await q(`DELETE FROM agent_kb_chunks WHERE user_id = $1 AND source_id = $2`, [userId, src.id])
         return
       }
+      // Upsert on (source_id, chunk_index), then delete the surplus (indexes >= rows.length). Two overlapping re-indexes of the same
+      // source (double click, Reel saved while "Re-index" runs) used to DUPLICATE every chunk: "delete old + insert new" in one
+      // statement cannot see the other statement's rows under READ COMMITTED. With the unique index the later writer overwrites the
+      // earlier one's rows. The DO UPDATE guard keeps a conflicting row of ANOTHER account untouched.
       await q(
-        `WITH removed AS (DELETE FROM agent_kb_chunks WHERE user_id = $1 AND source_id = $2)
-         INSERT INTO agent_kb_chunks (user_id, media_id, source_id, source_kind, title, content, chunk_index, token_estimate, embedding)
-         SELECT $1, $3, $2, $4, $5, t.content, t.idx, t.tok, t.emb::vector
-           FROM unnest($6::text[], $7::int[], $8::int[], $9::text[]) AS t(content, idx, tok, emb)`,
+        `WITH up AS (
+           INSERT INTO agent_kb_chunks (user_id, media_id, source_id, source_kind, title, content, chunk_index, token_estimate, embedding)
+           SELECT $1, $3, $2, $4, $5, t.content, t.idx, t.tok, t.emb::vector
+             FROM unnest($6::text[], $7::int[], $8::int[], $9::text[]) AS t(content, idx, tok, emb)
+           ON CONFLICT (source_id, chunk_index) DO UPDATE
+             SET media_id = EXCLUDED.media_id, source_kind = EXCLUDED.source_kind, title = EXCLUDED.title, content = EXCLUDED.content,
+                 token_estimate = EXCLUDED.token_estimate, embedding = EXCLUDED.embedding
+           WHERE agent_kb_chunks.user_id = EXCLUDED.user_id
+           RETURNING 1
+         )
+         DELETE FROM agent_kb_chunks WHERE user_id = $1 AND source_id = $2 AND chunk_index >= $10::int`,
         [
           userId, src.id, src.mediaId, src.kind, noNul(src.title),
           rows.map((r) => noNul(r.content)), rows.map((_, i) => i), rows.map((r) => r.tokenEstimate),
-          rows.map((r) => (r.embedding ? toVectorLiteral(r.embedding) : null)),
+          rows.map((r) => (r.embedding ? toVectorLiteral(r.embedding) : null)), rows.length,
         ],
       )
     },

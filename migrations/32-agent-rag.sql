@@ -46,6 +46,10 @@ create table if not exists agent_kb_chunks (
 );
 create index if not exists agent_kb_chunks_scope_idx on agent_kb_chunks (user_id, media_id);
 create index if not exists agent_kb_chunks_source_idx on agent_kb_chunks (source_id);
+-- One chunk per position in a source: lets re-indexing upsert, so two overlapping re-indexes cannot duplicate chunks.
+-- (Duplicates from an earlier run are removed first so this also works on a database where the first version of this file ran.)
+delete from agent_kb_chunks a using agent_kb_chunks b where a.source_id = b.source_id and a.chunk_index = b.chunk_index and a.ctid < b.ctid;
+create unique index if not exists agent_kb_chunks_source_pos_uniq on agent_kb_chunks (source_id, chunk_index);
 create index if not exists agent_kb_chunks_tsv_idx on agent_kb_chunks using gin (tsv);
 
 -- Vector index: hnsw (pgvector 0.5+, what Supabase ships); falls back to ivfflat on an older pgvector.
