@@ -32,9 +32,9 @@ export async function POST(request: NextRequest) {
   const body = read.body
   const u = agentUser(request, body?.userId)
   if (!u.ok) return u.res
-  if (!rateAllowed(u.userId, "kb-add", 10)) return tooManyResponse() // each add may call the embeddings API and fetch a page
   const mediaId = body?.mediaId == null || body.mediaId === "" ? null : String(body.mediaId).trim()
   if (mediaId !== null && !/^\d{5,40}$/.test(mediaId)) return NextResponse.json({ error: "Choose a Reel or leave it for the whole business." }, { status: 400 })
+  if (!rateAllowed(u.userId, "kb-add", 10)) return tooManyResponse() // each add may call the embeddings API and fetch a page
   try {
     const store = ragStore()
     if ((await store.listSources(u.userId)).filter((s) => s.kind === "document" || s.kind === "website").length >= MAX_SOURCES) {

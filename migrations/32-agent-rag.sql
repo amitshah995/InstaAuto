@@ -46,7 +46,7 @@ create table if not exists agent_kb_chunks (
 );
 create index if not exists agent_kb_chunks_scope_idx on agent_kb_chunks (user_id, media_id);
 create index if not exists agent_kb_chunks_source_idx on agent_kb_chunks (source_id);
--- One chunk per position in a source: lets re-indexing upsert, so two overlapping re-indexes cannot duplicate chunks.
+-- One chunk per position in a source (integrity backstop for replace_agent_chunks below).
 -- (Duplicates from an earlier run are removed first so this also works on a database where the first version of this file ran.)
 delete from agent_kb_chunks a using agent_kb_chunks b where a.source_id = b.source_id and a.chunk_index = b.chunk_index and a.ctid < b.ctid;
 create unique index if not exists agent_kb_chunks_source_pos_uniq on agent_kb_chunks (source_id, chunk_index);
@@ -83,4 +83,27 @@ as $$
      and (1 - (c.embedding <=> p_query_embedding)) >= p_min_similarity
    order by c.embedding <=> p_query_embedding
    limit greatest(1, least(p_match_count, 20));
+$$;
+
+-- Replace all chunks of one source atomically. Called by lib/agent/rag/store.ts replaceChunks for a source of that account. The advisory
+-- lock serialises overlapping re-indexes of the same source (the second waits, then replaces what the first wrote), and because a
+-- VOLATILE sql function takes a fresh snapshot for every statement in its body, the DELETE sees the rows the first run committed.
+-- p_emb holds pgvector text literals ("[0.1,0.2,...]") or null. (language sql, not plpgsql: same behaviour, simpler to run everywhere.)
+create or replace function replace_agent_chunks(
+  p_user_id bigint, p_source_id uuid, p_media_id text, p_kind text, p_title text,
+  p_contents text[], p_idx int[], p_tok int[], p_emb text[]
+)
+returns int
+language sql
+volatile
+as $$
+  select pg_advisory_xact_lock(hashtextextended(p_source_id::text, 32));
+  delete from agent_kb_chunks where user_id = p_user_id and source_id = p_source_id;
+  with ins as (
+    insert into agent_kb_chunks (user_id, media_id, source_id, source_kind, title, content, chunk_index, token_estimate, embedding)
+    select p_user_id, p_media_id, p_source_id, p_kind, p_title, t.content, t.idx, t.tok, t.emb::vector
+      from unnest(p_contents, p_idx, p_tok, p_emb) as t(content, idx, tok, emb)
+    returning 1
+  )
+  select count(*)::int from ins;
 $$;

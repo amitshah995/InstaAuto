@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
   const body = read.body
   const u = agentUser(request, body?.userId)
   if (!u.ok) return u.res
-  if (!rateAllowed(u.userId, "kb-reindex", 10)) return tooManyResponse() // each re-index may call the embeddings API and fetch a page
   const id = typeof body?.id === "string" ? body.id : ""
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return NextResponse.json({ error: "Missing id" }, { status: 400 })
+  if (!rateAllowed(u.userId, "kb-reindex", 10)) return tooManyResponse() // each re-index may call the embeddings API and fetch a page
   try {
     const store = createAgentStore(rawQuery)
     const r = await reindexSource(u.userId, id, (mediaId) => store.getKnowledge(u.userId, mediaId))

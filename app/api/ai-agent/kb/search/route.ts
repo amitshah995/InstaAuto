@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
   const body = read.body
   const u = agentUser(request, body?.userId)
   if (!u.ok) return u.res
-  if (!rateAllowed(u.userId, "kb-search", 20)) return tooManyResponse() // each search may embed the question (OpenAI cost)
   const query = cleanUntrusted(body?.query, 300)
   if (!query) return NextResponse.json({ error: "Type a question." }, { status: 400 })
+  if (!rateAllowed(u.userId, "kb-search", 20)) return tooManyResponse() // each search may embed the question (OpenAI cost)
   const mediaId = typeof body?.mediaId === "string" && /^\d{5,40}$/.test(body.mediaId) ? body.mediaId : null
   try {
     const r = await retrieverFor(u.userId, mediaId)(query)
