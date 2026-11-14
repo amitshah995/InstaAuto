@@ -11,13 +11,14 @@ import { ErrorNote, HEADING, StatusPill, apiJson, card, ghostBtn, primaryBtn, us
 export function ConversationsPanel() {
   const { data, error, loading, reload } = useApi<any>("/api/ai-agent/conversations")
   const [open, setOpen] = useState<string | null>(null)
-  const [msgs, setMsgs] = useState<any[]>([])
+  const [msgs, setMsgs] = useState<any[] | null>(null)
   const [busy, setBusy] = useState(false)
 
   const view = async (igsid: string) => {
-    setOpen(igsid); setMsgs([])
+    setOpen(igsid); setMsgs(null)
     const r = await apiJson<any>(`/api/ai-agent/conversations?igsid=${encodeURIComponent(igsid)}`)
     if (r.ok) setMsgs(r.data.messages || [])
+    else { setMsgs([]); toast.error(r.error || "Could not load the messages") }
   }
   const takeOver = async (igsid: string) => {
     setBusy(true)
@@ -54,8 +55,9 @@ export function ConversationsPanel() {
               {current.humanHandled || current.status === "handoff" ? <span className="text-xs text-muted-foreground">A human is handling this chat</span> : <button className={primaryBtn} disabled={busy} onClick={() => takeOver(current.igsid)}>Take over</button>}
             </div>
             <ul className="mt-4 max-h-[55vh] space-y-2 overflow-y-auto">
-              {msgs.length === 0 && <li className="text-sm text-muted-foreground">Loading messages...</li>}
-              {msgs.map((m, i) => (
+              {msgs === null && <li className="text-sm text-muted-foreground">Loading messages...</li>}
+              {msgs?.length === 0 && <li className="text-sm text-muted-foreground">No messages stored for this chat.</li>}
+              {(msgs ?? []).map((m, i) => (
                 <li key={i} className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.fromPerson ? "bg-secondary text-foreground" : "ml-auto bg-brand text-brand-foreground"}`}>{m.text}</li>
               ))}
             </ul>

@@ -129,6 +129,13 @@ test("cross-tenant data over real routes (Postgres): A never sees B's knowledge,
     assert.equal((await aisend.PUT(req("aisend", B, "PUT", { baseUrl: "https://b-aisend.example.com", enabled: true }))).status, 200)
     assert.equal((await aisend.PUT(req("aisend", B, "PUT", { baseUrl: "https://new-host.example.com", apiKey: "B-NEW-KEY-12345", enabled: true }))).status, 200)
     assert.ok(!JSON.stringify(await (await aisend.GET(req("aisend", B))).json()).includes("B-NEW-KEY"))
+    // pause then resume: the comment rules must come back on with the switch
+    await q(`INSERT INTO automations (user_id, name, trigger_source, trigger_type, trigger_value, response_type, response_content, is_active, specific_media_id) VALUES ($1,'rule','comment','keyword','x','pro','{"response_kind":"ai_agent"}',TRUE,'17900000000001'), ($1,'plain','comment','keyword','y','pro','{"message":"hi"}',FALSE,'17900000000002')`, [B])
+    await settings.PUT(req("settings", B, "PUT", { enabled: true }))
+    await act.DELETE(req("activate", B, "DELETE"))
+    assert.deepEqual((await q(`SELECT name, is_active FROM automations WHERE user_id=$1 ORDER BY name`, [B])).map((r: any) => r.is_active), [false, false])
+    await settings.PUT(req("settings", B, "PUT", { enabled: true }))
+    assert.deepEqual((await q(`SELECT name, is_active FROM automations WHERE user_id=$1 ORDER BY name`, [B])).map((r: any) => r.is_active), [false, true]) // only the agent rule ("plain" stays off)
     // B's own view: key never returned, hasKey true
     const b = await aisend.GET(req("aisend", B))
     const bs = JSON.stringify(await b.json())

@@ -37,6 +37,10 @@ export async function PUT(request: NextRequest) {
     if (typeof body.connectorSkipped === "boolean") patch.connectorSkipped = body.connectorSkipped
     if (body.settingsSaved === true) patch.settingsSaved = true
     await store.saveSettings(u.userId, patch)
+    // Turning the agent back on (Overview switch) must also switch its comment rules back on: DELETE /activate turned them off.
+    if (patch.enabled === true && cur.enabled === false) {
+      await rawQuery(`UPDATE automations SET is_active = TRUE WHERE user_id = $1 AND response_content->>'response_kind' = 'ai_agent'`, [u.userId])
+    }
     return NextResponse.json({ ok: true })
   } catch (e) {
     return failure("settings PUT", e)
