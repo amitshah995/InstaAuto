@@ -45,10 +45,20 @@ export function normalizeIndianMobile(raw: unknown): PhoneResult {
 /** Finds the first valid Indian mobile inside free text ("my number is 98765 43210 thanks"). Null when none. */
 export function findPhoneInText(text: string): { national: string; e164: string } | null {
   if (typeof text !== "string") return null
-  const re = /(?:\+|00)?\d[\d\s\-.()]{8,17}\d/g
+  const re = /(?:\+|00)?\d[\d\s\-.()]{8,40}\d/g
   for (const m of text.slice(0, 2000).matchAll(re)) {
     const r = normalizeIndianMobile(m[0])
     if (r.ok) return { national: r.national, e164: r.e164 }
+    // A neighbouring number ("pin 560001 9876501234", "3 9876501234") glues onto the match: try runs of its space-separated parts.
+    const parts = m[0].split(/\s+/)
+    if (parts.length > 1) {
+      for (let i = 0; i < parts.length; i++) {
+        for (let j = i; j < parts.length; j++) {
+          const sub = normalizeIndianMobile(parts.slice(i, j + 1).join(" "))
+          if (sub.ok) return { national: sub.national, e164: sub.e164 }
+        }
+      }
+    }
   }
   return null
 }

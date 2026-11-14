@@ -31,9 +31,13 @@ export interface ConsentState {
 export const emptyConsent = (): ConsentState => ({ status: "none", askedAt: null, grantedAt: null, text: null, via: null })
 
 const norm = (t: string) =>
-  t.toLowerCase().replace(/no problem|no worries|not a problem/g, " ").replace(/[^\p{L}\p{N}\s']/gu, " ").replace(/\s+/g, " ").trim()
+  t.toLowerCase().replace(/[\u2018\u2019\u02bc\u00b4`]/g, "'").replace(/no problem|no worries|not a problem/g, " ").replace(/[^\p{L}\p{N}\s']/gu, " ").replace(/\s+/g, " ").trim()
 
-const YES = new Set(["yes", "y", "yeah", "yep", "yup", "ok", "okay", "sure", "haan", "han", "haa", "ha", "hanji", "ji", "theek", "thik", "kar", "bhej", "send", "please", "pls", "plz", "fine", "alright"])
+// A "yes" needs at least one STRONG word, and every other word must be a weak/filler word ("yes please send it").
+// "please tell me the price" or "ok what is the price" are requests, not consent.
+const YES = new Set(["yes", "y", "yeah", "yep", "yup", "ok", "okay", "sure", "haan", "han", "haa", "ha", "hanji", "ji", "theek", "thik", "alright", "fine"])
+const YES_WEAK = new Set(["kar", "bhej", "bhejo", "karo", "send", "please", "pls", "plz", "it", "me", "do", "dijiye", "go", "ahead", "the", "details", "number", "there", "on", "whatsapp", "to", "you", "can", "so", "is", "that", "this", "of", "course", "absolutely", "definitely", "i", "am", "ok", "hai", "h"])
+const IMPERATIVE = new Set(["send", "bhej", "bhejo", "kar", "karo", "do", "it", "me", "please", "pls", "plz", "dijiye"])
 const NO = new Set(["no", "nope", "nah", "nahi", "nahin", "nhi", "mat", "dont", "don't", "never", "stop", "later", "skip", "unsubscribe"])
 const NO_PHRASES = [/\bnot now\b/, /\bdo not\b/, /\bno thanks\b/, /\bno thank you\b/, /\bdon'?t have (a )?whats ?app\b/, /\bnot interested\b/, /\bwithout whats ?app\b/]
 
@@ -45,13 +49,14 @@ export function classifyReply(text: string): "yes" | "no" | "unknown" {
   const words = t.split(" ")
   if (words.some((w) => NO.has(w)) || NO_PHRASES.some((r) => r.test(t))) return "no"
   if (text.includes("?")) return "unknown" // a question, not an answer
-  if (words.length <= 6 && words.some((w) => YES.has(w))) return "yes"
+  if (words.length <= 6 && words.some((w) => YES.has(w)) && words.every((w) => YES.has(w) || YES_WEAK.has(w))) return "yes"
+  if (words.length <= 4 && words.some((w) => w === "send" || w === "bhej" || w === "bhejo") && words.every((w) => IMPERATIVE.has(w))) return "yes" // "send it", "bhej do"
   return "unknown"
 }
 
 /** Wording like "stop" or "don't message me" after consent was given. */
 export function isRevocation(text: string): boolean {
-  return /\b(stop|unsubscribe)\b|\b(do not|don'?t|dont)\s+(message|contact|whatsapp|text)\b|\bmat\s+(bhejo|karo)\b/i.test(String(text || "").slice(0, 300))
+  return /\b(stop|unsubscribe)\b|\b(do not|don'?t|dont)\s+(message|contact|whatsapp|text)\b|\bmat\s+(bhejo|karo)\b/i.test(String(text || "").slice(0, 300).replace(/[\u2018\u2019\u02bc\u00b4`]/g, "'"))
 }
 
 /** Records that the consent line was sent. Only moves none -> asked; a refusal is never re-asked. */
