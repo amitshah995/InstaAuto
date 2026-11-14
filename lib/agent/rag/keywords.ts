@@ -49,9 +49,9 @@ export function tokenize(text: string): string[] {
 
 /**
  * The words worth searching for: tokens without filler, trimmed, plus the other words of any intent group they belong to.
- * At most `max` terms, longest first. Returns [] when the text has nothing searchable.
+ * At most `max` terms: the words typed first, then intent synonyms. Returns [] when the text has nothing searchable.
  */
-export function extractSearchTerms(query: string, max = 12): string[] {
+export function extractSearchTerms(query: string, max = 24): string[] {
   const seen = new Set<string>()
   const base: { t: string; word: string }[] = []
   for (const word of tokenize(query)) {
@@ -66,7 +66,7 @@ export function extractSearchTerms(query: string, max = 12): string[] {
     // Group lookup uses the word as typed (before ending-trimming), e.g. "charges".
     for (const g of GROUP_OF.get(word) ?? GROUP_OF.get(t) ?? []) if (!seen.has(g)) { seen.add(g); out.push(g) }
   }
-  return out.sort((a, b) => Array.from(b).length - Array.from(a).length).slice(0, max)
+  return out.slice(0, max)
 }
 
 /** How many of the terms appear in the text (substring match, so "fee" is found inside "fees"). */
