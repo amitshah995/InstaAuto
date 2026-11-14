@@ -80,7 +80,7 @@ export async function ingestSource(deps: IngestDeps, input: IngestInput): Promis
   } catch (e) {
     // The owner sees this text in the dashboard: never pass raw database errors (table, constraint or value names) through.
     const raw = String((e as Error)?.message || "")
-    const msg = /agent_kb_|match_agent_chunks|type "vector"|extension/i.test(raw) ? "The knowledge base is not set up yet (run migration 32)." : "Indexing failed. Please try Re-index."
+    const msg = /(relation|table|function) "?(agent_kb_\w+|match_agent_chunks)"?.* does not exist|type "vector" does not exist|extension "vector"/i.test(raw) ? "The knowledge base is not set up yet (run migration 32)." : "Indexing failed. Please try Re-index."
     console.error("[agent-rag] ingest failed", (e as any)?.code ? `code=${String((e as any).code).slice(0, 10)}` : "")
     if (sourceId) await deps.store.setSourceStatus(userId, sourceId, { status: "failed", chunkCount: 0, embeddedCount: 0, error: msg }).catch(() => {})
     return { sourceId, status: "failed", chunkCount: 0, embeddedCount: 0, note: msg }
