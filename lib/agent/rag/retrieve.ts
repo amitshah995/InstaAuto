@@ -18,7 +18,7 @@ export const MIN_SIMILARITY = 0.28
 export type RetrieveMode = "vector" | "keyword" | "none"
 
 export interface RetrieveDeps {
-  store: Pick<RagStore, "hasChunks" | "vectorSearch" | "keywordSearch">
+  store: Pick<RagStore, "hasChunks" | "vectorSearch" | "keywordSearch"> & Partial<Pick<RagStore, "hasReelChunks">>
   hasKey: () => boolean
   /** Embeds the query; null = unavailable (no key, timeout, quota). Must enforce its own short timeout. */
   embedQuery: (text: string) => Promise<number[] | null>
@@ -29,6 +29,8 @@ export interface Retrieval {
   mode: RetrieveMode
   /** True when this account has any indexed chunk for this Reel (own or business-wide). False = nothing indexed yet. */
   indexed: boolean
+  /** False when the Reel's OWN knowledge was never indexed (saved before retrieval existed) even though business-wide chunks exist. */
+  reelIndexed?: boolean
   chunks: ChunkHit[]
   totalChars: number
   /** Distinct source titles of the chosen chunks, for debugging in the Search test. */
@@ -37,7 +39,7 @@ export interface Retrieval {
   fallbackReason: string | null
 }
 
-const EMPTY: Retrieval = { mode: "none", indexed: false, chunks: [], totalChars: 0, sourceTitles: [], fallbackReason: null }
+const EMPTY: Retrieval = { mode: "none", indexed: false, reelIndexed: true, chunks: [], totalChars: 0, sourceTitles: [], fallbackReason: null }
 
 /**
  * Picks the final chunks: drops other accounts' rows (defence in depth), blanks and duplicates, keeps the order given
@@ -83,7 +85,9 @@ export async function retrieve(deps: RetrieveDeps, a: { userId: string | number;
   try {
     const indexed = await deps.store.hasChunks(a.userId, a.mediaId)
     if (!indexed) return { ...EMPTY }
-    if (!query) return { ...EMPTY, indexed }
+    // A Reel saved before retrieval existed has no chunks of its own; business-wide documents alone must not replace its knowledge.
+    const reelIndexed = a.mediaId && deps.store.hasReelChunks ? await deps.store.hasReelChunks(a.userId, a.mediaId) : true
+    if (!query) return { ...EMPTY, indexed, reelIndexed }
 
     let fallbackReason: string | null = null
     if (!deps.hasKey()) fallbackReason = "No embedding key: using keyword search"
@@ -98,7 +102,7 @@ export async function retrieve(deps: RetrieveDeps, a: { userId: string | number;
             // Chunks WITHOUT a vector (embedding failed or was skipped for their batch) can never match by similarity: give the
             // best keyword matches among them up to MAX_EXTRA_KEYWORD slots, so a partially embedded source does not hide answers.
             const extra = await unembeddedMatches(deps, a, query)
-            return build("vector", indexed, extra.length ? selectChunks([...chosen.slice(0, MAX_CHUNKS - extra.length), ...extra, ...chosen.slice(MAX_CHUNKS - extra.length)], a.userId) : chosen, null)
+            return build("vector", indexed, reelIndexed, extra.length ? selectChunks([...chosen.slice(0, MAX_CHUNKS - extra.length), ...extra, ...chosen.slice(MAX_CHUNKS - extra.length)], a.userId) : chosen, null)
           }
           fallbackReason = "No vector match: tried keywords"
         } catch {
@@ -110,7 +114,7 @@ export async function retrieve(deps: RetrieveDeps, a: { userId: string | number;
     const terms = extractSearchTerms(query)
     const candidates = await deps.store.keywordSearch(a.userId, a.mediaId, toTsQuery(terms), 40)
     const chosen = selectChunks(rankKeywordHits(candidates, terms), a.userId)
-    return build(chosen.length ? "keyword" : "none", indexed, chosen, fallbackReason)
+    return build(chosen.length ? "keyword" : "none", indexed, reelIndexed, chosen, fallbackReason)
   } catch {
     // Tables missing (migration 32 not run), database error: the agent falls back to its previous behaviour.
     return { ...EMPTY }
@@ -129,9 +133,9 @@ async function unembeddedMatches(deps: RetrieveDeps, a: { userId: string | numbe
   }
 }
 
-function build(mode: RetrieveMode, indexed: boolean, chunks: ChunkHit[], fallbackReason: string | null): Retrieval {
+function build(mode: RetrieveMode, indexed: boolean, reelIndexed: boolean, chunks: ChunkHit[], fallbackReason: string | null): Retrieval {
   return {
-    mode, indexed, chunks, fallbackReason,
+    mode, indexed, reelIndexed, chunks, fallbackReason,
     totalChars: chunks.reduce((n, c) => n + Array.from(c.content).length, 0),
     sourceTitles: [...new Set(chunks.map((c) => c.title).filter(Boolean))],
   }

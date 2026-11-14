@@ -142,6 +142,12 @@ export function createRagStore(q: QueryFn) {
       return rows.length > 0
     },
 
+    /** True when THIS Reel itself has indexed chunks (not only business-wide ones). */
+    async hasReelChunks(userId: string | number, mediaId: string): Promise<boolean> {
+      const rows = await q(`SELECT 1 AS x FROM agent_kb_chunks WHERE user_id = $1 AND media_id = $2 LIMIT 1`, [userId, mediaId])
+      return rows.length > 0
+    },
+
     /** Nearest chunks by cosine similarity (SQL function match_agent_chunks, which filters on user_id and media scope). */
     async vectorSearch(userId: string | number, mediaId: string | null, embedding: number[], count: number, minSimilarity: number): Promise<ChunkHit[]> {
       const rows = await q(`SELECT * FROM match_agent_chunks($1::bigint, $2::text, $3::vector, $4::int, $5::float)`, [userId, mediaId, toVectorLiteral(embedding), count, minSimilarity])
