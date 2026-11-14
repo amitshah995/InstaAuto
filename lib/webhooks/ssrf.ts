@@ -100,7 +100,7 @@ export function checkWebhookUrl(raw: string): UrlCheck {
   if (url.protocol !== "https:") return { ok: false, reason: "Only https:// URLs are allowed" }
   if (url.username || url.password) return { ok: false, reason: "URLs with a username or password are not allowed" }
   if (url.port && url.port !== "443") return { ok: false, reason: "Only the standard https port (443) is allowed" }
-  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "")
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.+$/, "") // "localhost." is the same host as "localhost"
   if (!host) return { ok: false, reason: "The URL has no host" }
   if (host === "localhost" || BLOCKED_HOST_SUFFIXES.some((s) => host.endsWith(s))) {
     return { ok: false, reason: "Local and internal host names are not allowed" }
