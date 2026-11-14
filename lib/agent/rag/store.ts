@@ -41,6 +41,9 @@ export interface ChunkHit {
   score: number
 }
 
+/** Postgres text cannot hold a NUL (\u0000): the whole statement fails with "invalid byte sequence". Strip it before it reaches SQL. */
+const noNul = <T extends string | null | undefined>(s: T): T => (typeof s === "string" ? (s.replace(/\u0000/g, "") as T) : s)
+
 const toSource = (r: any): SourceRow => ({
   id: r.id, mediaId: r.media_id ?? null, kind: r.kind, title: r.title ?? "", sourceUrl: r.source_url ?? null, status: r.status,
   chunkCount: Number(r.chunk_count) || 0, embeddedCount: Number(r.embedded_count) || 0, error: r.error ?? null, updatedAt: r.updated_at,
@@ -58,7 +61,7 @@ export function createRagStore(q: QueryFn) {
         const rows = await q(
           `UPDATE agent_kb_sources SET title=$3, source_url=$4, raw_text=COALESCE($5, raw_text), status='pending', error=NULL, updated_at=now()
             WHERE user_id = $1 AND id = $2 RETURNING id`,
-          [userId, s.id, s.title, s.sourceUrl ?? null, s.rawText ?? null],
+          [userId, s.id, noNul(s.title), noNul(s.sourceUrl) ?? null, noNul(s.rawText) ?? null],
         )
         if (!rows[0]) throw new Error("Source not found")
         return rows[0].id
@@ -68,13 +71,13 @@ export function createRagStore(q: QueryFn) {
           `INSERT INTO agent_kb_sources (user_id, media_id, kind, title, status) VALUES ($1,$2,$3,$4,'pending')
            ON CONFLICT (user_id, media_id, kind) WHERE kind LIKE 'reel\\_%' DO UPDATE SET title=$4, status='pending', error=NULL, updated_at=now()
            RETURNING id`,
-          [userId, s.mediaId, s.kind, s.title],
+          [userId, s.mediaId, s.kind, noNul(s.title)],
         )
         return rows[0].id
       }
       const rows = await q(
         `INSERT INTO agent_kb_sources (user_id, media_id, kind, title, source_url, raw_text, status) VALUES ($1,$2,$3,$4,$5,$6,'pending') RETURNING id`,
-        [userId, s.mediaId, s.kind, s.title, s.sourceUrl ?? null, s.rawText ?? null],
+        [userId, s.mediaId, s.kind, noNul(s.title), noNul(s.sourceUrl) ?? null, noNul(s.rawText) ?? null],
       )
       return rows[0].id
     },
@@ -103,7 +106,7 @@ export function createRagStore(q: QueryFn) {
     async setSourceStatus(userId: string | number, id: string, s: { status: SourceStatus; chunkCount: number; embeddedCount: number; error?: string | null }) {
       await q(
         `UPDATE agent_kb_sources SET status=$3, chunk_count=$4, embedded_count=$5, error=$6, updated_at=now() WHERE user_id = $1 AND id = $2`,
-        [userId, id, s.status, s.chunkCount, s.embeddedCount, s.error ? String(s.error).slice(0, 300) : null],
+        [userId, id, s.status, s.chunkCount, s.embeddedCount, s.error ? noNul(String(s.error)).slice(0, 300) : null],
       )
     },
 
@@ -123,8 +126,8 @@ export function createRagStore(q: QueryFn) {
          SELECT $1, $3, $2, $4, $5, t.content, t.idx, t.tok, t.emb::vector
            FROM unnest($6::text[], $7::int[], $8::int[], $9::text[]) AS t(content, idx, tok, emb)`,
         [
-          userId, src.id, src.mediaId, src.kind, src.title,
-          rows.map((r) => r.content), rows.map((_, i) => i), rows.map((r) => r.tokenEstimate),
+          userId, src.id, src.mediaId, src.kind, noNul(src.title),
+          rows.map((r) => noNul(r.content)), rows.map((_, i) => i), rows.map((r) => r.tokenEstimate),
           rows.map((r) => (r.embedding ? toVectorLiteral(r.embedding) : null)),
         ],
       )
