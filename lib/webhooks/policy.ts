@@ -6,11 +6,13 @@
  * kept in one dependency-free file that is unit-tested.
  */
 import crypto from "node:crypto"
+import { aiSendBodyFromEventData } from "../agent/payload.ts"
 
-export const WEBHOOK_EVENTS = ["lead_captured", "dm_sent", "dm_failed", "comment_matched"] as const
+export const WEBHOOK_EVENTS = ["lead_captured", "dm_sent", "dm_failed", "comment_matched", "lead.whatsapp_captured", "lead.email_captured"] as const
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]
 
-export const WEBHOOK_PRESETS = ["generic", "sheets"] as const
+// "aisend" = the AI Sales Agent connector: body is AiSend's lead-ingest JSON and the key travels in an x-api-key header.
+export const WEBHOOK_PRESETS = ["generic", "sheets", "aisend"] as const
 export type WebhookPreset = (typeof WEBHOOK_PRESETS)[number]
 
 export const MAX_ENDPOINTS_PER_USER = 5
@@ -48,6 +50,7 @@ export function buildEnvelope(event: Envelope["event"], data: Record<string, unk
  * snippet in docs/SHEETS.md recomputes it. The secret itself is never sent.
  */
 export function shapePayload(preset: WebhookPreset | string, env: Envelope, secret: string): Record<string, unknown> {
+  if (preset === "aisend") return aiSendBodyFromEventData(env.data)
   if (preset !== "sheets") return env as unknown as Record<string, unknown>
   const flat: Record<string, unknown> = { event: env.event, event_id: env.id, created_at: env.created_at }
   for (const [k, v] of Object.entries(env.data)) {
@@ -71,4 +74,20 @@ export function maskSecret(secret: string): string {
 /** Apps Script answers a POST with a 302 to its result page after running doPost, so that counts as success. */
 export function redirectCountsAsSuccess(preset: string, urlHost: string): boolean {
   return preset === "sheets" && /(^|\.)script\.google\.com$/i.test(urlHost)
+}
+
+/** What to do after one delivery attempt. Pure, so the retry behaviour is testable with a fake receiver. */
+export type AttemptDecision = { kind: "delivered" } | { kind: "retry"; delaySec: number } | { kind: "dead" }
+
+/**
+ * Who calls it: lib/webhooks/events.ts after every attempt. Generic and sheets endpoints retry every failure on the
+ * 1m/5m/30m/2h/12h schedule (unchanged). The aisend preset treats 4xx other than 408/429 as permanent (a wrong key or a bad
+ * body will not fix itself), so a bad key does not generate hours of retries.
+ */
+export function decideAfterAttempt(preset: string, res: { ok: boolean; status?: number; permanent?: boolean }, attemptsMade: number): AttemptDecision {
+  if (res.ok) return { kind: "delivered" }
+  const clientError = preset === "aisend" && typeof res.status === "number" && res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429
+  if (res.permanent || clientError) return { kind: "dead" }
+  const delay = nextRetryDelaySec(attemptsMade)
+  return delay === null ? { kind: "dead" } : { kind: "retry", delaySec: delay }
 }

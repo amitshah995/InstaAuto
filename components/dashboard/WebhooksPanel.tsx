@@ -22,6 +22,8 @@ const EVENT_LABELS: Record<string, string> = {
   dm_sent: "DM sent",
   dm_failed: "DM failed",
   comment_matched: "Comment matched",
+  "lead.whatsapp_captured": "AI agent: WhatsApp lead",
+  "lead.email_captured": "AI agent: email lead",
 }
 
 export function WebhooksPanel() {
