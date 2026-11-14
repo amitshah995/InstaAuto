@@ -22,6 +22,8 @@ export interface Plan {
   dmsPerMonth: number
   /** AI generations per day (UTC). Covers flow AI-reply, AI fallback reply and AI growth reports. */
   aiRunsPerDay: number
+  /** AI Sales Agent model calls per day (UTC): a separate counter so agent chats do not eat the AI-report/flow runs. Editable, illustrative. */
+  agentTurnsPerDay: number
   /** Team members (including the owner). */
   seats: number
   /** Limits only: features are NOT gated by plan, so never list a feature here that the free plan lacks. */
@@ -41,6 +43,7 @@ export const PLANS: Record<PlanId, Plan> = {
     priceInrMonthly: 0,
     dmsPerMonth: 500,
     aiRunsPerDay: 3,
+    agentTurnsPerDay: 40,
     seats: 1,
     highlights: ["Comment-to-DM and story replies", "DM flows, contacts and tags", "Reports and the free audit"],
   },
@@ -50,6 +53,7 @@ export const PLANS: Record<PlanId, Plan> = {
     priceInrMonthly: 499,
     dmsPerMonth: 5000,
     aiRunsPerDay: 20,
+    agentTurnsPerDay: 400,
     seats: 2,
     highlights: ["Every feature in Free", "10 times the monthly DMs", "AI replies at 20 runs a day", "Team seats for a helper"],
   },
@@ -59,6 +63,7 @@ export const PLANS: Record<PlanId, Plan> = {
     priceInrMonthly: 1499,
     dmsPerMonth: 25000,
     aiRunsPerDay: 100,
+    agentTurnsPerDay: 2000,
     seats: 5,
     highlights: ["Every feature in Free", "5 times the DMs of Starter", "AI replies at 100 runs a day", "Seats for a small team"],
   },
