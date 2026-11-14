@@ -45,7 +45,7 @@ export function KnowledgeBase({ compact = false }: { compact?: boolean }) {
         The agent looks up the few passages that match each question and answers only from them. Add price lists, policies or brochures here. PDF upload is not supported yet: paste the text or import a web page instead.
       </p>
       {data && !data.embeddingConfigured && (
-        <p role="status" className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground">Using keyword search; add OPENAI_API_KEY for smarter matching.</p>
+        <p role="status" className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground">Smart matching is not switched on for this server, so the agent uses keyword search.</p>
       )}
       {data && !data.retrievalEnabled && <p role="status" className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground">Search is switched off on this server, so the agent reads your Reel details directly.</p>}
       <ErrorNote message={error || actionError} />
@@ -63,14 +63,14 @@ export function KnowledgeBase({ compact = false }: { compact?: boolean }) {
                   <p className="text-xs text-muted-foreground">
                     {KIND_LABEL[s.kind] || s.kind} · {s.mediaId ? "One Reel" : "Whole business"} · {s.chunkCount} passages, {s.embeddedCount} with smart matching
                   </p>
-                  {s.status === "failed" && s.error && <p className="text-xs text-destructive">{s.error}</p>}
+                  {s.status === "failed" && s.error && <p className="break-words text-xs text-destructive">{s.error}</p>}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", STATUS_STYLE[s.status] || STATUS_STYLE.pending)}>{STATUS_LABEL[s.status] || s.status}</span>
-                  <button type="button" className={ghostBtn} disabled={busyId === s.id} onClick={() => act(s.id, () => apiJson("/api/ai-agent/kb/reindex", { method: "POST", body: JSON.stringify({ id: s.id }) }), "Re-indexed")}>
+                  <button type="button" className={ghostBtn} disabled={busyId === s.id} aria-label={`Re-index ${s.title || KIND_LABEL[s.kind] || "source"}`} onClick={() => act(s.id, () => apiJson("/api/ai-agent/kb/reindex", { method: "POST", body: JSON.stringify({ id: s.id }) }), "Re-indexed")}>
                     {busyId === s.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}Re-index
                   </button>
-                  <button type="button" className={ghostBtn} disabled={busyId === s.id} aria-label={`Delete ${s.title}`} onClick={() => act(s.id, () => apiJson(`/api/ai-agent/kb?id=${encodeURIComponent(s.id)}`, { method: "DELETE" }), "Deleted")}>
+                  <button type="button" className={ghostBtn} disabled={busyId === s.id} aria-label={`Delete ${s.title}`} onClick={() => confirm(`Delete "${s.title || KIND_LABEL[s.kind] || "this source"}"? The agent will stop using it.`) && act(s.id, () => apiJson(`/api/ai-agent/kb?id=${encodeURIComponent(s.id)}`, { method: "DELETE" }), "Deleted")}>
                     <Trash2 className="h-4 w-4" />Delete
                   </button>
                 </div>
@@ -108,7 +108,7 @@ function AddForms({ onAdded }: { onAdded: () => void }) {
   return (
     <div className={`${card} space-y-3`}>
       <h3 className="text-sm font-semibold text-foreground">Add knowledge</h3>
-      <div className="flex gap-2" role="tablist" aria-label="Kind of knowledge">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Kind of knowledge">
         {(["document", "website"] as const).map((m) => (
           <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)} className={cn("rounded-lg border px-3 py-1.5 text-sm font-semibold cursor-pointer", mode === m ? "border-brand bg-brand text-brand-foreground" : "border-border bg-card text-foreground hover:bg-secondary")}>
             {m === "document" ? "Paste a document" : "Import one web page"}
@@ -181,7 +181,7 @@ function SearchTest() {
           {result.chunks.map((c, i) => (
             <div key={i} className="rounded-xl border border-border p-3">
               <p className="text-xs font-semibold text-foreground">{c.title} <span className="font-normal text-muted-foreground">· {KIND_LABEL[c.kind] || c.kind} · {c.scope} · match {c.score}</span></p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{c.text}</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">{c.text}</p>
             </div>
           ))}
         </div>
