@@ -145,7 +145,10 @@ function RuleCard({ rule, onDelete, onEdit, index, isSpecific, mediaUrl, router,
   const keywords = rule.trigger_value.split(",").map(k => k.trim()).filter(Boolean)
   const isCard = !!rule.response_content?.card
   const cardCount = Array.isArray(rule.response_content?.cards) ? rule.response_content.cards.length : 0
-  const responsePreview = isCard
+  const isAgentRule = rule.response_content?.response_kind === "ai_agent"
+  const responsePreview = isAgentRule
+    ? "AI Sales Agent answers from your Reel details (manage it under AI Sales Agent)"
+    : isCard
     ? (cardCount > 1 ? `Carousel: ${cardCount} cards` : rule.response_content.card.title)
     : rule.response_content?.message?.slice(0, 50) + (rule.response_content?.message?.length > 50 ? "..." : "")
 
