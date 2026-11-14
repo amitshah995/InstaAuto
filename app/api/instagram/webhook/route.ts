@@ -13,6 +13,9 @@ import { recordContactSource } from "@/lib/contacts/source"
 import { fetchMediaMeta, needsMediaTimestamp, pickCommentAutomation, pinNextPostRule } from "@/lib/automations/comment-scope"
 import { findQuickReplyRule, findQuickReplyTarget } from "@/lib/messaging/quick-replies"
 import { firstNameFrom, resolvePublicReply, variantsNeedName } from "@/lib/automations/public-reply"
+import { isAgentRule, routeIncomingDm } from "@/lib/agent/routing"
+import { commitAgentStart, handleAgentDm, agentStore, prepareAgentIntro } from "@/lib/agent/runtime"
+import { agentEnabled } from "@/lib/agent/engine"
 import {
   LIVE_COMMENT_FIELD,
   LIVE_RETRY_WINDOW_MS,
@@ -394,6 +397,36 @@ export async function POST(request: NextRequest) {
               }
             }
 
+            // AI Sales Agent rule: the first private reply is written by the agent from this Reel's knowledge
+            // (lib/agent/*). Still exactly one private reply per comment. If the agent cannot run (not configured, no
+            // knowledge, quota) nothing is sent and the reason is logged, so a person never gets a half-working bot.
+            // This runs BEFORE the public reply: otherwise the comment would say "Check your DMs" while no DM is coming.
+            const agentRule = isAgentRule(content)
+            let agentIntro: Awaited<ReturnType<typeof prepareAgentIntro>> | null = null
+            if (agentRule) {
+              agentIntro = await prepareAgentIntro(user, String(mediaId))
+              if (!agentIntro.ok) {
+                if (onceClaimKey) {
+                  try {
+                    await supabase.from("processed_events").delete().eq("event_id", onceClaimKey)
+                  } catch (e) {
+                    console.error("[v0] ⚠️ Could not release once-per-person claim:", e)
+                  }
+                }
+                await logRun(supabase, {
+                  userId: user.id,
+                  igsid: senderId,
+                  automationId: match.id,
+                  eventType: "comment",
+                  triggerText: commentText,
+                  matched: true,
+                  actionStatus: "skipped",
+                  errorMessage: `AI Sales Agent: ${agentIntro.reason}`,
+                })
+                continue
+              }
+            }
+
             // Public reply under the comment. What it says, whether it is sent at all, and the {first_name} /
             // {username} placeholders come from the rule (lib/automations/public-reply.ts). Rules without a
             // public_reply keep the old three phrases; live comments get none unless the rule turns it on.
@@ -445,7 +478,7 @@ export async function POST(request: NextRequest) {
               user.access_token,
               { comment_id: commentId },
               senderId,
-              content,
+              agentIntro?.ok ? { message: agentIntro.text } : content,
               // Live: a failed private reply may only be retried while the broadcast can still be on air.
               { userId: user.id, windowUntil: isLive ? new Date(Date.now() + LIVE_RETRY_WINDOW_MS) : undefined },
             )
@@ -473,6 +506,8 @@ export async function POST(request: NextRequest) {
               })
             } else {
               console.log(`[v0] 🟢 Private DM Sent! (${dmResults.length} step${dmResults.length > 1 ? "s" : ""})`)
+              // Agent: remember the conversation so the person's replies are routed to the agent.
+              if (agentRule) await commitAgentStart(user, senderId, String(mediaId))
               await logRun(supabase, {
                 userId: user.id,
                 igsid: senderId,
@@ -932,6 +967,44 @@ export async function POST(request: NextRequest) {
               }
 
               continue
+            }
+          }
+
+          // ============================================================
+          // 🤖 AI SALES AGENT — a person who commented on an agent rule and is now chatting gets their DMs answered by
+          // the agent (lib/agent/*), before keyword rules and the generic AI fallback. human_handled and the 24h window
+          // were already enforced above; routeIncomingDm re-checks them and decides (lib/agent/routing.ts).
+          // ============================================================
+          if (triggerType === "keyword") {
+            let agentConv: { status: string } | null = null
+            try {
+              agentConv = await agentStore().getConversation(user.id, senderId)
+            } catch {
+              // migration 31 not run: the agent simply does not exist for this account
+            }
+            const route = routeIncomingDm({
+              humanHandled: !!conv?.human_handled,
+              withinWindow,
+              triggerType,
+              hasRefRule: !!refRule,
+              hasQuickReplyPayload: !!quickReplyPayload,
+              agentEnabled: agentEnabled(),
+              agentConversation: agentConv,
+            })
+            if (route.route === "agent") {
+              const out = await handleAgentDm(user, conv, senderId, rawMessageText)
+              if (out.handled) {
+                await logRun(supabase, {
+                  userId: user.id,
+                  igsid: senderId,
+                  eventType: "dm",
+                  triggerText: null, // message text is not copied into run logs for agent chats
+                  matched: true,
+                  actionStatus: out.status,
+                  errorMessage: out.handoff ? "AI Sales Agent: handed off to a human" : (out.note ?? "AI Sales Agent reply"),
+                })
+                continue
+              }
             }
           }
 

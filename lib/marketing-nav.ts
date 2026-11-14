@@ -2,7 +2,7 @@ import {
   Boxes, MessageCircle, Workflow, Inbox, Link2, CalendarCheck, ClipboardCheck, ShoppingBag, KeyRound,
   Clapperboard, Lock, Tags, BarChart3, TrendingUp, Users, LayoutTemplate, LayoutGrid, LifeBuoy,
   GraduationCap, BookOpen, Newspaper, History, Webhook, Table2, ShoppingCart, Plug, CreditCard,
-  Camera, Store, Scissors, UtensilsCrossed, Building2, Briefcase, FileText, Layers,
+  Bot, Camera, Store, Scissors, UtensilsCrossed, Building2, Briefcase, FileText, Layers,
   type LucideIcon,
 } from "lucide-react"
 
@@ -65,6 +65,8 @@ export const MENUS: MenuDef[] = [
     items: [
       { title: "Features overview", sub: "Everything Celra does", icon: LayoutGrid, href: "/features/overview",
         page: p("Everything Celra does", "A quick tour of the tools that turn Instagram attention into conversations.", ["Triggers: comments, stories and messages", "Flows, templates and a shared inbox", "Contacts, reports and team seats"]) },
+      { title: "AI Sales Agent", sub: "Answers from your Reel details", icon: Bot, href: "/features/ai-sales-agent",
+        page: p("AI Sales Agent for your Reels", "When someone comments on a Reel, the agent replies in DMs using only the details you wrote for that Reel, and asks before it takes a phone number.", ["Answers from your own Reel details: caption, offer and FAQs. If it does not know, it says a person will follow up", "Asks for consent in plain words before taking a WhatsApp number, and offers email if they say no", "Hands over to you whenever it should, and you can take over any chat yourself"]) },
       { title: "Keyword Triggers", sub: "Start a DM from a word", icon: KeyRound, href: "/features/keyword-triggers",
         page: p("Keyword triggers", "Choose the words that matter. When someone comments one, the right message goes out.", ["Several words per automation", "Match exact words or phrases", "A different reply for each reel"]) },
       { title: "Story Replies", sub: "Answer story mentions and replies", icon: Clapperboard, href: "/features/story-replies",

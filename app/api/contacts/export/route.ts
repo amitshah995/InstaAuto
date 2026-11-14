@@ -1,12 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { getSessionUserId } from "@/lib/auth"
-
-function csvEscape(value: any): string {
-  const str = value === null || value === undefined ? "" : String(value)
-  if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`
-  return str
-}
+import { csvEscape } from "@/lib/contacts/csv"
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,11 +9,12 @@ export async function GET(request: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
     const supabase = await getSupabaseServerClient()
-    const { data: contacts, error } = await supabase
-      .from("contacts")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
+    // Optional lead filter used by the AI Sales Agent "Leads" tab: ?lead_status=all|wa_lead|email_lead|engaged|handoff|new.
+    // Without it the export is exactly as before (same columns).
+    const leadStatus = request.nextUrl.searchParams.get("lead_status")
+    let query = supabase.from("contacts").select("*").eq("user_id", userId)
+    if (leadStatus && leadStatus !== "all") query = query.eq("lead_status", leadStatus)
+    const { data: contacts, error } = await query.order("created_at", { ascending: false })
 
     if (error) throw error
 
@@ -30,13 +26,15 @@ export async function GET(request: NextRequest) {
     }
     const customKeyList = Array.from(customKeys)
 
-    const headers = ["igsid", "name", "email", "phone", "tags", ...customKeyList, "created_at"]
+    const leadCols = leadStatus ? ["lead_status", "lead_score", "phone_consent_at", "consent_text"] : []
+    const headers = ["igsid", "name", "email", "phone", "tags", ...leadCols, ...customKeyList, "created_at"]
     const rows = (contacts || []).map((c: any) => [
       c.igsid,
       c.name || "",
       c.email || "",
       c.phone || "",
       (Array.isArray(c.tags) ? c.tags : []).join(";"),
+      ...leadCols.map((k) => c[k] ?? ""),
       ...customKeyList.map((k) => c.custom_fields?.[k] ?? ""),
       c.created_at,
     ])

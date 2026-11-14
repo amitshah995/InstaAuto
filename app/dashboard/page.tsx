@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
-import { Zap, Users, Send, Activity, Loader2, MessageCircle, ArrowUpRight, Search, TrendingUp, Trash2, Film, Image, Layers, X, Check, ExternalLink, Mic, Camera, Clapperboard, Shield, Clock } from "lucide-react"
+import { Bot, Zap, Users, Send, Activity, Loader2, MessageCircle, ArrowUpRight, Search, TrendingUp, Trash2, Film, Image, Layers, X, Check, ExternalLink, Mic, Camera, Clapperboard, Shield, Clock } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { BRAND_NAME } from "@/lib/site"
@@ -456,6 +456,23 @@ export default function DashboardPage() {
                             </Link>
                         ))}
                     </div>
+                )}
+
+                {/* Feature card: AI Sales Agent (own section under /dashboard/ai-agent) */}
+                {!selectedMedia && (
+                    <Link
+                        href="/dashboard/ai-agent"
+                        className="mt-6 flex w-full max-w-xl items-start gap-3 rounded-2xl border border-border bg-[#FFF6F1] p-4 text-left transition-colors hover:border-brand/40 dark:bg-card"
+                    >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand text-brand-foreground"><Bot className="h-5 w-5" /></span>
+                        <span className="min-w-0">
+                            <span className="flex items-center gap-2 font-[family-name:var(--font-outfit)] text-base font-semibold text-foreground">
+                                AI Sales Agent
+                                <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground">New</span>
+                            </span>
+                            <span className="mt-0.5 block text-sm text-muted-foreground">Answers questions about a Reel from your own details, asks before taking a WhatsApp number, and hands over to you when needed.</span>
+                        </span>
+                    </Link>
                 )}
 
                 {/* ── Quick Automation Setup Panel (shows when a reel is selected) ── */}

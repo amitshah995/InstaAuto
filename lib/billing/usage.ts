@@ -60,9 +60,9 @@ export async function getEntitlement(userId: string | number): Promise<Entitleme
   return { plan: getPlan(effectivePlanId(sub)), enforce: true }
 }
 
-async function reserve(userId: string | number, kind: "dm_month" | "ai_day", limit: number): Promise<boolean> {
+async function reserve(userId: string | number, kind: "dm_month" | "ai_day" | "agent_day", limit: number): Promise<boolean> {
   const { month, day } = periodKeys()
-  const period = kind === "dm_month" ? month : day
+  const period = kind === "dm_month" ? month : day // ai_day and agent_day are both daily
   try {
     const rows = await rawQuery(
       `INSERT INTO usage_counters (user_id, kind, period, count) VALUES ($1,$2,$3,1)
@@ -78,7 +78,7 @@ async function reserve(userId: string | number, kind: "dm_month" | "ai_day", lim
   }
 }
 
-async function release(userId: string | number, kind: "dm_month" | "ai_day"): Promise<void> {
+async function release(userId: string | number, kind: "dm_month" | "ai_day" | "agent_day"): Promise<void> {
   const { month, day } = periodKeys()
   try {
     await rawQuery(
@@ -110,6 +110,17 @@ export async function reserveAiRun(userId: string | number): Promise<ReserveResu
   const e = await getEntitlement(userId)
   const ok = await reserve(userId, "ai_day", e.enforce ? e.plan.aiRunsPerDay : UNLIMITED)
   return ok ? { allowed: true } : { allowed: false, message: limitMessage("ai", e.plan) }
+}
+
+/**
+ * Reserve one AI Sales Agent model call (daily, separate counter "agent_day"). Called by lib/agent/runtime.ts before each
+ * agent turn and by the "Test the agent" panel. Choice: separate from ai_day so a busy agent cannot starve AI reports; the
+ * agent's outgoing DMs are still counted as DMs by sendSteps. Not refunded (the provider cost is spent either way).
+ */
+export async function reserveAgentTurn(userId: string | number): Promise<ReserveResult> {
+  const e = await getEntitlement(userId)
+  const ok = await reserve(userId, "agent_day", e.enforce ? e.plan.agentTurnsPerDay : UNLIMITED)
+  return ok ? { allowed: true } : { allowed: false, message: `You have used all ${e.plan.agentTurnsPerDay} AI Sales Agent replies included in the ${e.plan.name} plan today. It resumes tomorrow, or upgrade your plan.` }
 }
 
 export interface UsageSummary {

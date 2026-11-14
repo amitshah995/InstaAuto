@@ -15,12 +15,13 @@ import { rawQuery } from "@/lib/supabase-server"
 import { decryptToken, encryptToken } from "@/lib/token-crypto"
 import { safePost } from "./safe-fetch.ts"
 import { signPayload } from "./signing.ts"
+import { buildTestLeadData } from "../agent/payload.ts"
 import {
   DISABLE_AFTER_DEAD,
   type Envelope,
   type WebhookEvent,
   buildEnvelope,
-  nextRetryDelaySec,
+  decideAfterAttempt,
   redirectCountsAsSuccess,
   shapePayload,
 } from "./policy.ts"
@@ -41,7 +42,7 @@ export const storeSecret = (plain: string) => encryptToken(plain)
 const readSecret = (stored: string) => decryptToken(stored)
 
 /** Queues an event for every enabled endpoint of this user that subscribed to it. Never throws. */
-export async function emitEvent(userId: number | string, event: WebhookEvent, data: Record<string, unknown>): Promise<void> {
+export async function emitEvent(userId: number | string, event: WebhookEvent, data: Record<string, unknown>, opts: { eventId?: string } = {}): Promise<void> {
   if (Date.now() < missingUntil) return
   try {
     const eps = await rawQuery<{ id: number }>(
@@ -49,7 +50,7 @@ export async function emitEvent(userId: number | string, event: WebhookEvent, da
       [userId, event],
     )
     if (eps.length === 0) return
-    const env = buildEnvelope(event, data)
+    const env = opts.eventId ? buildEnvelope(event, data, opts.eventId) : buildEnvelope(event, data)
     const ids: number[] = []
     for (const ep of eps) {
       const r = await rawQuery<{ id: number }>(
@@ -119,8 +120,8 @@ async function attemptDelivery(d: Claimed): Promise<"delivered" | "retrying" | "
     await rawQuery(`UPDATE webhook_endpoints SET consecutive_failures=0 WHERE id=$1`, [ep.id])
     return "delivered"
   }
-  const delay = res.permanent ? null : nextRetryDelaySec(d.attempts)
-  if (delay === null) {
+  const decision = decideAfterAttempt(ep.preset, res, d.attempts)
+  if (decision.kind === "dead") {
     await rawQuery(
       `UPDATE webhook_deliveries SET status='dead', last_status_code=$2, last_error=$3, locked_until=NULL WHERE id=$1`,
       [d.id, res.status ?? null, res.error ?? null],
@@ -138,7 +139,7 @@ async function attemptDelivery(d: Claimed): Promise<"delivered" | "retrying" | "
   await rawQuery(
     `UPDATE webhook_deliveries SET last_status_code=$2, last_error=$3, locked_until=NULL,
        next_attempt_at = now() + ($4 || ' seconds')::interval WHERE id=$1`,
-    [d.id, res.status ?? null, res.error ?? null, String(delay)],
+    [d.id, res.status ?? null, res.error ?? null, String(decision.kind === "retry" ? decision.delaySec : 0)],
   )
   return "retrying"
 }
@@ -163,6 +164,8 @@ async function post(ep: Endpoint, env: Envelope) {
       "X-Celra-Event": env.event,
       "X-Celra-Delivery": env.id,
       "X-Celra-Signature": signPayload(secret, body, ts),
+      // AiSend authenticates with its own per-tenant key. The key is only ever sent to the stored, SSRF-checked URL.
+      ...(ep.preset === "aisend" ? { "x-api-key": secret } : {}),
     },
     { treatRedirectAsSuccess: redirectCountsAsSuccess(ep.preset, host) },
   )
@@ -185,13 +188,13 @@ export async function sendTest(userId: number | string, endpointId: number) {
     [endpointId, userId],
   )
   if (!ep) return { ok: false as const, error: "Endpoint not found", status: undefined }
-  const env = buildEnvelope("test", {
-    message: "This is a test event from Celra.",
-    igsid: "0000000000000000",
-    name: "Test Person",
-    email: "test@example.com",
-    phone: "",
-  })
+  // The AiSend connector needs a body AiSend accepts (an email, no phone), so its test lead is built by lib/agent/payload.ts.
+  const env = buildEnvelope(
+    "test",
+    ep.preset === "aisend"
+      ? buildTestLeadData(userId)
+      : { message: "This is a test event from Celra.", igsid: "0000000000000000", name: "Test Person", email: "test@example.com", phone: "" },
+  )
   const res = await post(ep, env)
   await rawQuery(
     `INSERT INTO webhook_deliveries (endpoint_id, user_id, event, event_id, payload, status, attempts, last_status_code, last_error, delivered_at, next_attempt_at)
