@@ -39,6 +39,8 @@ export interface ChunkHit {
   content: string
   chunkIndex: number
   score: number
+  /** True when the chunk has no vector (its embedding call failed, was skipped or no key was set). Only keyword rows carry it. */
+  noVector?: boolean
 }
 
 /** Postgres text cannot hold a NUL (\u0000): the whole statement fails with "invalid byte sequence". Strip it before it reaches SQL. */
@@ -50,7 +52,7 @@ const toSource = (r: any): SourceRow => ({
 })
 const toHit = (r: any, score: number): ChunkHit => ({
   id: r.id, userId: String(r.user_id), sourceId: r.source_id, mediaId: r.media_id ?? null, sourceKind: r.source_kind, title: r.title ?? "",
-  content: r.content ?? "", chunkIndex: Number(r.chunk_index) || 0, score,
+  content: r.content ?? "", chunkIndex: Number(r.chunk_index) || 0, score, noVector: r.no_vec === true,
 })
 
 export function createRagStore(q: QueryFn) {
@@ -163,7 +165,7 @@ export function createRagStore(q: QueryFn) {
     async keywordSearch(userId: string | number, mediaId: string | null, tsquery: string, limit: number): Promise<ChunkHit[]> {
       if (!tsquery) return []
       const rows = await q(
-        `SELECT id, user_id, source_id, media_id, source_kind, title, content, chunk_index, ts_rank_cd(tsv, to_tsquery('simple', $3)) AS rank
+        `SELECT id, user_id, source_id, media_id, source_kind, title, content, chunk_index, ts_rank_cd(tsv, to_tsquery('simple', $3)) AS rank, (embedding IS NULL) AS no_vec
            FROM agent_kb_chunks
           WHERE user_id = $1 AND (media_id IS NULL OR ($2::text IS NOT NULL AND media_id = $2)) AND tsv @@ to_tsquery('simple', $3)
           ORDER BY rank DESC LIMIT $4`,

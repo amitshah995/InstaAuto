@@ -94,7 +94,12 @@ export async function retrieve(deps: RetrieveDeps, a: { userId: string | number;
         try {
           const hits = await deps.store.vectorSearch(a.userId, a.mediaId, v, MAX_CHUNKS * 2, deps.minSimilarity ?? MIN_SIMILARITY)
           const chosen = selectChunks(hits, a.userId)
-          if (chosen.length > 0) return build("vector", indexed, chosen, null)
+          if (chosen.length > 0) {
+            // Chunks WITHOUT a vector (embedding failed or was skipped for their batch) can never match by similarity: give the
+            // best keyword matches among them up to MAX_EXTRA_KEYWORD slots, so a partially embedded source does not hide answers.
+            const extra = await unembeddedMatches(deps, a, query)
+            return build("vector", indexed, extra.length ? selectChunks([...chosen.slice(0, MAX_CHUNKS - extra.length), ...extra, ...chosen.slice(MAX_CHUNKS - extra.length)], a.userId) : chosen, null)
+          }
           fallbackReason = "No vector match: tried keywords"
         } catch {
           fallbackReason = "Vector search failed: using keyword search"
@@ -109,6 +114,18 @@ export async function retrieve(deps: RetrieveDeps, a: { userId: string | number;
   } catch {
     // Tables missing (migration 32 not run), database error: the agent falls back to its previous behaviour.
     return { ...EMPTY }
+  }
+}
+
+const MAX_EXTRA_KEYWORD = 2
+/** Keyword matches among chunks that have no vector. Never throws (a failure just means "no extras"). */
+async function unembeddedMatches(deps: RetrieveDeps, a: { userId: string | number; mediaId: string | null; query: string }, query: string): Promise<ChunkHit[]> {
+  try {
+    const terms = extractSearchTerms(query)
+    const rows = (await deps.store.keywordSearch(a.userId, a.mediaId, toTsQuery(terms), 40)).filter((r) => r.noVector === true)
+    return rankKeywordHits(rows, terms).slice(0, MAX_EXTRA_KEYWORD)
+  } catch {
+    return []
   }
 }
 
