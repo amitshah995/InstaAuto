@@ -260,7 +260,7 @@ function ActivateStep({ status, reload }: { status: Status; reload: () => void }
   const off = async () => { await apiJson("/api/ai-agent/activate", { method: "DELETE" }); toast.success("Agent paused"); reload() }
   return (
     <div className="space-y-3">
-      {!status.modelConfigured && <p className="rounded-lg bg-[#FFF6F1] px-3 py-2 text-sm text-[#B4411F]">The AI model is not configured on this server yet, so the agent cannot reply. Ask the Celra admin to add the model key.</p>}
+      {!status.modelConfigured && <p className="rounded-lg bg-[#FFF6F1] px-3 py-2 text-sm text-foreground">The AI model is not configured on this server yet, so the agent cannot reply. Ask the Celra admin to add the model key.</p>}
       <p className="text-sm text-muted-foreground">Celra creates the comment automation for you. When someone comments the word on this Reel they get one private reply, and the agent continues the chat if they reply.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm font-medium text-foreground">Reel

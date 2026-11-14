@@ -39,7 +39,7 @@ const STATUS_STYLE: Record<string, string> = {
   email_lead: "bg-accent text-accent-foreground",
   engaged: "bg-secondary text-secondary-foreground",
   new: "bg-secondary text-muted-foreground",
-  handoff: "bg-[#FFF6F1] text-[#B4411F] border border-[#FFD9CC]",
+  handoff: "bg-[#FFF6F1] text-foreground border border-primary/50",
   active: "bg-accent text-accent-foreground",
   ended: "bg-secondary text-muted-foreground",
 }
