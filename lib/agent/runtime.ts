@@ -13,7 +13,7 @@ import { rawQuery } from "@/lib/supabase-server"
 import { sendSteps } from "@/lib/messaging/send-steps"
 import { reserveAgentTurn } from "@/lib/billing/usage"
 import { emitEvent } from "@/lib/webhooks/events"
-import { agentEnabled, allowedUrlsFor, generateIntro, newAgentState, runTurn, type TurnResult } from "./engine.ts"
+import { agentEnabled, allowedUrlsFor, generateIntro, newAgentState, revertUnsentLines, runTurn, type TurnResult } from "./engine.ts"
 import { createAgentStore, type AgentSettings } from "./store.ts"
 import { applyLeadEvent, isLeadStatus, type LeadEvent, type LeadStatus } from "./scoring.ts"
 import { LEAD_EVENT_EMAIL, LEAD_EVENT_WHATSAPP, buildLeadEventData, leadEventId } from "./payload.ts"
@@ -144,6 +144,9 @@ export async function handleAgentDm(user: any, conv: { id: string | number } | n
     if (!gate.ok) return { handled: true, status: "skipped", note: gate.reason }
 
     const { ctx, settings } = await buildContext(user, ac.mediaId)
+    // The owner paused the agent, or removed the Reel's knowledge: do not keep answering. Falls through to the account's other rules.
+    if (!settings.enabled) return { handled: false, status: "skipped", note: "AI Sales Agent is switched off" }
+    if (!ctx.knowledge && !ctx.businessContext) return { handled: false, status: "skipped", note: "No knowledge for this Reel" }
     const history = await loadHistory(user.id, senderId)
 
     // The person replied, so they are at least engaged.
@@ -168,6 +171,8 @@ export async function handleAgentDm(user: any, conv: { id: string | number } | n
       if (!sent.ok) {
         status = "failed"
         note = sent.results[sent.results.length - 1]?.error
+        // The person did not see the consent line / email offer: do not let a later "yes" count as consent to it.
+        await store.saveConversation(user.id, senderId, ac.version + 1, revertUnsentLines(ac.state, turn.state)).catch(() => false)
       } else if (conv?.id !== undefined && conv?.id !== null) {
         await rawQuery(
           `INSERT INTO messages (id, conversation_id, user_id, sender_id, sender_username, content, is_from_instagram) VALUES ($1,$2,$3,$4,$5,$6,FALSE)`,

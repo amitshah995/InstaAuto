@@ -149,6 +149,17 @@ export interface TurnResult {
   usedFallback: boolean
 }
 
+/**
+ * The consent question and the email offer are appended by code, and the state records that they were SHOWN. If the DM then
+ * fails to send, the person never saw them, so a later "yes" must not count: put those two facts back as they were.
+ */
+export function revertUnsentLines(prev: AgentState, next: AgentState): AgentState {
+  const out: AgentState = { ...next, consent: { ...next.consent } }
+  if (prev.consent.status === "none" && next.consent.status === "asked") out.consent = { ...prev.consent }
+  if (!prev.emailOffered && next.emailOffered) out.emailOffered = false
+  return out
+}
+
 /** Composes the final DM: model text + at most one code-owned line, within the DM size limit. */
 export function composeReply(modelText: string, extraLine: string | null): string {
   if (!extraLine) return truncateAtWord(modelText, DM_TEXT_MAX)

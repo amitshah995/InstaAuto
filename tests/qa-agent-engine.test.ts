@@ -322,3 +322,19 @@ test("links: ordinary text, prices, decimals and emails are not mangled; allowed
   stripDisallowedUrls("a-".repeat(50000) + ".", [])
   assert.ok(Date.now() - t0 < 2000, `took ${Date.now() - t0}ms`)
 })
+
+import { revertUnsentLines } from "../lib/agent/engine.ts"
+import { markAsked, emptyConsent } from "../lib/agent/consent.ts"
+test("revertUnsentLines: a consent line / email offer that was never delivered is un-recorded", () => {
+  const prev = st({ turn: 1 })
+  const next = { ...prev, turn: 2, consent: markAsked(emptyConsent(), NOW) }
+  assert.equal(revertUnsentLines(prev, next).consent.status, "none")
+  assert.equal(revertUnsentLines(prev, next).turn, 2)
+  const p2 = askedState()
+  const n2 = { ...p2, turn: 2, emailOffered: true, consent: { ...p2.consent, status: "declined" as const } }
+  assert.equal(revertUnsentLines(p2, n2).emailOffered, false)
+  assert.equal(revertUnsentLines(p2, n2).consent.status, "declined") // the person's own words stay
+  // a grant from the person's own message is kept
+  const n3 = { ...p2, turn: 2, consent: { ...p2.consent, status: "granted" as const, grantedAt: NOW.toISOString(), text: CONSENT_LINE } }
+  assert.equal(revertUnsentLines(p2, n3).consent.status, "granted")
+})
