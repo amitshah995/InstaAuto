@@ -13,6 +13,9 @@ export function cleanUntrusted(s: unknown, max: number): string {
   const cleaned = str
     // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F​-‏‪-‮⁠﻿]/g, "")
+    // Invisible characters that carry hidden text or hide it from the owner: Unicode "tag" characters (U+E0000-E007F, ASCII
+    // smuggling that models can read), variation selectors supplement, invisible operators, bidi isolates and deprecated format marks.
+    .replace(/[\u{E0000}-\u{E007F}\u{E0100}-\u{E01EF}\u2061-\u2064\u2066-\u206F\u180E\uFFF9-\uFFFB]/gu, "")
     .replace(/<\/?[a-zA-Z_][^>]{0,40}>/g, "")
     .replace(/[<>]/g, "")
     .replace(/\s+/g, " ")
