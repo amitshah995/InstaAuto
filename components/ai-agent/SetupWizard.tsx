@@ -10,6 +10,7 @@ import { Check, ChevronDown, Circle, Loader2, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
+import { KnowledgeBase } from "./KnowledgeBase"
 import { ErrorNote, HEADING, apiJson, card, field, ghostBtn, primaryBtn, useApi } from "./shared"
 
 type Status = any
@@ -181,6 +182,7 @@ function KnowledgeStep({ status, reload }: { status: Status; reload: () => void 
       <label className="flex items-center gap-2 text-sm text-foreground"><Switch checked={draft.active} onCheckedChange={(v) => setDraft({ ...draft, active: v })} /> Active</label>
       <ErrorNote message={error} />
       <button className={primaryBtn} onClick={save} disabled={busy}>{busy && <Loader2 className="h-4 w-4 animate-spin" />}Save Reel knowledge</button>
+      <div className="border-t border-border pt-4"><KnowledgeBase compact /></div>
     </div>
   )
 }

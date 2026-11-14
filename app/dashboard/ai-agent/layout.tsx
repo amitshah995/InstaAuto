@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * Shell for the AI Sales Agent feature: heading and tab bar (Overview, Setup, Conversations, Leads, Test). Each tab is its
+ * Shell for the AI Sales Agent feature: heading and tab bar (Overview, Setup, Knowledge, Conversations, Leads, Test). Each tab is its
  * own route under /dashboard/ai-agent so links can be shared and the mobile back button works.
  */
 import Link from "next/link"
@@ -13,6 +13,7 @@ import { HEADING } from "@/components/ai-agent/shared"
 const TABS = [
   { href: "/dashboard/ai-agent", label: "Overview", exact: true },
   { href: "/dashboard/ai-agent/setup", label: "Setup" },
+  { href: "/dashboard/ai-agent/knowledge", label: "Knowledge" },
   { href: "/dashboard/ai-agent/conversations", label: "Conversations" },
   { href: "/dashboard/ai-agent/leads", label: "Leads" },
   { href: "/dashboard/ai-agent/test", label: "Test the agent" },

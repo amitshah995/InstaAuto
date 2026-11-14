@@ -101,6 +101,24 @@ Delivery: event id is deterministic per (account, person, Reel, kind), so retrie
 
 "Send test lead" (Setup step 1) delivers one clearly labelled email-only lead (`celra-test@example.com`, consent false) once, never a phone, because the receiver may message every new lead.
 
+## Retrieval (RAG)
+
+The agent no longer reads the whole Reel record on every turn when the knowledge is indexed. It searches first and shows the model only the best passages.
+
+**Data flow.** Saving Reel knowledge, pasting a document or importing a page splits the text into chunks (about 800 characters, 100 overlap, FAQ question and answer kept together, at most 200 chunks per source) and stores them in `agent_kb_chunks` with an OpenAI embedding (`text-embedding-3-small`, 1536 dims) in pgvector. On each turn `lib/agent/rag/retrieve.ts` builds a query from the latest message (plus the last user and assistant text when the message is 4 words or fewer, e.g. "kitna?"), embeds it (4s timeout) and calls `match_agent_chunks`. Only passages from this account, for this Reel or the whole business, above a minimum similarity are used: at most 5 passages and about 3000 characters. The prompt gets those passages plus the Reel title and offer headline, inside the same untrusted-data fence and with the same safety rules. If nothing relevant is found and the knowledge is large, the model is told no passage was found and hands over to a human. If the knowledge is small (under about 3500 characters) the whole record is used as before.
+
+**Fallbacks (never an error for the follower).** No `OPENAI_API_KEY`, embedding timeout or failure, no vector match: keyword search (Postgres full text with English/Hinglish/Devanagari terms and a few price/timing/place synonyms). Nothing indexed, migration 32 not run, or any retrieval error: the previous behaviour of putting the Reel record in the prompt. `AGENT_RAG=0` forces that previous behaviour server-wide.
+
+**Tenant safety.** Every query filters `user_id` first, `match_agent_chunks` takes the user id as a parameter, and chunks have a composite foreign key `(source_id, user_id)`. Row level security is not relied on. The same media id under two accounts never mixes.
+
+**Sources.** Reel offer, caption and FAQs (re-indexed on every save), pasted documents (up to 60,000 characters), and one web page per import (https only, public addresses only, redirects re-checked, 8s and 1.5 MB limits, scripts and navigation stripped, links are not followed). PDF upload is not supported. Up to 100 documents and pages per account. Dashboard: Knowledge tab and Setup step 2 (sources, status, Re-index, Delete, Search test).
+
+**Cost.** Embeddings count in their own daily counter `embed_day` (limit twice `agentTurnsPerDay`, enforced only when `BILLING_ENABLED`). When it is used up, new questions fall back to keyword search and new chunks are stored without vectors. The Search test box also uses it.
+
+**Privacy.** Chunk text and follower questions are sent to OpenAI to create embeddings. The text of pasted documents is stored in `agent_kb_sources.raw_text` so Re-index works. Links inside retrieved passages may appear in replies; for an imported web page that is third-party text.
+
+**Owner checklist.** Run migration 32 on a database that has pgvector (Supabase: enabled by the migration); set `OPENAI_API_KEY` on the server (never in the repo); mention OpenAI in the privacy policy; after the first deploy open the Knowledge tab and press Re-index on existing Reels, then try Search test.
+
 ## Quotas and billing
 
 Each agent model call reserves one unit of a separate daily counter `agent_day` (`reserveAgentTurn`, plan field `agentTurnsPerDay`: 2000 on every plan for now (owner decision, to be tuned when pricing is final), editable in `lib/billing/plans.ts`). Blocking happens only when `BILLING_ENABLED` is on, like the other counters. The agent's outgoing DMs go through `sendSteps`, so they count as DMs as usual. The "Test the agent" panel uses the same counter. Not shown on the billing page yet.
@@ -112,8 +130,10 @@ Each agent model call reserves one unit of a separate daily counter `agent_day` 
 - `AGENT_ENABLED=0` switches the agent off server-wide
 - `TOKEN_ENCRYPTION_KEY` (existing) encrypts the AiSend key; without it the key is stored in plain text like other secrets would be
 - `BILLING_ENABLED` (existing) turns the quotas into blocks
+- `OPENAI_API_KEY` (optional) enables smart matching; without it keyword search is used
+- `AGENT_RAG=0` (optional) switches retrieval off; `AGENT_RAG_MIN_SIMILARITY` (optional, default 0.28) tunes the cut-off
 
-Run `migrations/31-ai-sales-agent.sql` (idempotent) after migrations 13 and 28.
+Run `migrations/31-ai-sales-agent.sql` (idempotent) after migrations 13 and 28, then `migrations/32-agent-rag.sql` (idempotent, needs pgvector).
 
 ## Deferred
 
