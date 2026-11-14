@@ -93,14 +93,29 @@ export function createAgentStore(q: QueryFn) {
       await q(`UPDATE agent_conversations SET status = $3, updated_at = now() WHERE user_id = $1 AND igsid = $2`, [userId, igsid, status])
     },
     async listConversations(userId: string | number, limit = 50) {
-      return q(
-        `SELECT a.igsid, a.media_id, a.status, a.turn_count, a.started_at, a.updated_at,
-                c.recipient_username, c.human_handled
-           FROM agent_conversations a
-           LEFT JOIN conversations c ON c.user_id = a.user_id AND c.recipient_id = a.igsid
-          WHERE a.user_id = $1 ORDER BY a.updated_at DESC LIMIT $2`,
-        [userId, Math.min(limit, 200)],
-      )
+      const n = Math.min(limit, 200)
+      try {
+        return await q(
+          `SELECT a.igsid, a.media_id, a.status, a.turn_count, a.started_at, a.updated_at,
+                  c.recipient_username, c.human_handled
+             FROM agent_conversations a
+             LEFT JOIN conversations c ON c.user_id = a.user_id AND c.recipient_id = a.igsid
+            WHERE a.user_id = $1 ORDER BY a.updated_at DESC LIMIT $2`,
+          [userId, n],
+        )
+      } catch (e) {
+        // The inbox table `conversations` has no migration in this repo, so its columns/types can differ between databases.
+        // The username and handoff flag are nice-to-have here: if the join fails we still show the agent's own rows instead
+        // of breaking the whole Overview / Conversations tab. Logged without request data.
+        console.error("[ai-agent] listConversations join failed, using plain query:", ((e as Error)?.message || "").slice(0, 200))
+        return q(
+          `SELECT a.igsid, a.media_id, a.status, a.turn_count, a.started_at, a.updated_at,
+                  NULL::text AS recipient_username, NULL::boolean AS human_handled
+             FROM agent_conversations a
+            WHERE a.user_id = $1 ORDER BY a.updated_at DESC LIMIT $2`,
+          [userId, n],
+        )
+      }
     },
     /** Takes over: silences the agent and the bot for this person. Scoped to the account. */
     async takeOver(userId: string | number, igsid: string) {
@@ -175,14 +190,28 @@ export function createAgentStore(q: QueryFn) {
     },
     async listLeads(userId: string | number, status?: string, limit = 100) {
       const filter = status && isLeadStatus(status) ? status : null
-      return q(
-        `SELECT c.id, c.igsid, c.name, c.lead_status, c.lead_score, c.lead_media_id, c.phone, c.email, c.lead_updated_at,
-                v.recipient_username
-           FROM contacts c LEFT JOIN conversations v ON v.user_id = c.user_id AND v.recipient_id = c.igsid
-          WHERE c.user_id = $1 AND c.lead_status IS NOT NULL AND ($2::text IS NULL OR c.lead_status = $2)
-          ORDER BY c.lead_updated_at DESC NULLS LAST LIMIT $3`,
-        [userId, filter, Math.min(limit, 500)],
-      )
+      const n = Math.min(limit, 500)
+      try {
+        return await q(
+          `SELECT c.id, c.igsid, c.name, c.lead_status, c.lead_score, c.lead_media_id, c.phone, c.email, c.lead_updated_at,
+                  v.recipient_username
+             FROM contacts c LEFT JOIN conversations v ON v.user_id = c.user_id AND v.recipient_id = c.igsid
+            WHERE c.user_id = $1 AND c.lead_status IS NOT NULL AND ($2::text IS NULL OR c.lead_status = $2)
+            ORDER BY c.lead_updated_at DESC NULLS LAST LIMIT $3`,
+          [userId, filter, n],
+        )
+      } catch (e) {
+        // Same reason as listConversations: the optional username join must never take the Leads tab down.
+        console.error("[ai-agent] listLeads join failed, using plain query:", ((e as Error)?.message || "").slice(0, 200))
+        return q(
+          `SELECT c.id, c.igsid, c.name, c.lead_status, c.lead_score, c.lead_media_id, c.phone, c.email, c.lead_updated_at,
+                  NULL::text AS recipient_username
+             FROM contacts c
+            WHERE c.user_id = $1 AND c.lead_status IS NOT NULL AND ($2::text IS NULL OR c.lead_status = $2)
+            ORDER BY c.lead_updated_at DESC NULLS LAST LIMIT $3`,
+          [userId, filter, n],
+        )
+      }
     },
 
     /** True only for the first caller for this (person, reel, kind). This is the "one dispatch per contact per media" guarantee. */
