@@ -125,7 +125,9 @@ export async function generateIntro(ctx: AgentContext, deps: LlmDeps = {}): Prom
   if (!text) return { text: fallbackIntro(ctx), usedModel: false, tokens: res?.tokens ?? 0 }
   // The disclosure is a hard rule: if the model forgot it, code adds it.
   const disclosed = /automated|assistant|\bbot\b|\bAI\b/i.test(text)
-  return { text: disclosed ? text : truncateAtWord(`${text} (This is an automated assistant)`, DM_TEXT_MAX), usedModel: true, tokens: res?.tokens ?? 0 }
+  const DISCLOSURE = "(This is an automated assistant)"
+  // Cut the model text first so a long reply cannot push the disclosure past the size limit.
+  return { text: disclosed ? text : `${truncateAtWord(text, DM_TEXT_MAX - DISCLOSURE.length - 1)} ${DISCLOSURE}`, usedModel: true, tokens: res?.tokens ?? 0 }
 }
 
 export interface TurnInput {
@@ -166,7 +168,8 @@ export async function runTurn(input: TurnInput, deps: LlmDeps = {}): Promise<Tur
   if (state.status !== "active") return result(null)
 
   const userText = cleanUntrusted(input.userText, 1000)
-  const injection = detectInjection(input.userText)
+  // Checked on the raw text (tag spoofing) AND the cleaned text (zero-width characters split a phrase in the raw text only).
+  const injection = detectInjection(input.userText) || detectInjection(userText)
   if (injection) state.injectionCount += 1
 
   // Hard caps first: turn count, token budget, repeated manipulation. They hand over to a human instead of spending more.
@@ -180,6 +183,8 @@ export async function runTurn(input: TurnInput, deps: LlmDeps = {}): Promise<Tur
 
   // Consent is decided by code from the person's own words, before the model runs.
   const before = state.consent.status
+  // Email counts as agreed-to only if the offer was already SHOWN in an earlier reply, not one we are about to append.
+  const emailOfferedBefore = state.emailOffered
   state.consent = applyUserMessage(state.consent, userText, now)
   if (before === "asked" && state.consent.status === "declined" && !state.emailOffered) {
     state.emailOffered = true // the offer line is appended below
@@ -220,7 +225,7 @@ export async function runTurn(input: TurnInput, deps: LlmDeps = {}): Promise<Tur
         toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: `Error: ${v.error}`, is_error: true })
         continue
       }
-      const out = runTool(v.args, { consent: state.consent, latestUserText: userText, state, now })
+      const out = runTool(v.args, { consent: state.consent, latestUserText: userText, state: { ...state, emailOffered: emailOfferedBefore }, now })
       if (out.effect) effects.push(out.effect)
       if (out.statePatch) state = { ...state, ...out.statePatch }
       if (out.effect?.type === "handoff") handoff = true

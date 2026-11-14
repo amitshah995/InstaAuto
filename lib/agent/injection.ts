@@ -46,12 +46,18 @@ export function detectInjection(text: unknown): boolean {
 /** Phrases that only appear in our own prompt. If a reply contains one, the prompt is leaking. */
 const LEAK_MARKERS = ["STRICT RULES", "business_knowledge", "follower_message", "<instruction", "system prompt", "capture_phone", "request_human"]
 
-const URL_RE = /\bhttps?:\/\/[^\s)>\]]+|\bwww\.[^\s)>\]]+/gi
+/**
+ * Anything that looks like a link: scheme://..., www...., bare domain with a path (shop.example/x, bit.ly/x, wa.me/91...)
+ * or a bare domain on a common TLD (glow.in). Preceded by "@" or a word/dot/slash means an email or a longer token: skipped.
+ */
+const URL_RE = /(?<![@\w.\/-])(?:[a-z][a-z0-9+.-]{1,10}:\/\/[^\s)>\]]+|www\.[^\s)>\]]+|(?:[a-z0-9-]+\.)+(?:[a-z]{2,24}\/[^\s)>\]]*|(?:com|in|co|net|org|io|me|ly|link|app|dev|xyz|info|shop|store|online|site|biz|ai|page|click|top|cc)\b(?:\/[^\s)>\]]*)?))/gi
+
+const trimLink = (u: string) => u.replace(/[.,;:!?)]+$/, "").toLowerCase()
 
 /** Removes every URL that is not in `allowed`. */
 export function stripDisallowedUrls(text: string, allowed: string[]): string {
-  const ok = new Set(allowed.map((u) => u.replace(/[.,;:!?)]+$/, "").toLowerCase()))
-  return text.replace(URL_RE, (u) => (ok.has(u.replace(/[.,;:!?)]+$/, "").toLowerCase()) ? u : "")).replace(/[ \t]{2,}/g, " ").trim()
+  const ok = new Set(allowed.map(trimLink))
+  return text.replace(URL_RE, (u) => (ok.has(trimLink(u)) ? u : "")).replace(/[ \t]{2,}/g, " ").trim()
 }
 
 /** URLs that appear in trusted knowledge text (offer, FAQ answers, caption). */
