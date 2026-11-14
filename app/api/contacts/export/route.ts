@@ -1,12 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { getSessionUserId } from "@/lib/auth"
-
-function csvEscape(value: any): string {
-  const str = value === null || value === undefined ? "" : String(value)
-  if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`
-  return str
-}
+import { csvEscape } from "@/lib/contacts/csv"
 
 export async function GET(request: NextRequest) {
   try {
