@@ -5,7 +5,8 @@
  * Why: an owner types any URL, so the server must not be steerable into internal services. Rules (lib/webhooks/ssrf.ts):
  * https only, port 443, no credentials, no localhost-style names, EVERY resolved address public; we connect to the validated
  * IP (DNS pinning) while keeping TLS verification on the real host name. Redirects are followed at most 3 times and every hop is
- * re-validated (a redirect to a private address is refused). 8s total timeout per hop, 1.5 MB cap, text/html or text/plain only.
+ * re-validated (a redirect to a private address is refused). 8s TOTAL time per hop (a socket idle timeout alone would let a server
+ * drip one byte every 7 seconds for ever), 1.5 MB cap, text/html or text/plain only.
  * One page per source: this is not a crawler. Node runtime only.
  */
 import https from "node:https"
@@ -23,6 +24,8 @@ export interface PageDeps {
   /** Replaceable in tests. */
   lookup?: (host: string) => Promise<{ address: string; family: number }[]>
   request?: typeof https.request
+  /** Total time for one hop (replaceable in tests). Default PAGE_TIMEOUT_MS. */
+  timeoutMs?: number
 }
 
 /** One validated hop. Returns the status, headers and body (capped) or an error string. Never follows redirects itself. */
@@ -35,7 +38,9 @@ async function hop(rawUrl: string, deps: PageDeps): Promise<{ ok: true; status: 
   const req = deps.request ?? https.request
   return new Promise((resolve) => {
     let settled = false
-    const done = (v: any) => { if (!settled) { settled = true; resolve(v) } }
+    let req2: { destroy: (e?: Error) => any } | null = null
+    const deadline = setTimeout(() => { done({ ok: false, error: "The page took too long to respond." }); try { req2?.destroy() } catch { /* already closed */ } }, deps.timeoutMs ?? PAGE_TIMEOUT_MS)
+    const done = (v: any) => { if (!settled) { settled = true; clearTimeout(deadline); resolve(v) } }
     const r = req(
       {
         host: target.address, family: target.family, port: 443, path: `${url.pathname}${url.search}`, method: "GET", servername: url.hostname,
@@ -56,6 +61,7 @@ async function hop(rawUrl: string, deps: PageDeps): Promise<{ ok: true; status: 
         res.on("error", () => done({ ok: false, error: "The page could not be read." }))
       },
     )
+    req2 = r
     r.on("timeout", () => r.destroy(new Error("timeout")))
     r.on("error", (e: Error) => done({ ok: false, error: /timeout/i.test(e.message) ? "The page took too long to respond." : "The page could not be reached." }))
     r.end()
