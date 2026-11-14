@@ -39,6 +39,12 @@ export async function PUT(request: NextRequest) {
     const store = createAgentStore(rawQuery)
     const cur = await store.getConnector(u.userId)
     if (!cur && !key) return NextResponse.json({ error: "Paste the API key from your AiSend dashboard." }, { status: 400 })
+    // A stored key must never be re-aimed at a different host by a request that does not know the key (stolen session, CSRF-like abuse).
+    if (cur && !key) {
+      let sameHost = false
+      try { sameHost = new URL(String(cur.url)).origin === new URL(base.base).origin } catch { /* treated as different */ }
+      if (!sameHost) return NextResponse.json({ error: "You changed the AiSend address. Paste the API key again to confirm." }, { status: 400 })
+    }
     await store.saveConnector(u.userId, aiSendIngestUrl(base.base)!, key ? storeSecret(key) : null, body?.enabled !== false, [LEAD_EVENT_WHATSAPP, LEAD_EVENT_EMAIL])
     await store.saveSettings(u.userId, { connectorSkipped: false })
     return NextResponse.json(view(await store.getConnector(u.userId)))

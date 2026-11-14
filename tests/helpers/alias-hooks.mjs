@@ -13,6 +13,7 @@ const stubs = {
 
 export async function resolve(specifier, context, nextResolve) {
   if (stubs[specifier]) return { url: pathToFileURL(path.join(root, stubs[specifier])).href, shortCircuit: true }
+  if (/^next\/[a-z-]+$/.test(specifier)) return nextResolve(specifier + ".js", context) // ESM needs the extension
   if (specifier.startsWith("@/")) {
     const base = path.join(root, specifier.slice(2))
     for (const ext of [".ts", ".tsx", "/index.ts", ""]) {
